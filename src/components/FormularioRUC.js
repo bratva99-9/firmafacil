@@ -449,30 +449,51 @@ const FormularioRUC = ({ onBack, user }) => {
       setLoadingRUC(true);
       
       try {
-        const resultado = await consultarRUC(ruc);
+        // Consultar tanto RUC como cédula para obtener todos los datos
+        const [resultadoRUC, resultadoCedula] = await Promise.all([
+          consultarRUC(ruc),
+          consultarCedula(ced)
+        ]);
         
-        if (resultado.success) {
-          setRucData(resultado.data);
+        if (resultadoRUC.success) {
+          setRucData(resultadoRUC.data);
           
           // Cargar datos del RUC y cédula en el formulario
           setFormData(prev => ({
             ...prev,
             // Datos del RUC
-            actividad_economica: resultado.data.actividad_economica_principal || '',
-            fecha_inicio_actividades: resultado.data.fecha_inicio_actividades ? 
-              resultado.data.fecha_inicio_actividades.split(' ')[0] : '',
-            ruc: resultado.data.numero_ruc || '',
-            // Datos de la cédula
-            nombres: resultado.data.nombres || '',
-            apellidos: resultado.data.apellidos || '',
-            edad: resultado.data.edad || '',
-            genero: resultado.data.genero || '',
-            nacionalidad: resultado.data.nacionalidad || '',
-            provincia: resultado.data.provincia || '',
-            ciudad: resultado.data.ciudad || '',
-            parroquia: resultado.data.parroquia || '',
-            direccion: resultado.data.direccion || ''
+            actividad_economica: resultadoRUC.data.actividad_economica_principal || '',
+            fecha_inicio_actividades: resultadoRUC.data.fecha_inicio_actividades ? 
+              resultadoRUC.data.fecha_inicio_actividades.split(' ')[0] : '',
+            ruc: resultadoRUC.data.numero_ruc || ced + '001',
+            // Datos de la cédula (priorizar datos de consultaCedula si están disponibles)
+            nombres: resultadoCedula.success ? resultadoCedula.data.nombres : (resultadoRUC.data.nombres || ''),
+            apellidos: resultadoCedula.success ? resultadoCedula.data.apellidos : (resultadoRUC.data.apellidos || ''),
+            edad: resultadoCedula.success ? resultadoCedula.data.edad : (resultadoRUC.data.edad || ''),
+            genero: resultadoCedula.success ? resultadoCedula.data.genero : (resultadoRUC.data.genero || ''),
+            nacionalidad: resultadoCedula.success ? resultadoCedula.data.nacionalidad : (resultadoRUC.data.nacionalidad || ''),
+            provincia: normalizarProvincia(resultadoCedula.success ? resultadoCedula.data.provincia : (resultadoRUC.data.provincia || '')),
+            ciudad: resultadoCedula.success ? resultadoCedula.data.ciudad : (resultadoRUC.data.ciudad || ''),
+            parroquia: resultadoCedula.success ? resultadoCedula.data.parroquia : (resultadoRUC.data.parroquia || ''),
+            direccion: resultadoCedula.success ? resultadoCedula.data.direccion : (resultadoRUC.data.direccion || '')
           }));
+          
+          console.log('✅ Datos cargados en formulario:', {
+            nombres: resultadoCedula.success ? resultadoCedula.data.nombres : (resultadoRUC.data.nombres || ''),
+            apellidos: resultadoCedula.success ? resultadoCedula.data.apellidos : (resultadoRUC.data.apellidos || ''),
+            edad: resultadoCedula.success ? resultadoCedula.data.edad : (resultadoRUC.data.edad || ''),
+            genero: resultadoCedula.success ? resultadoCedula.data.genero : (resultadoRUC.data.genero || ''),
+            nacionalidad: resultadoCedula.success ? resultadoCedula.data.nacionalidad : (resultadoRUC.data.nacionalidad || ''),
+            provincia: normalizarProvincia(resultadoCedula.success ? resultadoCedula.data.provincia : (resultadoRUC.data.provincia || '')),
+            ciudad: resultadoCedula.success ? resultadoCedula.data.ciudad : (resultadoRUC.data.ciudad || ''),
+            parroquia: resultadoCedula.success ? resultadoCedula.data.parroquia : (resultadoRUC.data.parroquia || ''),
+            direccion: resultadoCedula.success ? resultadoCedula.data.direccion : (resultadoRUC.data.direccion || '')
+          });
+          
+          console.log('🏛️ Provincia normalizada:', {
+            original: resultadoCedula.success ? resultadoCedula.data.provincia : (resultadoRUC.data.provincia || ''),
+            normalizada: normalizarProvincia(resultadoCedula.success ? resultadoCedula.data.provincia : (resultadoRUC.data.provincia || ''))
+          });
           
           // Limpiar errores
           setErrors(prev => ({
@@ -485,18 +506,18 @@ const FormularioRUC = ({ onBack, user }) => {
           let tipoSeleccionado = '';
           let mensajeError = '';
           
-          if (resultado.data.sin_ruc) {
+          if (resultadoRUC.data.sin_ruc) {
             // Persona sin RUC - Primera vez
             tipoSeleccionado = 'primera_vez';
           } else {
-            const estado = resultado.data.estado_contribuyente_ruc?.toUpperCase();
+            const estado = resultadoRUC.data.estado_contribuyente_ruc?.toUpperCase();
             
             if (estado === 'ACTIVO') {
               // RUC activo - No aplica para el servicio
               mensajeError = 'Este RUC está actualmente ACTIVO y no aplica para el servicio de RUC con antigüedad.';
             } else if (estado === 'SUSPENDIDO') {
               // Verificar motivo de suspensión
-              const motivoCese = resultado.data.motivo_cancelacion_suspension?.toLowerCase();
+              const motivoCese = resultadoRUC.data.motivo_cancelacion_suspension?.toLowerCase();
               if (motivoCese && motivoCese.includes('cese')) {
                 tipoSeleccionado = 'reactivacion_cese';
               } else if (motivoCese && motivoCese.includes('depuracion')) {
@@ -528,17 +549,17 @@ const FormularioRUC = ({ onBack, user }) => {
             }));
           }
           
-          console.log('✅ RUC validado exitosamente:', resultado.data);
+          console.log('✅ RUC validado exitosamente:', resultadoRUC.data);
           console.log('🎯 Tipo seleccionado automáticamente:', tipoSeleccionado);
           console.log('⚠️ Mensaje de error:', mensajeError);
-          console.log('👤 Nombres recibidos:', resultado.data.nombres);
-          console.log('👤 Apellidos recibidos:', resultado.data.apellidos);
-          console.log('👤 Razón social:', resultado.data.razon_social);
+          console.log('👤 Nombres recibidos:', resultadoRUC.data.nombres);
+          console.log('👤 Apellidos recibidos:', resultadoRUC.data.apellidos);
+          console.log('👤 Razón social:', resultadoRUC.data.razon_social);
         } else {
           // Mostrar error si no se encontró el RUC
           setErrors(prev => ({
             ...prev,
-            ruc_validation: resultado.error || 'RUC no encontrado en el sistema'
+            ruc_validation: resultadoRUC.error || 'RUC no encontrado en el sistema'
           }));
           setRucData(null);
         }
@@ -569,6 +590,62 @@ const FormularioRUC = ({ onBack, user }) => {
     'Sucumbíos', 'Tungurahua', 'Zamora Chinchipe'
   ];
 
+  // Función para normalizar nombres de provincias
+  const normalizarProvincia = (provinciaAPI) => {
+    if (!provinciaAPI) return '';
+    
+    const provinciaLower = provinciaAPI.toLowerCase().trim();
+    
+    // Mapeo de variaciones comunes de nombres de provincias
+    const mapeoProvincias = {
+      'guayaquil': 'Guayas',
+      'quito': 'Pichincha',
+      'cuenca': 'Azuay',
+      'ambato': 'Tungurahua',
+      'machala': 'El Oro',
+      'portoviejo': 'Manabí',
+      'loja': 'Loja',
+      'ibarra': 'Imbabura',
+      'tulcan': 'Carchi',
+      'riobamba': 'Chimborazo',
+      'latacunga': 'Cotopaxi',
+      'babahoyo': 'Los Ríos',
+      'esmeraldas': 'Esmeraldas',
+      'milagro': 'Guayas',
+      'santa elena': 'Santa Elena',
+      'santo domingo': 'Santo Domingo de los Tsáchilas',
+      'macas': 'Morona Santiago',
+      'tena': 'Napo',
+      'el coca': 'Orellana',
+      'puyo': 'Pastaza',
+      'nueva loja': 'Sucumbíos',
+      'zamora': 'Zamora Chinchipe',
+      'puerto baquerizo moreno': 'Galápagos',
+      'guaranda': 'Bolívar',
+      'azogues': 'Cañar'
+    };
+    
+    // Buscar coincidencia exacta
+    const coincidenciaExacta = provincias.find(p => 
+      p.toLowerCase() === provinciaLower
+    );
+    if (coincidenciaExacta) return coincidenciaExacta;
+    
+    // Buscar coincidencia parcial
+    const coincidenciaParcial = provincias.find(p => 
+      p.toLowerCase().includes(provinciaLower) || 
+      provinciaLower.includes(p.toLowerCase())
+    );
+    if (coincidenciaParcial) return coincidenciaParcial;
+    
+    // Buscar en el mapeo
+    const mapeo = mapeoProvincias[provinciaLower];
+    if (mapeo) return mapeo;
+    
+    // Si no encuentra coincidencia, devolver la provincia original
+    return provinciaAPI;
+  };
+
   const bancos = [
     'Banco Pichincha', 'Banco del Pacífico', 'Banco de Guayaquil',
     'Banco Internacional', 'Produbanco', 'Banco Bolivariano',
@@ -584,11 +661,11 @@ const FormularioRUC = ({ onBack, user }) => {
   const obtenerPrecioRUC = () => {
     switch (formData.tipo_ruc_antiguedad) {
       case 'primera_vez':
-        return 60.00;
+        return 45.00;
       case 'reactivacion_cese':
-        return 70.00;
+        return 60.00;
       case 'reactivacion_depuracion':
-        return 100.00;
+        return 80.00;
       case 'retroactividad':
         return 300.00;
       default:
@@ -1387,7 +1464,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontWeight: '600',
                     textAlign: 'center'
                   }}>
-                    $60
+                    $45
                   </div>
               </div>
 
@@ -1453,7 +1530,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontWeight: '600',
                     textAlign: 'center'
                   }}>
-                    $70
+                    $60
                   </div>
                 </div>
 
@@ -1519,7 +1596,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontWeight: '600',
                     textAlign: 'center'
                   }}>
-                    $100
+                    $80
                   </div>
                 </div>
 
@@ -1641,13 +1718,13 @@ const FormularioRUC = ({ onBack, user }) => {
                   🎉
                 </div>
                 <h4 style={{ margin: '0', color: '#92400e', fontSize: '18px', fontWeight: '700' }}>
-                  Promociones por Apertura de RUC
+                  Servicios complementarios con la apertura de tu RUC con antiguedad
                 </h4>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
                 <p style={{ margin: '0', color: '#92400e', fontSize: '14px', lineHeight: '1.5', fontWeight: '600' }}>
-                  ¡Aprovecha estos servicios adicionales con precios especiales de apertura!
+                  ¡Aprovecha estos servicios adicionales con precios especiales de apertura! escoge los servicios que necesites adiciconales que necesites.
                 </p>
               </div>
 
@@ -1714,7 +1791,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontSize: '11px', 
                     lineHeight: '1.3' 
                   }}>
-                    Firma electrónica válida por 1 año para trámites bancarios y visa
+                     Válida por 1 año con validez total y autorizada para facturacion electronica
                   </p>
                   <div style={{
                     background: formData.complementos?.includes('firma_electronica') ? '#f59e0b' : '#6b7280',
@@ -1726,7 +1803,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     textAlign: 'center',
                     marginBottom: '4px'
                   }}>
-                    $5.00
+                    $8.00
                   </div>
                   <div style={{
                     background: '#fef3c7',
@@ -2279,7 +2356,7 @@ const FormularioRUC = ({ onBack, user }) => {
                 >
                   <option value="">Selecciona una provincia</option>
                   {provincias.map(provincia => (
-                    <option key={provincia} value={provincia}>{provincia}</option>
+                    <option key={provincia} value={provincia}>{provincia.toUpperCase()}</option>
                   ))}
                 </select>
                 {errors.provincia && (
