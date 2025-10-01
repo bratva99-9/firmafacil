@@ -1380,7 +1380,9 @@ const FormularioRUC = ({ onBack, user }) => {
                     onChange={handleInputChange}
                     className="form-input"
                     placeholder="Ej: 1234567890"
-                    maxLength="10"
+                  maxLength="10"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   />
                   {errors.numero_cedula && (
                     <div className="error-message">
