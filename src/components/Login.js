@@ -133,16 +133,16 @@ const Login = ({ onLoginSuccess }) => {
       background: white;
       color: #374151;
       border: 2px solid #e5e7eb;
-      padding: 14px 24px;
+      padding: 12px 20px;
       border-radius: 12px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       margin-bottom: 20px;
       width: 100%;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -161,8 +161,8 @@ const Login = ({ onLoginSuccess }) => {
     }
 
     .google-icon {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     .divider {
@@ -183,6 +183,27 @@ const Login = ({ onLoginSuccess }) => {
 
     .divider span {
       padding: 0 16px;
+    }
+
+    @media (max-width: 768px) {
+      .login-wrapper {
+        padding: 30px 15px 15px;
+        align-items: flex-start;
+      }
+      
+      .login-container {
+        padding: 30px 25px;
+        max-width: 100%;
+        margin-top: 0;
+      }
+      
+      .login-title {
+        font-size: 20px;
+      }
+      
+      .login-subtitle {
+        font-size: 14px;
+      }
     }
   `;
 

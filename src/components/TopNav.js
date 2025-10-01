@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import UserProfile from './UserProfile';
 
-const TopNav = ({ user, onLogout }) => {
+const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const localStyles = `
     .top-nav {
@@ -26,17 +27,33 @@ const TopNav = ({ user, onLogout }) => {
       gap: 20px;
     }
 
+    .mobile-menu-button {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #1f2937;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .mobile-menu-button:hover {
+      background: #f3f4f6;
+    }
+
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 20px;
+      gap: 8px;
+      font-size: 18px;
       font-weight: 700;
       color: #1f2937;
     }
 
     .nav-logo-icon {
-      font-size: 24px;
+      font-size: 18px;
     }
 
     .nav-right {
@@ -207,12 +224,163 @@ const TopNav = ({ user, onLogout }) => {
       z-index: 99;
     }
 
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: none;
+    }
+
+    .mobile-menu-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+    }
+
+    .mobile-menu.open .mobile-menu-content {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-header {
+      padding: 16px 20px 16px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    .mobile-menu-logo {
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mobile-menu-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.3s ease;
+      font-weight: bold;
+      margin-left: auto;
+    }
+
+    .mobile-menu-close:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .mobile-menu-nav {
+      padding: 20px 0;
+    }
+
+    .mobile-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .mobile-nav-item:hover {
+      background: rgba(255,255,255,0.08);
+      color: white;
+      border-left-color: rgba(255,255,255,0.4);
+    }
+
+    .mobile-nav-item.active {
+      background: linear-gradient(90deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.15) 100%);
+      color: white;
+      border-left-color: #667eea;
+    }
+
+    .mobile-nav-icon {
+      font-size: 20px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .mobile-nav-content {
+      flex: 1;
+    }
+
+    .mobile-nav-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .mobile-nav-description {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .mobile-menu-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .mobile-logout-button {
+      width: 100%;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .mobile-logout-button:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #f87171;
+    }
+
     @media (max-width: 768px) {
       .top-nav {
         padding: 12px 20px;
       }
       
+      .mobile-menu-button {
+        display: block;
+      }
+      
       .nav-logo {
+        font-size: 16px;
+      }
+      
+      .nav-logo-icon {
         font-size: 18px;
       }
       
@@ -223,6 +391,10 @@ const TopNav = ({ user, onLogout }) => {
       .profile-dropdown {
         min-width: 280px;
         right: -20px;
+      }
+
+      .mobile-menu {
+        display: block;
       }
     }
   `;
@@ -274,6 +446,39 @@ const TopNav = ({ user, onLogout }) => {
     };
   };
 
+  const servicios = [
+    {
+      id: 'home',
+      titulo: 'Inicio',
+      icono: '🏠',
+      descripcion: 'Panel principal'
+    },
+    {
+      id: 'enviar-tramites',
+      titulo: 'Enviar Trámites',
+      icono: '📤',
+      descripcion: 'Enviar solicitudes'
+    },
+    {
+      id: 'consultar-estado',
+      titulo: 'Consultar Estado',
+      icono: '🔍',
+      descripcion: 'Estado de trámites'
+    },
+    {
+      id: 'trabajar-nosotros',
+      titulo: 'Trabaja con Nosotros',
+      icono: '🤝',
+      descripcion: 'Oportunidades laborales'
+    },
+    {
+      id: 'ayuda',
+      titulo: 'Ayuda',
+      icono: '❓',
+      descripcion: 'Soporte y ayuda'
+    }
+  ];
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -292,6 +497,12 @@ const TopNav = ({ user, onLogout }) => {
         <style>{localStyles}</style>
         
         <div className="nav-left">
+          <button 
+            className="mobile-menu-button"
+            onClick={() => setShowMobileMenu(true)}
+          >
+            ☰
+          </button>
           <div className="nav-logo">
             <span className="nav-logo-icon">🔐</span>
             <span>FIRMAFACIL SAS</span>
@@ -377,6 +588,63 @@ const TopNav = ({ user, onLogout }) => {
           user={user} 
           onClose={() => setShowProfileModal(false)} 
         />
+      )}
+
+      {showMobileMenu && (
+        <div className="mobile-menu open" onClick={() => setShowMobileMenu(false)}>
+          <div className="mobile-menu-content" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-menu-header">
+              <button 
+                className="mobile-menu-close"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                ☰
+              </button>
+              <div className="mobile-menu-logo">
+                <span style={{ fontSize: '18px' }}>🔐</span>
+                <span>FIRMAFACIL SAS</span>
+              </div>
+            </div>
+
+            <nav className="mobile-menu-nav">
+              {servicios.map(servicio => (
+                <div
+                  key={servicio.id}
+                  className={`mobile-nav-item ${activeService === servicio.id ? 'active' : ''}`}
+                  onClick={() => {
+                    onServiceSelect(servicio.id);
+                    setShowMobileMenu(false);
+                  }}
+                >
+                  <span className="mobile-nav-icon">{servicio.icono}</span>
+                  <div className="mobile-nav-content">
+                    <div className="mobile-nav-title">{servicio.titulo}</div>
+                    <div className="mobile-nav-description">{servicio.descripcion}</div>
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            <div className="mobile-menu-footer">
+              <button 
+                className="mobile-logout-button"
+                onClick={async () => {
+                  try {
+                    await supabase.auth.signOut();
+                    onLogout();
+                    setShowMobileMenu(false);
+                  } catch (error) {
+                    console.error('Error al cerrar sesión:', error);
+                    onLogout();
+                    setShowMobileMenu(false);
+                  }
+                }}
+              >
+                🚪 Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

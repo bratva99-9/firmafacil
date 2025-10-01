@@ -89,7 +89,7 @@ function App() {
 
   return (
     <div className="App">
-      <TopNav user={user} onLogout={handleLogout} />
+      <TopNav user={user} onLogout={handleLogout} activeService={activeService} onServiceSelect={handleServiceSelect} />
       <Sidebar activeService={activeService} onServiceSelect={handleServiceSelect} onLogout={handleLogout} />
       <MainContent activeService={activeService} onServiceSelect={handleServiceSelect} user={user} />
     </div>
