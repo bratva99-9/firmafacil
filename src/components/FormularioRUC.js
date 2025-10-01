@@ -325,7 +325,14 @@ const FormularioRUC = ({ onBack, user }) => {
     actividad_economica: '',
     tipo_banco: '',
     tipo_ruc_antiguedad: '',
-    complementos: []
+    complementos: [],
+    // Nuevos campos para el paso 4
+    codigo_cuen: '',
+    direccion_completa: '',
+    lugar_referencia: '',
+    nombre_comercial: '',
+    actividad_sri: '',
+    antiguedad_solicitada: '12 meses'
   });
 
   const [archivos, setArchivos] = useState({
@@ -345,7 +352,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
   // Wizard por pasos
   const [step, setStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 6;
   const goNext = () => setStep((s) => Math.min(totalSteps, s + 1));
   const goBack = () => setStep((s) => Math.max(1, s - 1));
 
@@ -370,10 +377,17 @@ const FormularioRUC = ({ onBack, user }) => {
         !!formData.parroquia &&
         !!formData.direccion &&
         /^\d{10}$/.test(formData.celular || '') &&
-        (formData.correo || '').includes('@')
+        (formData.correo || '').includes('@') &&
+        !!formData.codigo_cuen
       );
     }
     if (step === 4) {
+      return (
+        !!formData.actividad_sri &&
+        !!formData.antiguedad_solicitada
+      );
+    }
+    if (step === 5) {
       return !!archivos.cedula_frontal && !!archivos.cedula_atras && !!archivos.selfie;
     }
     return true;
@@ -495,6 +509,8 @@ const FormularioRUC = ({ onBack, user }) => {
             normalizada: normalizarProvincia(resultadoCedula.success ? resultadoCedula.data.provincia : (resultadoRUC.data.provincia || ''))
           });
           
+          console.log('📋 Servicios seleccionados automáticamente:', ['declaraciones']);
+          
           // Limpiar errores
           setErrors(prev => ({
             ...prev,
@@ -532,11 +548,12 @@ const FormularioRUC = ({ onBack, user }) => {
             }
           }
           
-          // Actualizar el tipo seleccionado
+          // Actualizar el tipo seleccionado y seleccionar declaraciones por defecto
           if (tipoSeleccionado) {
             setFormData(prev => ({
               ...prev,
-              tipo_ruc_antiguedad: tipoSeleccionado
+              tipo_ruc_antiguedad: tipoSeleccionado,
+              complementos: ['declaraciones'] // Seleccionar declaraciones por defecto
             }));
             setSeleccionAutomatica(true);
           }
@@ -654,6 +671,31 @@ const FormularioRUC = ({ onBack, user }) => {
     'Banco Comercial de Manabí', 'Banco Coopnacional'
   ];
 
+  const actividadesSRI = [
+    'Comercio al por mayor y por menor',
+    'Servicios profesionales',
+    'Construcción',
+    'Manufactura',
+    'Agricultura y ganadería',
+    'Transporte y almacenamiento',
+    'Alojamiento y servicios de comida',
+    'Información y comunicaciones',
+    'Actividades financieras y de seguros',
+    'Actividades inmobiliarias',
+    'Actividades de servicios administrativos',
+    'Enseñanza',
+    'Actividades de atención de la salud',
+    'Actividades artísticas y de entretenimiento',
+    'Otras actividades de servicios'
+  ];
+
+  const antiguedadesRUC = [
+    '3 meses',
+    '6 meses',
+    '9 meses',
+    '12 meses'
+  ];
+
   // Precio fijo para RUC con antigüedad
   const precioRUC = 25.00;
 
@@ -679,7 +721,7 @@ const FormularioRUC = ({ onBack, user }) => {
     let total = 0;
     
     if (complementos.includes('firma_electronica')) {
-      total += 5.00; // Precio promocional
+      total += 8.00; // Precio actualizado
     }
     
     if (complementos.includes('declaraciones')) {
@@ -696,6 +738,21 @@ const FormularioRUC = ({ onBack, user }) => {
   // Función para obtener el precio total
   const obtenerPrecioTotal = () => {
     return obtenerPrecioRUC() + obtenerPrecioComplementos();
+  };
+
+  // Función para formatear fechas de manera legible
+  const formatearFechaLegible = (fecha) => {
+    if (!fecha) return '';
+    
+    const fechaObj = new Date(fecha);
+    const opciones = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'America/Guayaquil'
+    };
+    
+    return fechaObj.toLocaleDateString('es-EC', opciones);
   };
 
   // Función para obtener el mensaje según el estado del RUC
@@ -856,6 +913,18 @@ const FormularioRUC = ({ onBack, user }) => {
       newErrors.tipo_banco = 'Selecciona un banco';
     }
 
+    if (!formData.codigo_cuen) {
+      newErrors.codigo_cuen = 'Ingresa el código CUEN de la planilla de luz';
+    }
+
+    if (!formData.actividad_sri) {
+      newErrors.actividad_sri = 'Selecciona una actividad del SRI';
+    }
+
+    if (!formData.antiguedad_solicitada) {
+      newErrors.antiguedad_solicitada = 'Selecciona la antigüedad solicitada';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -882,6 +951,12 @@ const FormularioRUC = ({ onBack, user }) => {
         tipo_banco: formData.tipo_banco,
         fecha_inicio_actividades: formData.fecha_inicio_actividades,
         actividad_economica: formData.actividad_economica,
+        codigo_cuen: formData.codigo_cuen,
+        direccion_completa: formData.direccion_completa,
+        lugar_referencia: formData.lugar_referencia,
+        nombre_comercial: formData.nombre_comercial,
+        actividad_sri: formData.actividad_sri,
+        antiguedad_solicitada: formData.antiguedad_solicitada,
         estado_tramite: 'pendiente',
         correo_distribuidor: user?.email || null
       });
@@ -992,7 +1067,7 @@ const FormularioRUC = ({ onBack, user }) => {
           {/* Barra de progreso */}
           <div style={{ padding: '20px 30px', display: 'flex', justifyContent: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: '400px', width: '100%' }}>
-              {[1,2,3,4,5].map((n) => (
+              {[1,2,3,4,5,6].map((n) => (
                 <div key={n} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{
                     width: 28,
@@ -1005,7 +1080,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     justifyContent: 'center',
                     fontWeight: 700
                   }}>{n}</div>
-                  {n < 5 && (
+                  {n < 6 && (
                     <div style={{
                       flex: 1,
                       height: 6,
@@ -1194,18 +1269,36 @@ const FormularioRUC = ({ onBack, user }) => {
                         <span style={{ fontWeight: '600', color: '#1e293b' }}>Información Principal</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        <div><strong>RUC:</strong> {rucData.numero_ruc}</div>
-                        <div><strong>Estado:</strong> 
-                          <span style={{ 
-                            color: rucData.estado_contribuyente_ruc === 'ACTIVO' ? '#10b981' : '#ef4444',
-                            fontWeight: '600',
-                            marginLeft: '4px'
-                          }}>
-                            {rucData.estado_contribuyente_ruc}
-                          </span>
+                        <div>
+                          <div><strong>RUC:</strong> {rucData.numero_ruc}</div>
+                          <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                            <strong>Razón Social:</strong> {rucData.razon_social}
+                          </div>
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <strong>Razón Social:</strong> {rucData.razon_social}
+                        <div>
+                          <div><strong>Estado:</strong> 
+                            <span style={{ 
+                              color: rucData.estado_contribuyente_ruc === 'ACTIVO' ? '#10b981' : '#ef4444',
+                              fontWeight: '600',
+                              marginLeft: '4px'
+                            }}>
+                              {rucData.estado_contribuyente_ruc}
+                            </span>
+                          </div>
+                          {/* Mostrar motivo de suspensión si está suspendido */}
+                          {rucData.estado_contribuyente_ruc?.toUpperCase() === 'SUSPENDIDO' && rucData.motivo_cancelacion_suspension && (
+                            <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                              <strong>Motivo:</strong> 
+                              <span style={{ 
+                                color: (rucData.motivo_cancelacion_suspension.toLowerCase().includes('depuracion') || 
+                                       rucData.motivo_cancelacion_suspension.toLowerCase().includes('cese')) ? '#ef4444' : '#d97706',
+                                fontWeight: '600',
+                                marginLeft: '4px'
+                              }}>
+                                {rucData.motivo_cancelacion_suspension}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1244,16 +1337,16 @@ const FormularioRUC = ({ onBack, user }) => {
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                           {rucData.fecha_inicio_actividades && (
-                            <div><strong>Inicio Actividades:</strong> {new Date(rucData.fecha_inicio_actividades).toLocaleDateString('es-EC')}</div>
+                            <div><strong>Inicio Actividades:</strong> {formatearFechaLegible(rucData.fecha_inicio_actividades)}</div>
                           )}
                           {rucData.fecha_cese && (
-                            <div><strong>Fecha Cese:</strong> {rucData.fecha_cese}</div>
+                            <div><strong>Fecha Cese:</strong> {formatearFechaLegible(rucData.fecha_cese)}</div>
                           )}
                           {rucData.fecha_reinicio_actividades && (
-                            <div><strong>Fecha Reinicio:</strong> {rucData.fecha_reinicio_actividades}</div>
+                            <div><strong>Fecha Reinicio:</strong> {formatearFechaLegible(rucData.fecha_reinicio_actividades)}</div>
                           )}
                           {rucData.fecha_actualizacion && (
-                            <div><strong>Última Actualización:</strong> {new Date(rucData.fecha_actualizacion).toLocaleDateString('es-EC')}</div>
+                            <div><strong>Última Actualización:</strong> {formatearFechaLegible(rucData.fecha_actualizacion)}</div>
                           )}
                         </div>
                       </div>
@@ -1384,7 +1477,7 @@ const FormularioRUC = ({ onBack, user }) => {
                   📋
                 </div>
                 <h4 style={{ margin: '0', color: '#0369a1', fontSize: '18px', fontWeight: '700' }}>
-                  Tipo de RUC con Antigüedad
+                  Tipo de tramite
                 </h4>
               </div>
 
@@ -1724,7 +1817,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
               <div style={{ marginBottom: '16px' }}>
                 <p style={{ margin: '0', color: '#92400e', fontSize: '14px', lineHeight: '1.5', fontWeight: '600' }}>
-                  ¡Aprovecha estos servicios adicionales con precios especiales de apertura! escoge los servicios que necesites adiciconales que necesites.
+                  ¡Aprovecha estos servicios adicionales con precios especiales de apertura! escoge los servicios adiciconales que necesites.
                 </p>
               </div>
 
@@ -1791,7 +1884,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontSize: '11px', 
                     lineHeight: '1.3' 
                   }}>
-                     Válida por 1 año con validez total y autorizada para facturacion electronica
+                     Válida por 1 año con validez legal y autorizada para facturacion electronica
                   </p>
                   <div style={{
                     background: formData.complementos?.includes('firma_electronica') ? '#f59e0b' : '#6b7280',
@@ -2002,7 +2095,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontSize: '10px',
                     textDecoration: 'line-through'
                   }}>
-                    Normal: $10.00
+                    Normal: $8.00
                   </div>
                 </div>
               </div>
@@ -2060,7 +2153,7 @@ const FormularioRUC = ({ onBack, user }) => {
                           + Firma Electrónica (1 año)
                         </span>
                         <span style={{ fontSize: '16px', fontWeight: '600', color: '#f59e0b' }}>
-                          $5.00
+                          $8.00
                         </span>
                       </div>
                     )}
@@ -2247,9 +2340,13 @@ const FormularioRUC = ({ onBack, user }) => {
                   type="text"
                   name="codigo_huella"
                   value={formData.codigo_huella}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    handleInputChange({ target: { name: 'codigo_huella', value } });
+                  }}
                   className="form-input"
                   placeholder="Código de huella dactilar"
+                  style={{ textTransform: 'uppercase' }}
                 />
                 {errors.codigo_huella && (
                   <div className="error-message">
@@ -2274,7 +2371,7 @@ const FormularioRUC = ({ onBack, user }) => {
               </svg>
               <div>
                 <h3 className="section-title">Información de Contacto</h3>
-                <p className="section-description">Datos para comunicarnos contigo</p>
+                <p className="section-description">Datos donde llegaran las notificaciones y actualizaciones de tu tramite</p>
               </div>
             </div>
 
@@ -2338,7 +2435,7 @@ const FormularioRUC = ({ onBack, user }) => {
               </svg>
               <div>
                 <h3 className="section-title">Dirección de Residencia</h3>
-                <p className="section-description">Información de tu ubicación actual</p>
+                <p className="section-description">Información de tu direccion domiciliaria</p>
               </div>
             </div>
 
@@ -2440,13 +2537,204 @@ const FormularioRUC = ({ onBack, user }) => {
                 )}
               </div>
             </div>
+
+            {/* Dirección Comercial que Reflejará en el SRI */}
+            <div className="section" style={{ marginLeft: '-20px' }}>
+              <div className="section-header">
+                <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
+                </svg>
+                <div>
+                  <h3 className="section-title">Dirección Comercial que Reflejará en el SRI</h3>
+                  <p className="section-description">Información comercial para el registro en el SRI</p>
+                </div>
+              </div>
+
+              <div className="grid" style={{ gridTemplateColumns: '200px 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label">
+                    Código CUEN de Planilla de Luz
+                    <span className="required-asterisk">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="codigo_cuen"
+                    value={formData.codigo_cuen}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      handleInputChange({ target: { name: 'codigo_cuen', value } });
+                    }}
+                    className="form-input"
+                    placeholder="Código CUEN (10 dígitos)"
+                    maxLength="10"
+                    style={{ width: '200px' }}
+                  />
+                  {errors.codigo_cuen && (
+                    <div className="error-message">
+                      <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                      {errors.codigo_cuen}
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Nombre Comercial de tu Negocio (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    name="nombre_comercial"
+                    value={formData.nombre_comercial}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase();
+                      handleInputChange({ target: { name: 'nombre_comercial', value } });
+                    }}
+                    className="form-input"
+                    placeholder="Ej: Supermercado El Ahorro, Farmacia San José"
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                  {errors.nombre_comercial && (
+                    <div className="error-message">
+                      <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                      {errors.nombre_comercial}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label">
+                    Dirección Completa del Establecimiento (Opcional)
+                  </label>
+                  <textarea
+                    name="direccion_completa"
+                    value={formData.direccion_completa}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase();
+                      handleInputChange({ target: { name: 'direccion_completa', value } });
+                    }}
+                    className="form-textarea"
+                    placeholder="Dirección completa del establecimiento comercial"
+                    rows="2"
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                  {errors.direccion_completa && (
+                    <div className="error-message">
+                      <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                      {errors.direccion_completa}
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Lugar de Referencia (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    name="lugar_referencia"
+                    value={formData.lugar_referencia}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase();
+                      handleInputChange({ target: { name: 'lugar_referencia', value } });
+                    }}
+                    className="form-input"
+                    placeholder="Ej: Frente al parque, cerca del mercado"
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                  {errors.lugar_referencia && (
+                    <div className="error-message">
+                      <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
+                      {errors.lugar_referencia}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
           )}
 
-          {/* (Se elimina Configuración de Clave según flujo de 5 pasos) */}
-
-          {/* Paso 4: Documentos */}
+          {/* Paso 4: Información del Negocio */}
           {step === 4 && (
+          <div className="section">
+            <div className="section-header">
+              <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
+              </svg>
+              <div>
+                <h3 className="section-title">Información del Negocio</h3>
+                <p className="section-description">Datos específicos de tu actividad comercial</p>
+              </div>
+            </div>
+
+
+            <div className="grid grid-2">
+              <div className="form-group">
+                <label className="form-label">
+                  Actividad Económica del SRI
+                  <span className="required-asterisk">*</span>
+                </label>
+                <select
+                  name="actividad_sri"
+                  value={formData.actividad_sri}
+                  onChange={handleInputChange}
+                  className="form-select"
+                >
+                  <option value="">Selecciona una actividad</option>
+                  {actividadesSRI.map(actividad => (
+                    <option key={actividad} value={actividad}>{actividad}</option>
+                  ))}
+                </select>
+                {errors.actividad_sri && (
+                  <div className="error-message">
+                    <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    {errors.actividad_sri}
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Antigüedad Solicitada del RUC
+                  <span className="required-asterisk">*</span>
+                </label>
+                <select
+                  name="antiguedad_solicitada"
+                  value={formData.antiguedad_solicitada}
+                  onChange={handleInputChange}
+                  className="form-select"
+                >
+                  <option value="">Selecciona la antigüedad</option>
+                  {antiguedadesRUC.map(antiguedad => (
+                    <option key={antiguedad} value={antiguedad}>{antiguedad}</option>
+                  ))}
+                </select>
+                {errors.antiguedad_solicitada && (
+                  <div className="error-message">
+                    <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    {errors.antiguedad_solicitada}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* Paso 5: Documentos */}
+          {step === 5 && (
           <div className="section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -2558,8 +2846,8 @@ const FormularioRUC = ({ onBack, user }) => {
           </div>
           )}
 
-          {/* Paso 5: Pago y Envío */}
-          {step === 5 && (
+          {/* Paso 6: Pago y Envío */}
+          {step === 6 && (
           <div className="section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -2695,20 +2983,79 @@ const FormularioRUC = ({ onBack, user }) => {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ color: '#374151', fontSize: '15px', fontWeight: '500' }}>
-                      RUC con Antigüedad
+                      Servicio de RUC con Antigüedad
                     </span>
                     <span style={{ fontSize: '24px', fontWeight: '800', color: '#0369a1' }}>
                       ${obtenerPrecioRUC().toFixed(2)}
                     </span>
                   </div>
+                  
+                  {/* Complementos seleccionados */}
+                  {formData.complementos && formData.complementos.length > 0 && (
+                    <div style={{ marginBottom: '8px' }}>
+                      {formData.complementos.includes('firma_electronica') && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>
+                            + Firma Electrónica (1 año)
+                          </span>
+                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#f59e0b' }}>
+                            $8.00
+                          </span>
+                        </div>
+                      )}
+                      {formData.complementos.includes('declaraciones') && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>
+                            + Declaraciones (IVA + Renta)
+                          </span>
+                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#f59e0b' }}>
+                            $15.00
+                          </span>
+                        </div>
+                      )}
+                      {formData.complementos.includes('equifax') && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>
+                            + Reporte Equifax 360
+                          </span>
+                          <span style={{ fontSize: '16px', fontWeight: '600', color: '#f59e0b' }}>
+                            $5.00
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Total */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    paddingTop: '8px',
+                    borderTop: '1px solid #e5e7eb',
+                    marginTop: '8px'
+                  }}>
+                    <span style={{ color: '#111827', fontSize: '16px', fontWeight: '700' }}>
+                      Total
+                    </span>
+                    <span style={{ fontSize: '28px', fontWeight: '800', color: '#0369a1' }}>
+                      ${obtenerPrecioTotal().toFixed(2)}
+                    </span>
+                  </div>
+                  
                   <div style={{ 
                     fontSize: '12px', 
                     color: '#64748b', 
                     textAlign: 'center',
                     paddingTop: '8px',
-                    borderTop: '1px solid #f1f5f9'
+                    borderTop: '1px solid #e5e7eb',
+                    marginTop: '8px'
                   }}>
-                    Incluye certificado digital y soporte técnico
+                    <div style={{ marginBottom: '4px', fontWeight: '600' }}>Incluye:</div>
+                    <div>• Certificado de RUC</div>
+                    <div>• Certificado de establecimiento registrado</div>
+                    <div>• Usuario y clave del SRI</div>
+                    <div>• Gestión y soporte completo</div>
                   </div>
                 </div>
               </div>
