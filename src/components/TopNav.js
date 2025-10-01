@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-// import UserProfile from './UserProfile';
+import UserProfile from './UserProfile';
 
 const TopNav = ({ user, onLogout }) => {
   const [showProfile, setShowProfile] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const localStyles = `
     .top-nav {
@@ -76,6 +77,8 @@ const TopNav = ({ user, onLogout }) => {
       font-size: 14px;
       color: white;
       font-weight: 600;
+      background-size: cover;
+      background-position: center;
     }
 
     .user-info {
@@ -144,6 +147,8 @@ const TopNav = ({ user, onLogout }) => {
       font-size: 18px;
       color: white;
       font-weight: 600;
+      background-size: cover;
+      background-position: center;
     }
 
     .profile-details h3 {
@@ -223,15 +228,50 @@ const TopNav = ({ user, onLogout }) => {
   `;
 
   const getInitials = () => {
-    const nombre = user.user_metadata?.nombre || '';
-    const apellido = user.user_metadata?.apellido || '';
-    return (nombre.charAt(0) + apellido.charAt(0)).toUpperCase() || 'U';
+    // Priorizar información de Google
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+    const firstName = user.user_metadata?.given_name || '';
+    const lastName = user.user_metadata?.family_name || '';
+    
+    if (fullName) {
+      const names = fullName.split(' ');
+      return (names[0]?.charAt(0) || '') + (names[1]?.charAt(0) || '');
+    }
+    
+    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || 'U';
   };
 
   const getUserName = () => {
-    const nombre = user.user_metadata?.nombre || '';
-    const apellido = user.user_metadata?.apellido || '';
-    return `${nombre} ${apellido}`.trim() || 'Usuario';
+    // Priorizar información de Google
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+    const firstName = user.user_metadata?.given_name || '';
+    const lastName = user.user_metadata?.family_name || '';
+    
+    if (fullName) {
+      return fullName;
+    }
+    
+    return `${firstName} ${lastName}`.trim() || 'Usuario';
+  };
+
+  const getUserAvatar = () => {
+    // Usar foto de perfil de Google si está disponible
+    return user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
+  };
+
+  const getUserInfo = () => {
+    return {
+      name: getUserName(),
+      email: user.email,
+      avatar: getUserAvatar(),
+      provider: user.app_metadata?.provider || 'email',
+      verified: user.email_confirmed_at ? true : false,
+      lastSignIn: user.last_sign_in_at,
+      createdAt: user.created_at,
+      // Información adicional de Google
+      locale: user.user_metadata?.locale,
+      emailVerified: user.user_metadata?.email_verified
+    };
   };
 
   const handleLogout = async () => {
@@ -264,8 +304,14 @@ const TopNav = ({ user, onLogout }) => {
               className={`user-button ${showProfile ? 'open' : ''}`}
               onClick={() => setShowProfile(!showProfile)}
             >
-              <div className="user-avatar">
-                {getInitials()}
+              <div 
+                className="user-avatar"
+                style={{
+                  backgroundImage: getUserAvatar() ? `url(${getUserAvatar()})` : undefined,
+                  backgroundColor: getUserAvatar() ? 'transparent' : undefined
+                }}
+              >
+                {!getUserAvatar() && getInitials()}
               </div>
               <div className="user-info">
                 <div className="user-name">{getUserName()}</div>
@@ -278,12 +324,23 @@ const TopNav = ({ user, onLogout }) => {
               <div className="profile-dropdown">
                 <div className="profile-content">
                   <div className="profile-header">
-                    <div className="profile-avatar-large">
-                      {getInitials()}
+                    <div 
+                      className="profile-avatar-large"
+                      style={{
+                        backgroundImage: getUserAvatar() ? `url(${getUserAvatar()})` : undefined,
+                        backgroundColor: getUserAvatar() ? 'transparent' : undefined
+                      }}
+                    >
+                      {!getUserAvatar() && getInitials()}
                     </div>
                     <div className="profile-details">
                       <h3>{getUserName()}</h3>
                       <p>{user.email}</p>
+                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#9ca3af' }}>
+                        <div>Proveedor: {getUserInfo().provider === 'google' ? 'Google' : 'Email'}</div>
+                        <div>Verificado: {getUserInfo().verified ? 'Sí' : 'No'}</div>
+                        {getUserInfo().locale && <div>Idioma: {getUserInfo().locale}</div>}
+                      </div>
                     </div>
                   </div>
                   
@@ -291,11 +348,11 @@ const TopNav = ({ user, onLogout }) => {
                     <button 
                       className="profile-action-button view-profile-button"
                       onClick={() => {
-                        // Aquí podrías abrir un modal con el perfil completo
                         setShowProfile(false);
+                        setShowProfileModal(true);
                       }}
                     >
-                      Ver Perfil
+                      Ver Perfil Completo
                     </button>
                     <button 
                       className="profile-action-button logout-button"
@@ -313,6 +370,13 @@ const TopNav = ({ user, onLogout }) => {
 
       {showProfile && (
         <div className="overlay" onClick={() => setShowProfile(false)} />
+      )}
+
+      {showProfileModal && (
+        <UserProfile 
+          user={user} 
+          onClose={() => setShowProfileModal(false)} 
+        />
       )}
     </>
   );
