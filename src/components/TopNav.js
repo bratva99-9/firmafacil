@@ -11,7 +11,7 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
     .top-nav {
       background: white;
       border-bottom: 1px solid #e5e7eb;
-      padding: 16px 40px;
+      padding: 16px 40px 16px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -252,12 +252,12 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
     }
 
     .mobile-menu-header {
-      padding: 16px 20px 16px 16px;
+      padding: 16px 40px 16px 0px;
       border-bottom: 1px solid rgba(255,255,255,0.1);
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      gap: 8px;
+      gap: 0px;
     }
 
     .mobile-menu-logo {
@@ -267,6 +267,7 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       display: flex;
       align-items: center;
       gap: 8px;
+      padding-left: 8px;
     }
 
     .mobile-menu-close {
@@ -280,6 +281,7 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       transition: background 0.3s ease;
       font-weight: bold;
       margin-left: auto;
+      margin-right: 16px;
     }
 
     .mobile-menu-close:hover {
@@ -369,7 +371,7 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
 
     @media (max-width: 768px) {
       .top-nav {
-        padding: 12px 20px;
+        padding: 12px 20px 12px 12px;
       }
       
       .mobile-menu-button {

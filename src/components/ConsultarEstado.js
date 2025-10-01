@@ -122,7 +122,7 @@ const ConsultarEstado = ({ user }) => {
     .consultar-wrapper {
       max-width: 1000px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0;
       background: #f6f7fb;
       min-height: 100vh;
     }
@@ -149,7 +149,7 @@ const ConsultarEstado = ({ user }) => {
 
     .filtros-container {
       background: #ffffff;
-      padding: 20px;
+      padding: 4px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       margin-bottom: 24px;
@@ -300,7 +300,7 @@ const ConsultarEstado = ({ user }) => {
     .solicitud-card {
       background: #ffffff;
       border-radius: 12px;
-      padding: 24px;
+      padding: 4px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       border: 1px solid #e5e7eb;
     }
@@ -379,6 +379,57 @@ const ConsultarEstado = ({ user }) => {
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .consultar-wrapper {
+        padding: 0;
+      }
+      
+      .filtros-container {
+        padding: 4px;
+        margin-bottom: 16px;
+      }
+      
+      .solicitud-card {
+        padding: 4px;
+      }
+      
+      .solicitudes-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      
+      .filtros-wrapper {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+      
+      .filtro-group {
+        flex-direction: column;
+        gap: 6px;
+        align-items: stretch;
+      }
+      
+      .filtro-stats {
+        text-align: center;
+        order: -1;
+      }
+      
+      .search-form {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .consultar-title {
+        font-size: 24px;
+      }
+      
+      .consultar-description {
+        font-size: 14px;
+      }
     }
   `;
 
