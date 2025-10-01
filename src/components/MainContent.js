@@ -71,6 +71,29 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
       margin: 0 auto 30px;
     }
 
+    .security-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #065f46;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-top: 12px;
+      box-shadow: 0 2px 8px rgba(6,95,70,0.06);
+    }
+    .security-banner .icon {
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .security-banner .text {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
     .back-button {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -236,8 +259,14 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
             <div className="service-header">
               <h1 className="service-title">Enviar Trámites</h1>
               <p className="service-description">
-                Selecciona el servicio que necesitas y completa tu solicitud de forma rápida y segura.
+                Selecciona el servicio que necesitas y completa tu solicitud de forma rapida y segura.
               </p>
+              <div className="security-banner">
+                <span className="icon">🔒</span>
+                <div className="text">
+                  Tu tranquilidad es nuestra prioridad: cada servicio está protegido con tecnología de seguridad avanzada para garantizar la integridad de tus documentos.
+                </div>
+              </div>
             </div>
             <div className="services-grid">
               {/* 1) Firma Electrónica */}
