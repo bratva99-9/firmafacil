@@ -229,6 +229,11 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
         padding: 20px;
       }
       
+      .content-wrapper.full-width {
+        padding: 16px 8px;
+        max-width: 100%;
+      }
+      
       .service-header {
         padding: 20px;
       }
@@ -289,7 +294,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                 <div className="service-card-meta">
                   <div className="service-card-status">Disponible</div>
                   <div className="service-card-duration">⏱️ 3 horas</div>
-                  <div className="service-card-price">Desde $35</div>
+                  <div className="service-card-price">Desde $45</div>
                 </div>
               </div>
 
@@ -411,10 +416,12 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
     }
   };
 
+  const isFormView = activeService === 'firma-electronica' || activeService === 'ruc-antiguedad';
+
   return (
     <div className="main-content">
       <style>{localStyles}</style>
-      <div className="content-wrapper">
+      <div className={`content-wrapper ${isFormView ? 'full-width' : ''}`}>
         {renderServiceContent()}
       </div>
     </div>

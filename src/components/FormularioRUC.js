@@ -19,7 +19,7 @@ const FormularioRUC = ({ onBack, user }) => {
     @media (max-width: 768px) {
       .form-wrapper {
         padding: 20px 0px;
-        margin: 20px 0 0 0;
+        margin: 0;
         max-width: 100%;
       }
       
@@ -268,7 +268,7 @@ const FormularioRUC = ({ onBack, user }) => {
     .grid-1 { grid-template-columns: 1fr; }
     .grid-2 { grid-template-columns: repeat(2, 1fr); }
     .grid-3 { grid-template-columns: repeat(3, 1fr); }
-    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .form-wrapper { padding: 12px; } }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .form-wrapper { padding: 0; } }
 
     .form-group { display: flex; flex-direction: column; }
     .form-label { font-weight: 600; color: #111827; margin-bottom: 6px; font-size: 13px; }

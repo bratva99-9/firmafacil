@@ -7,13 +7,20 @@ const FormularioSolicitud = ({ onBack, user }) => {
   const localStyles = `
     .form-wrapper {
       max-width: 1000px;
-      margin: -20px auto 0 auto;
+      margin: 8px auto 0 auto;
       padding: 0 24px;
       background: #f6f7fb;
       min-height: 100vh;
       display: flex;
       align-items: flex-start;
       justify-content: center;
+    }
+    
+    @media (max-width: 768px) {
+      .form-wrapper {
+        padding: 0 8px;
+        margin: 8px auto 0 auto;
+      }
     }
 
     .main-card {
@@ -25,6 +32,13 @@ const FormularioSolicitud = ({ onBack, user }) => {
       box-shadow: 0 4px 24px rgba(0,0,0,0.06);
       overflow: hidden;
       margin: 0 auto;
+    }
+    
+    @media (max-width: 768px) {
+      .main-card {
+        border-radius: 12px;
+        margin: 0;
+      }
     }
 
     .form-header {
@@ -57,6 +71,15 @@ const FormularioSolicitud = ({ onBack, user }) => {
     .section.pricing-section-wrapper {
       padding: 20px 24px 20px 60px;
     }
+    
+    @media (max-width: 768px) {
+      .section {
+        padding: 16px 20px;
+      }
+      .section.pricing-section-wrapper {
+        padding: 16px 20px;
+      }
+    }
 
     .section-header {
       display: flex;
@@ -75,7 +98,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
     .grid-1 { grid-template-columns: 1fr; }
     .grid-2 { grid-template-columns: repeat(2, 1fr); }
     .grid-3 { grid-template-columns: repeat(3, 1fr); }
-    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .form-wrapper { padding: 12px; } }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .form-wrapper { padding: 0; } }
 
     .form-group { display: flex; flex-direction: column; }
     .form-label { font-weight: 600; color: #111827; margin-bottom: 6px; font-size: 13px; }
@@ -170,6 +193,14 @@ const FormularioSolicitud = ({ onBack, user }) => {
       justify-content: flex-start;
       margin-left: -40px;
     }
+    
+    @media (max-width: 768px) {
+      .pricing-grid {
+        justify-content: center;
+        margin-left: 0;
+        gap: 8px;
+      }
+    }
     .price-card { 
       background: #ffffff; 
       border: 1px solid #e5e7eb; 
@@ -248,6 +279,11 @@ const FormularioSolicitud = ({ onBack, user }) => {
       gap: 12px; 
       margin-top: 8px; 
     }
+    @media (max-width: 768px) {
+      .options-grid {
+        justify-content: flex-start;
+      }
+    }
     .option-card { 
       border: 1px solid #e5e7eb; 
       border-radius: 8px; 
@@ -289,7 +325,24 @@ const FormularioSolicitud = ({ onBack, user }) => {
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-primary { background: #111827; color: #fff; border-color: #111827; }
 
-    .submit-section { background: #fafafa; padding: 20px; margin: 16px -24px -20px -24px; text-align: center; border-top: 1px solid #f3f4f6; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .submit-section { 
+      background: #fafafa; 
+      padding: 20px; 
+      margin: 16px -24px -20px -24px; 
+      text-align: center; 
+      border-top: 1px solid #f3f4f6; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 10px; 
+    }
+    
+    @media (max-width: 768px) {
+      .submit-section {
+        padding: 16px 20px;
+        margin: 16px -20px -16px -20px;
+      }
+    }
     .submit-btn { width: 100%; max-width: 380px; padding: 14px 18px; font-size: 16px; font-weight: 700; }
 
     .loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -769,7 +822,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
               </div>
             </div>
             
-            <div className="options-grid" style={{ marginLeft: 40 }}>
+            <div className="options-grid" style={{ marginLeft: 0 }}>
               <div
                 className={`option-card ${formData.tipo_firma === 'natural' ? 'selected' : ''}`}
                 onClick={() => setFormData(prev => ({ ...prev, tipo_firma: 'natural' }))}
