@@ -90,27 +90,30 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
 
     .services-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      margin-top: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
     }
 
     .service-card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-      border: 2px solid transparent;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+      border: 1px solid #e5e7eb;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .service-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.1);
-      border-color: #667eea;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(17, 24, 39, 0.10);
+      border-color: #c7d2fe;
     }
 
     .service-card.coming-soon-card {
@@ -125,33 +128,32 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
     }
 
     .service-card-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+      font-size: 36px;
       display: block;
     }
 
     .service-card-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1f2937;
-      margin-bottom: 8px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #111827;
+      margin: 0;
     }
 
     .service-card-description {
       color: #6b7280;
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 0;
     }
 
     .service-card-status {
       display: inline-block;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
 
     .service-card:not(.coming-soon-card) .service-card-status {
@@ -162,6 +164,25 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
     .service-card.coming-soon-card .service-card-status {
       background: #fef3c7;
       color: #92400e;
+    }
+
+    .service-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .service-card-duration {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 11px;
+      font-weight: 700;
     }
 
     @media (max-width: 768px) {
@@ -207,41 +228,54 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
               </p>
             </div>
             <div className="services-grid">
+              {/* 1) Firma Electrónica */}
               <div className="service-card" onClick={() => onServiceSelect('firma-electronica')}>
                 <div className="service-card-icon">✍️</div>
                 <h3 className="service-card-title">Firma Electrónica</h3>
-                <p className="service-card-description">Certificado digital básico para firmar documentos electrónicamente</p>
-                <div className="service-card-status">Disponible</div>
+                <p className="service-card-description">Certificado digitales completos validos para firmar documentos electrónicamente, validos para facturacion electronica</p>
+                <div className="service-card-meta">
+                  <div className="service-card-status">Disponible</div>
+                  <div className="service-card-duration">⏱️ 30 min</div>
+                </div>
               </div>
-              
+
+              {/* 2) RUC con Antigüedad */}
+              <div className="service-card" onClick={() => onServiceSelect('ruc-antiguedad')}>
+                <div className="service-card-icon">📊</div>
+                <h3 className="service-card-title">RUC con Antigüedad</h3>
+                <p className="service-card-description">Enfocado para tramites bancarios, casas comerciales y visas</p>
+                <div className="service-card-meta">
+                  <div className="service-card-status">Disponible</div>
+                  <div className="service-card-duration">⏱️ 3 horas</div>
+                </div>
+              </div>
+
+              {/* 3) Reporte Equifax 360 */}
+              <div className="service-card" onClick={() => onServiceSelect('reporte-equifax')}>
+                <div className="service-card-icon">📈</div>
+                <h3 className="service-card-title">Reporte Equifax 360</h3>
+                <p className="service-card-description">Reporte crediticio completo de Equifax</p>
+                <div className="service-card-meta">
+                  <div className="service-card-status">Disponible</div>
+                  <div className="service-card-duration">⏱️ 30 min</div>
+                </div>
+              </div>
+
+              {/* Otros */}
               <div className="service-card coming-soon-card">
                 <div className="service-card-icon">🔑</div>
                 <h3 className="service-card-title">Clave Herencia SRI</h3>
                 <p className="service-card-description">Gestión de claves de herencia para el Servicio de Rentas Internas</p>
                 <div className="service-card-status">Próximamente</div>
               </div>
-              
+
               <div className="service-card coming-soon-card">
                 <div className="service-card-icon">📅</div>
                 <h3 className="service-card-title">RUC Fecha Actual</h3>
                 <p className="service-card-description">Consulta de RUC con información actualizada al día</p>
                 <div className="service-card-status">En Desarrollo</div>
               </div>
-              
-              <div className="service-card" onClick={() => onServiceSelect('ruc-antiguedad')}>
-                <div className="service-card-icon">📊</div>
-                <h3 className="service-card-title">RUC con Antigüedad</h3>
-                <p className="service-card-description">Consulta de RUC con información histórica y gestión de antigüedad</p>
-                <div className="service-card-status">Disponible</div>
-              </div>
-              
-              <div className="service-card coming-soon-card">
-                <div className="service-card-icon">📈</div>
-                <h3 className="service-card-title">Reporte Equifax 360</h3>
-                <p className="service-card-description">Reporte crediticio completo de Equifax</p>
-                <div className="service-card-status">En Desarrollo</div>
-              </div>
-              
+
               <div className="service-card coming-soon-card">
                 <div className="service-card-icon">🔍</div>
                 <h3 className="service-card-title">Revisión de Crédito</h3>

@@ -15,6 +15,199 @@ const FormularioRUC = ({ onBack, user }) => {
       align-items: flex-start;
       justify-content: center;
     }
+    
+    @media (max-width: 768px) {
+      .form-wrapper {
+        padding: 20px 0px;
+        margin: 20px 0 0 0;
+        max-width: 100%;
+      }
+      
+      .main-card {
+        margin: 0;
+        border-radius: 0;
+        max-width: 100%;
+      }
+      
+      .tipo-tramite-container {
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+      
+      .servicios-complementarios-container {
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+      
+      .tipo-tramite-container > div {
+        width: 100% !important;
+        min-height: 120px !important;
+      }
+      
+      .servicios-complementarios-container > div {
+        width: 100% !important;
+        min-height: 140px !important;
+      }
+      
+      .progress-container {
+        padding: 20px 16px !important;
+      }
+      
+      .progress-steps {
+        max-width: 100% !important;
+        gap: 8px !important;
+      }
+      
+      .progress-step {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 12px !important;
+      }
+      
+      .progress-line {
+        height: 4px !important;
+      }
+      
+      .step1-section {
+        padding: 8px 12px !important;
+        margin-bottom: 4px !important;
+      }
+      
+      .step1-container {
+        padding: 12px !important;
+        margin-bottom: 8px !important;
+      }
+      
+      .step1-info-box {
+        padding: 8px !important;
+        margin-bottom: 8px !important;
+      }
+      
+      .section {
+        padding: 8px 12px !important;
+        margin-bottom: 4px !important;
+      }
+      
+      .section-header {
+        margin-bottom: 8px !important;
+        padding-bottom: 4px !important;
+      }
+      
+      .form-header {
+        padding: 12px 16px !important;
+      }
+      
+      .submit-section {
+        padding: 12px !important;
+        margin: 8px -12px -8px -12px !important;
+      }
+      
+      .grid {
+        gap: 8px !important;
+      }
+      
+      .form-group {
+        margin-bottom: 8px !important;
+      }
+      
+      .form-label {
+        margin-bottom: 4px !important;
+      }
+      
+      .error-message {
+        margin-top: 4px !important;
+      }
+      
+      .pricing-section {
+        padding: 12px 12px 12px 40px !important;
+        margin: 0 0 8px 0 !important;
+      }
+      
+      .pricing-grid {
+        gap: 4px !important;
+        padding: 2px 0 4px 0 !important;
+        margin-left: -20px !important;
+      }
+      
+      .price-card {
+        padding: 6px 4px !important;
+        min-width: 60px !important;
+        max-width: 80px !important;
+      }
+      
+      /* Paso 2: apilar badge debajo del RUC */
+      .ruc-display {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+      }
+      .ruc-display .validation-valid {
+        align-self: flex-start !important;
+      }
+      
+      .options-grid {
+        gap: 8px !important;
+        margin-top: 4px !important;
+      }
+      
+      .option-card {
+        padding: 10px 12px !important;
+        min-height: 40px !important;
+      }
+      
+      /* Paso 6: Reordenar resumen de pago en móvil */
+      .payment-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .payment-summary .row-firma { order: 1; }
+      .payment-summary .row-ruc { order: 2; }
+      .payment-summary .row-declaraciones { order: 3; }
+      .payment-summary .row-equifax { order: 4; }
+      
+      /* Paso 5: Documentos en columna */
+      .docs-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      
+      /* Paso 3: Dirección Comercial todo en columna */
+      .direccion-comercial .grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      
+      /* Paso 2: todos los casilleros del mismo tamaño */
+      .step2-section .api-data-display {
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      
+      /* Paso 2: badge de RUC generado automáticamente mismo tamaño */
+      .step2-section .ruc-display .validation-valid {
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+      
+      /* Paso 3: todos los casilleros del mismo tamaño */
+      .step3-section .form-input,
+      .step3-section .form-select,
+      .step3-section .form-textarea {
+        height: 48px !important;
+        min-height: 48px !important;
+      }
+      
+      /* Paso 4: todos los casilleros del mismo tamaño */
+      .step4-section .form-input,
+      .step4-section .form-select {
+        height: 48px !important;
+        min-height: 48px !important;
+      }
+    }
 
     .main-card {
       width: 100%;
@@ -304,6 +497,37 @@ const FormularioRUC = ({ onBack, user }) => {
     .general-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px; border-radius: 8px; margin: 0 24px 16px 24px; display: flex; align-items: center; gap: 8px; }
 
     .input-wrapper { position: relative; }
+    
+    .validation-container {
+      display: flex;
+      gap: 16px;
+      align-items: end;
+    }
+    
+    .validation-field {
+      flex: 1;
+    }
+    
+    .validation-button {
+      min-width: 140px;
+    }
+    
+    @media (max-width: 768px) {
+      .validation-container {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+      
+      .validation-field {
+        flex: none;
+      }
+      
+      .validation-button {
+        min-width: auto;
+        width: 100%;
+      }
+    }
   `;
 
   const [formData, setFormData] = useState({
@@ -1065,11 +1289,11 @@ const FormularioRUC = ({ onBack, user }) => {
 
         <form onSubmit={handleSubmit} className="form-content">
           {/* Barra de progreso */}
-          <div style={{ padding: '20px 30px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: '400px', width: '100%' }}>
+          <div className="progress-container" style={{ padding: '20px 30px', display: 'flex', justifyContent: 'center' }}>
+            <div className="progress-steps" style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: '400px', width: '100%' }}>
               {[1,2,3,4,5,6].map((n) => (
                 <div key={n} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
+                  <div className="progress-step" style={{
                     width: 28,
                     height: 28,
                     borderRadius: 999,
@@ -1081,7 +1305,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     fontWeight: 700
                   }}>{n}</div>
                   {n < 6 && (
-                    <div style={{
+                    <div className="progress-line" style={{
                       flex: 1,
                       height: 6,
                       borderRadius: 999,
@@ -1103,7 +1327,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
           {/* Paso 1: Validación de RUC y Información de Actividad Económica */}
           {step === 1 && (
-          <div className="section">
+          <div className="section step1-section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
@@ -1115,7 +1339,7 @@ const FormularioRUC = ({ onBack, user }) => {
             </div>
             
             {/* Validación de RUC */}
-            <div style={{ 
+            <div className="step1-container" style={{ 
               background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)', 
               padding: '24px', 
               borderRadius: '16px', 
@@ -1143,8 +1367,8 @@ const FormularioRUC = ({ onBack, user }) => {
                 </h4>
               </div>
               
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'end' }}>
-                <div style={{ flex: 1 }}>
+              <div className="validation-container">
+                <div className="validation-field">
                   <label className="form-label">
                     Número de Cédula
                     <span className="required-asterisk">*</span>
@@ -1164,11 +1388,11 @@ const FormularioRUC = ({ onBack, user }) => {
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
                       </svg>
                       {errors.numero_cedula}
-            </div>
+                    </div>
                   )}
                 </div>
                 
-                <div style={{ minWidth: '140px' }}>
+                <div className="validation-button">
                   <button
                     type="button"
                     onClick={handleValidarRUC}
@@ -1197,18 +1421,18 @@ const FormularioRUC = ({ onBack, user }) => {
                   </button>
                   {errors.ruc_validation && (
                     <div className="error-message" style={{ marginTop: '8px' }}>
-                <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                </svg>
+                      <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                      </svg>
                       {errors.ruc_validation}
-              </div>
-            )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Mostrar datos del RUC si está validado */}
               {rucData && (
-                <div style={{ 
+                <div className="step1-info-box" style={{ 
                   background: rucData.sin_ruc ? '#dbeafe' : '#ffffff', 
                   padding: '16px', 
                   borderRadius: '12px',
@@ -1453,7 +1677,7 @@ const FormularioRUC = ({ onBack, user }) => {
             )}
 
             {/* Selección de Tipo de RUC con Antigüedad */}
-            <div style={{ 
+            <div className="step1-container" style={{ 
               background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', 
               padding: '24px', 
               borderRadius: '16px', 
@@ -1487,7 +1711,7 @@ const FormularioRUC = ({ onBack, user }) => {
                 </p>
               </div>
 
-              <div style={{ 
+              <div className="tipo-tramite-container" style={{ 
                 display: 'flex', 
                 gap: '12px',
                 justifyContent: 'center',
@@ -1559,6 +1783,21 @@ const FormularioRUC = ({ onBack, user }) => {
                   }}>
                     $45
                   </div>
+                  <div style={{
+                    marginTop: '6px',
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>⏱</span>
+                    <span>3 horas</span>
+                  </div>
               </div>
 
                 {/* Reactivación por Cese */}
@@ -1625,6 +1864,21 @@ const FormularioRUC = ({ onBack, user }) => {
                   }}>
                     $60
                   </div>
+                  <div style={{
+                    marginTop: '6px',
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>⏱</span>
+                    <span>3 horas</span>
+                  </div>
                 </div>
 
                 {/* Reactivación por Depuración */}
@@ -1690,6 +1944,21 @@ const FormularioRUC = ({ onBack, user }) => {
                     textAlign: 'center'
                   }}>
                     $80
+                  </div>
+                  <div style={{
+                    marginTop: '6px',
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>⏱</span>
+                    <span>3 horas</span>
                   </div>
                 </div>
 
@@ -1788,7 +2057,7 @@ const FormularioRUC = ({ onBack, user }) => {
             </div>
 
             {/* Promociones por Apertura de RUC */}
-            <div style={{ 
+            <div className="step1-container" style={{ 
               background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', 
               padding: '24px', 
               borderRadius: '16px', 
@@ -1821,7 +2090,7 @@ const FormularioRUC = ({ onBack, user }) => {
                 </p>
               </div>
 
-              <div style={{ 
+              <div className="servicios-complementarios-container" style={{ 
                 display: 'flex', 
                 gap: '12px',
                 justifyContent: 'center',
@@ -1897,6 +2166,20 @@ const FormularioRUC = ({ onBack, user }) => {
                     marginBottom: '4px'
                   }}>
                     $8.00
+                  </div>
+                  <div style={{
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>⏱</span>
+                    <span>30 minutos</span>
                   </div>
                   <div style={{
                     background: '#fef3c7',
@@ -2102,7 +2385,7 @@ const FormularioRUC = ({ onBack, user }) => {
             </div>
 
             {/* Información de precio */}
-            <div style={{ 
+            <div className="step1-container" style={{ 
               background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', 
               padding: '24px', 
               borderRadius: '16px', 
@@ -2218,7 +2501,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
           {/* Paso 2: Datos del Solicitante - Ya cargados */}
           {step === 2 && (
-          <div className="section">
+          <div className="section step2-section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
@@ -2314,18 +2597,18 @@ const FormularioRUC = ({ onBack, user }) => {
 
               <div className="form-group">
                 <label className="form-label">RUC</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div className="api-data-display" style={{ flex: 1 }}>
-                    <span className="api-data-text">{formData.ruc || 'No disponible'}</span>
-                  </div>
-                  {formData.ruc && (
-                    <div className="api-data-display validation-valid" style={{ flex: 'none', minWidth: 'fit-content' }}>
-                      <span className="api-data-text" style={{ fontSize: '13px', fontWeight: '600' }}>
-                        RUC generado automáticamente
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <div className="ruc-display" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                   <div className="api-data-display" style={{ flex: 1 }}>
+                     <span className="api-data-text">{formData.ruc || 'No disponible'}</span>
+                   </div>
+                   {formData.ruc && (
+                     <div className="api-data-display validation-valid" style={{ flex: 'none', minWidth: 'fit-content' }}>
+                       <span className="api-data-text" style={{ fontSize: '13px', fontWeight: '600' }}>
+                         RUC generado automáticamente
+                       </span>
+                     </div>
+                   )}
+                 </div>
               </div>
             </div>
 
@@ -2363,7 +2646,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
           {/* Paso 3: Contacto */}
           {step === 3 && (
-          <div className="section">
+          <div className="section step3-section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
@@ -2428,7 +2711,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
           {/* Paso 3: Dirección */}
           {step === 3 && (
-          <div className="section">
+          <div className="section step3-section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
@@ -2539,7 +2822,7 @@ const FormularioRUC = ({ onBack, user }) => {
             </div>
 
             {/* Dirección Comercial que Reflejará en el SRI */}
-            <div className="section" style={{ marginLeft: '-20px' }}>
+            <div className="section direccion-comercial" style={{ marginLeft: '-10px' }}>
               <div className="section-header">
                 <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
@@ -2550,7 +2833,7 @@ const FormularioRUC = ({ onBack, user }) => {
                 </div>
               </div>
 
-              <div className="grid" style={{ gridTemplateColumns: '200px 1fr', gap: '16px' }}>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">
                     Código CUEN de Planilla de Luz
@@ -2592,7 +2875,7 @@ const FormularioRUC = ({ onBack, user }) => {
                       handleInputChange({ target: { name: 'nombre_comercial', value } });
                     }}
                     className="form-input"
-                    placeholder="Ej: Supermercado El Ahorro, Farmacia San José"
+                    placeholder="Ej: Supermercado El Ahorro"
                     style={{ textTransform: 'uppercase' }}
                   />
                   {errors.nombre_comercial && (
@@ -2619,7 +2902,7 @@ const FormularioRUC = ({ onBack, user }) => {
                       handleInputChange({ target: { name: 'direccion_completa', value } });
                     }}
                     className="form-textarea"
-                    placeholder="Dirección completa del establecimiento comercial"
+                    placeholder="Ej: Av. Principal 123, Centro"
                     rows="2"
                     style={{ textTransform: 'uppercase' }}
                   />
@@ -2646,7 +2929,7 @@ const FormularioRUC = ({ onBack, user }) => {
                       handleInputChange({ target: { name: 'lugar_referencia', value } });
                     }}
                     className="form-input"
-                    placeholder="Ej: Frente al parque, cerca del mercado"
+                    placeholder="Ej: Frente al parque"
                     style={{ textTransform: 'uppercase' }}
                   />
                   {errors.lugar_referencia && (
@@ -2665,7 +2948,7 @@ const FormularioRUC = ({ onBack, user }) => {
 
           {/* Paso 4: Información del Negocio */}
           {step === 4 && (
-          <div className="section">
+          <div className="section step4-section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
@@ -2746,7 +3029,7 @@ const FormularioRUC = ({ onBack, user }) => {
               </div>
             </div>
 
-            <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div className="grid docs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">Cédula Frontal <span className="required-asterisk">*</span></label>
                 <FileUpload
@@ -2975,13 +3258,13 @@ const FormularioRUC = ({ onBack, user }) => {
                     Resumen de Pago
                   </h4>
                 </div>
-                <div style={{ 
+                <div className="payment-summary" style={{ 
                   background: '#ffffff', 
                   padding: '16px', 
                   borderRadius: '12px',
                   border: '1px solid #e0f2fe'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="row-ruc" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ color: '#374151', fontSize: '15px', fontWeight: '500' }}>
                       Servicio de RUC con Antigüedad
                     </span>
@@ -2994,7 +3277,7 @@ const FormularioRUC = ({ onBack, user }) => {
                   {formData.complementos && formData.complementos.length > 0 && (
                     <div style={{ marginBottom: '8px' }}>
                       {formData.complementos.includes('firma_electronica') && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div className="row-firma" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>
                             + Firma Electrónica (1 año)
                           </span>
@@ -3004,7 +3287,7 @@ const FormularioRUC = ({ onBack, user }) => {
                         </div>
                       )}
                       {formData.complementos.includes('declaraciones') && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div className="row-declaraciones" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>
                             + Declaraciones (IVA + Renta)
                           </span>
@@ -3014,7 +3297,7 @@ const FormularioRUC = ({ onBack, user }) => {
                         </div>
                       )}
                       {formData.complementos.includes('equifax') && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div className="row-equifax" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <span style={{ color: '#374151', fontSize: '13px', fontWeight: '500' }}>
                             + Reporte Equifax 360
                           </span>

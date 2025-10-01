@@ -79,6 +79,11 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
 
     const isImage = selectedFile.type.startsWith('image/');
     const isPdf = selectedFile.type === 'application/pdf';
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const imgHeight = isMobile ? 180 : 300;
+    const boxMinHeight = isMobile ? 140 : 200;
+    const infoPadding = isMobile ? '8px' : '12px';
+    const removeBtnSize = isMobile ? 24 : 28;
     return (
       <div className="file-preview" style={{ 
         position: 'relative', 
@@ -94,7 +99,7 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
           type="button"
           onClick={handleRemoveFile}
           title="Eliminar archivo"
-          style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: 'rgba(17,24,39,0.8)', color: '#fff', border: 'none', borderRadius: 999, width: 28, height: 28, cursor: 'pointer' }}
+          style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: 'rgba(17,24,39,0.8)', color: '#fff', border: 'none', borderRadius: 999, width: removeBtnSize, height: removeBtnSize, cursor: 'pointer' }}
         >
           ×
         </button>
@@ -103,10 +108,10 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
             <img
               src={URL.createObjectURL(selectedFile)}
               alt={selectedFile.name}
-              style={{ width: '100%', height: 300, objectFit: 'contain' }}
+              style={{ width: '100%', height: imgHeight, objectFit: 'contain' }}
             />
-            <div style={{ padding: '12px', background: '#fff', borderTop: '1px solid #e5e7eb' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+            <div style={{ padding: infoPadding, background: '#fff', borderTop: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#111827', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {selectedFile.name}
               </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
@@ -116,7 +121,7 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
           </>
         ) : isPdf ? (
           <div style={{ 
-            padding: '20px', 
+            padding: isMobile ? '12px' : '20px', 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 
@@ -124,11 +129,11 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
             color: '#111827',
             background: '#fff',
             width: '100%',
-            minHeight: 200
+            minHeight: boxMinHeight
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>📄</div>
+            <div style={{ fontSize: isMobile ? '36px' : '48px', marginBottom: '12px' }}>📄</div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {selectedFile.name}
               </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
@@ -138,7 +143,7 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
           </div>
         ) : (
           <div style={{ 
-            padding: '20px', 
+            padding: isMobile ? '12px' : '20px', 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 
@@ -146,11 +151,11 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
             color: '#111827',
             background: '#fff',
             width: '100%',
-            minHeight: 200
+            minHeight: boxMinHeight
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>📦</div>
+            <div style={{ fontSize: isMobile ? '36px' : '48px', marginBottom: '12px' }}>📦</div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
+              <div style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {selectedFile.name}
               </div>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
@@ -183,7 +188,7 @@ const FileUpload = ({ onFileSelect, selectedFile, accept, placeholder }) => {
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={handleClick}
-          style={{ border: '1px dashed #d1d5db', borderRadius: 12, padding: 16, textAlign: 'center', background: '#fff', cursor: 'pointer', minHeight: 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+          style={{ border: '1px dashed #d1d5db', borderRadius: 12, padding: 16, textAlign: 'center', background: '#fff', cursor: 'pointer', minHeight: (typeof window !== 'undefined' && window.innerWidth <= 768) ? 140 : 180, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
         >
           <div className="file-upload-icon" style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
           <div className="file-upload-text" style={{ color: '#111827', fontWeight: 600 }}>
