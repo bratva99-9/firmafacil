@@ -185,6 +185,18 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
       font-weight: 700;
     }
 
+    .service-card-price {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #065f46;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
     @media (max-width: 768px) {
       .main-content {
         margin-left: 0;
@@ -236,6 +248,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                 <div className="service-card-meta">
                   <div className="service-card-status">Disponible</div>
                   <div className="service-card-duration">⏱️ 30 min</div>
+                  <div className="service-card-price">Desde $7.5</div>
                 </div>
               </div>
 
@@ -247,6 +260,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                 <div className="service-card-meta">
                   <div className="service-card-status">Disponible</div>
                   <div className="service-card-duration">⏱️ 3 horas</div>
+                  <div className="service-card-price">Desde $35</div>
                 </div>
               </div>
 
@@ -258,6 +272,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                 <div className="service-card-meta">
                   <div className="service-card-status">Disponible</div>
                   <div className="service-card-duration">⏱️ 30 min</div>
+                  <div className="service-card-price">Desde $8</div>
                 </div>
               </div>
 
@@ -314,7 +329,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
               <h1 className="service-title">Trabaja con Nosotros</h1>
               <p className="service-description">
                 Únete a nuestro equipo y forma parte de la revolución digital en Ecuador.
-                Oportunidades laborales en tecnología, atención al cliente y más.
+                Oportunidades laborales en tecnología, contabilidad, atención al cliente y más.
               </p>
             </div>
             <div className="coming-soon">

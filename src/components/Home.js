@@ -34,7 +34,7 @@ const Home = ({ onNavigate }) => {
     {
       id: 2,
       titulo: 'RUC con Antigüedad',
-      descripcion: 'Consulta de RUC con información histórica y gestión de antigüedad',
+      descripcion: 'Enfocado para tramites bancarios, casas comerciales y visas',
       estado: 'Disponible',
       icono: '📊',
       color: 'green'
