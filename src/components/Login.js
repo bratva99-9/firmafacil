@@ -10,7 +10,7 @@ const Login = ({ onLoginSuccess }) => {
   const localStyles = `
     .login-wrapper {
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -18,12 +18,14 @@ const Login = ({ onLoginSuccess }) => {
     }
 
     .login-container {
-      background: white;
-      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
       padding: 40px;
       width: 100%;
-      max-width: 400px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      max-width: 420px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .login-header {
@@ -58,15 +60,18 @@ const Login = ({ onLoginSuccess }) => {
     .form-input {
       padding: 14px 16px;
       border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 16px;
       transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(5px);
     }
 
     .form-input:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      background: white;
     }
 
     .login-button {
@@ -74,7 +79,7 @@ const Login = ({ onLoginSuccess }) => {
       color: white;
       border: none;
       padding: 14px 24px;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
@@ -83,11 +88,12 @@ const Login = ({ onLoginSuccess }) => {
       align-items: center;
       justify-content: center;
       gap: 8px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
 
     .login-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
 
     .login-button:disabled {
@@ -97,13 +103,15 @@ const Login = ({ onLoginSuccess }) => {
     }
 
     .error-message {
-      background: #fef2f2;
+      background: rgba(254, 242, 242, 0.9);
       border: 1px solid #fecaca;
       color: #dc2626;
       padding: 12px 16px;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 14px;
       text-align: center;
+      backdrop-filter: blur(5px);
+      margin-bottom: 20px;
     }
 
     .loading-spinner {
@@ -120,29 +128,13 @@ const Login = ({ onLoginSuccess }) => {
       100% { transform: rotate(360deg); }
     }
 
-    .register-link {
-      text-align: center;
-      margin-top: 20px;
-      color: #6b7280;
-      font-size: 14px;
-    }
-
-    .register-link a {
-      color: #667eea;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .register-link a:hover {
-      text-decoration: underline;
-    }
 
     .google-button {
       background: white;
       color: #374151;
       border: 2px solid #e5e7eb;
       padding: 14px 24px;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
@@ -152,16 +144,20 @@ const Login = ({ onLoginSuccess }) => {
       justify-content: center;
       gap: 12px;
       margin-bottom: 20px;
+      width: 100%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .google-button:hover {
       border-color: #d1d5db;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      transform: translateY(-1px);
     }
 
     .google-button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
 
     .google-icon {
@@ -311,12 +307,6 @@ const Login = ({ onLoginSuccess }) => {
           </button>
         </form>
 
-        <div className="register-link">
-          ¿No tienes cuenta? <a href="#" onClick={(e) => {
-            e.preventDefault();
-            alert('Puedes registrarte usando Google o contacta al administrador');
-          }}>Regístrate aquí</a>
-        </div>
       </div>
     </div>
   );

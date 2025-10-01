@@ -2435,7 +2435,7 @@ const FormularioRUC = ({ onBack, user }) => {
               </svg>
               <div>
                 <h3 className="section-title">Dirección de Residencia</h3>
-                <p className="section-description">Información de tu direccion domiciliaria</p>
+                <p className="section-description">Información de tu direccion domiciliaria, datos cargados del Registro Civil.</p>
               </div>
             </div>
 
