@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import FileUpload from './FileUpload';
-import { insertSolicitud, uploadFile, updateSolicitud, consultarCedula, consultarRUC } from '../lib/supabase';
+import { insertSolicitudAntiguedad, uploadFile, updateSolicitudAntiguedad, consultarCedula, consultarRUC } from '../lib/supabase';
 
 const FormularioRUC = ({ onBack, user }) => {
   // Estilos minimalistas y neutros
@@ -1163,7 +1163,7 @@ const FormularioRUC = ({ onBack, user }) => {
     setLoading(true);
 
     try {
-      const solicitud = await insertSolicitud({
+      const solicitud = await insertSolicitudAntiguedad({
         numero_cedula: formData.numero_cedula,
         provincia: formData.provincia,
         ciudad: formData.ciudad,
@@ -1173,7 +1173,6 @@ const FormularioRUC = ({ onBack, user }) => {
         celular: formData.celular,
         correo: formData.correo,
         tipo_banco: formData.tipo_banco,
-        fecha_inicio_actividades: formData.fecha_inicio_actividades,
         actividad_economica: formData.actividad_economica,
         codigo_cuen: formData.codigo_cuen,
         direccion_completa: formData.direccion_completa,
@@ -1182,7 +1181,11 @@ const FormularioRUC = ({ onBack, user }) => {
         actividad_sri: formData.actividad_sri,
         antiguedad_solicitada: formData.antiguedad_solicitada,
         estado_tramite: 'pendiente',
-        correo_distribuidor: user?.email || null
+        correo_distribuidor: user?.email || null,
+        codigo_distribuidor: user?.codigo_distribuidor || null,
+        precio_total: obtenerPrecioTotal(),
+        precio_antiguedad: obtenerPrecioRUC(),
+        precio_complementos: obtenerPrecioComplementos()
       });
 
       console.log('📤 Iniciando subida de archivos...')
@@ -1209,7 +1212,7 @@ const FormularioRUC = ({ onBack, user }) => {
           comprobante_pago: comprobante.path
         };
 
-        await updateSolicitud(solicitud.id, updates);
+        await updateSolicitudAntiguedad(solicitud.id, updates);
         
       } catch (uploadError) {
         console.error('❌ Error al subir archivos:', uploadError)
@@ -1960,7 +1963,7 @@ const FormularioRUC = ({ onBack, user }) => {
                     gap: '6px'
                   }}>
                     <span>⏱</span>
-                    <span>3 horas</span>
+                    <span>24 horas</span>
                   </div>
                 </div>
 
