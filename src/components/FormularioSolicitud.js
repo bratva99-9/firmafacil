@@ -77,7 +77,7 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
         padding: 16px 20px;
       }
       .section.pricing-section-wrapper {
-        padding: 16px 20px;
+        padding: 16px 20px 16px 8px;
       }
     }
 
@@ -196,10 +196,14 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
     
     @media (max-width: 768px) {
       .pricing-grid {
-        justify-content: center;
-        margin-left: 0;
+        justify-content: flex-start;
+        margin-left: -32px;
         gap: 8px;
       }
+      
+  .pricing-section .section-header {
+    margin-left: -48px;
+  }
     }
     .price-card { 
       background: #ffffff; 
@@ -282,6 +286,7 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
     @media (max-width: 768px) {
       .options-grid {
         justify-content: flex-start;
+        margin-left: -32px;
       }
       
       .documents-grid {
@@ -1013,7 +1018,7 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
             )}
 
             {/* Duración y Precio después */}
-            <div className="pricing-section" style={{ marginTop: 24, marginLeft: -20 }}>
+            <div className="pricing-section" style={{ marginTop: 24, marginLeft: 0 }}>
               <div className="section-header">
                 <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
@@ -1642,7 +1647,7 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
                   )}
                 </div>
 
-                <div className="form-group">
+                <div className="form-group documents-grid">
                   <label className="form-label">
                     Comprobante de Pago
                     <span className="required-asterisk">*</span>
