@@ -283,6 +283,56 @@ const FormularioSolicitud = ({ onBack, user }) => {
       .options-grid {
         justify-content: flex-start;
       }
+      
+      .documents-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      
+      .form-group {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        transition: all 0.2s ease;
+      }
+      
+      .form-group:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-color: #d1d5db;
+      }
+      
+      .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 8px;
+        display: block;
+      }
+      
+      .document-info {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 6px;
+        line-height: 1.4;
+        font-style: italic;
+      }
+      
+      .solicitante-info {
+        padding: 16px !important;
+        margin-top: 20px !important;
+        border-radius: 16px !important;
+      }
+      
+      .solicitante-info h4 {
+        font-size: 16px !important;
+      }
+      
+      .solicitante-info div {
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+      }
     }
     .option-card { 
       border: 1px solid #e5e7eb; 
@@ -417,7 +467,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
         !!formData.parroquia &&
         !!formData.direccion &&
         /^\d{10}$/.test(formData.celular || '') &&
-        (formData.correo || '').includes('@')
+        (formData.correo || '').includes('@') && (formData.correo || '').endsWith('.com')
       );
     }
     if (step === 4) {
@@ -602,8 +652,8 @@ const FormularioSolicitud = ({ onBack, user }) => {
       newErrors.celular = 'El celular debe tener 10 dígitos';
     }
 
-    if (!formData.correo || !formData.correo.includes('@')) {
-      newErrors.correo = 'Ingresa un correo válido';
+    if (!formData.correo || !formData.correo.includes('@') || !formData.correo.endsWith('.com')) {
+      newErrors.correo = 'Ingresa un correo válido que termine en .com';
     }
 
     if (!formData.tipo_firma) {
@@ -886,20 +936,21 @@ const FormularioSolicitud = ({ onBack, user }) => {
           </div>
           )}
 
-          {/* Paso 2: Cédula + Buscar + Autocompletar */}
+          {/* Paso 2: Datos del Solicitante - Ya cargados */}
           {step === 2 && (
-          <div className="section">
+          <div className="section step2-section">
             <div className="section-header">
               <svg className="section-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
               </svg>
               <div>
                 <h3 className="section-title">Datos del Solicitante</h3>
-                <p className="section-description">Busca por cédula y completa los datos</p>
+                <p className="section-description">Verifica y completa los datos obtenidos</p>
               </div>
             </div>
 
-            <div className="grid grid-2">
+            {/* Consulta de cédula */}
+            <div className="grid grid-1" style={{ marginBottom: '24px' }}>
               <div className="form-group">
                 <label className="form-label">
                   Número de Cédula
@@ -914,6 +965,8 @@ const FormularioSolicitud = ({ onBack, user }) => {
                     className="form-input"
                     placeholder="1234567890"
                     maxLength="10"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                   />
                 </div>
                 <button 
@@ -948,7 +1001,135 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   </div>
                 )}
               </div>
+            </div>
 
+            {/* Información de la cédula consultada */}
+            {formData.numero_cedula && formData.nombres && (
+            <div style={{ 
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', 
+              padding: '16px', 
+              borderRadius: '12px', 
+              marginBottom: '24px',
+              border: '2px solid #3b82f6'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: '#3b82f6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: '700'
+                }}>
+                  📋
+                </div>
+                <h4 style={{ margin: '0', color: '#1e40af', fontSize: '16px', fontWeight: '700' }}>
+                  Datos Consultados
+                </h4>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: '#374151', fontSize: '14px', fontWeight: '500' }}>
+                  Cédula consultada:
+                </span>
+                <span style={{ 
+                  background: '#3b82f6', 
+                  color: 'white', 
+                  padding: '4px 8px', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: '600' 
+                }}>
+                  {formData.numero_cedula}
+                </span>
+              </div>
+            </div>
+            )}
+
+            <div className="grid grid-2">
+              <div className="form-group">
+                <label className="form-label">Nombres</label>
+                {formData.nombres ? (
+                  <div className="api-data-display">
+                    <span className="api-data-text">{formData.nombres}</span>
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic', fontSize: '14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    Ingresa tu cédula para cargar los datos
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Apellidos</label>
+                {formData.apellidos ? (
+                  <div className="api-data-display">
+                    <span className="api-data-text">{formData.apellidos}</span>
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic', fontSize: '14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    Ingresa tu cédula para cargar los datos
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-2">
+              <div className="form-group">
+                <label className="form-label">Edad</label>
+                {formData.edad ? (
+                  <div className="api-data-display">
+                    <span className="api-data-text">{formData.edad} años</span>
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic', fontSize: '14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    Ingresa tu cédula para cargar los datos
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Género</label>
+                {formData.genero ? (
+                  <div className="api-data-display">
+                    <span className="api-data-text">{formData.genero}</span>
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic', fontSize: '14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    Ingresa tu cédula para cargar los datos
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-2">
+              <div className="form-group">
+                <label className="form-label">Nacionalidad</label>
+                {formData.nacionalidad ? (
+                  <div className="api-data-display">
+                    <span className="api-data-text">{formData.nacionalidad}</span>
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic', fontSize: '14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    Ingresa tu cédula para cargar los datos
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Facturación Electrónica</label>
+                <div className={`api-data-display ${esValidaParaFacturacion() ? 'validation-valid' : 'validation-invalid'}`}>
+                  <span className="api-data-text" style={{ fontSize: '14px', fontWeight: '600' }}>
+                    {esValidaParaFacturacion() ? ' Aplica para facturación electrónica' : ' No aplica para facturación electrónica'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Campo de código de huella */}
+            <div className="grid grid-1" style={{ marginTop: '24px' }}>
               <div className="form-group">
                 <label className="form-label">
                   Código de Huella
@@ -958,9 +1139,13 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   type="text"
                   name="codigo_huella"
                   value={formData.codigo_huella}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    handleInputChange({ target: { name: 'codigo_huella', value } });
+                  }}
                   className="form-input"
                   placeholder="Código de huella dactilar"
+                  style={{ textTransform: 'uppercase' }}
                 />
                 {errors.codigo_huella && (
                   <div className="error-message">
@@ -973,96 +1158,6 @@ const FormularioSolicitud = ({ onBack, user }) => {
               </div>
             </div>
 
-            <div className="grid grid-2">
-              <div className="form-group">
-                <label className="form-label">Nombres</label>
-                {formData.nombres ? (
-                  <div className="api-data-display">
-                    <span className="api-data-text">{formData.nombres}</span>
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px 16px', color: '#9ca3af', fontStyle: 'italic', fontSize: '14px' }}>
-                    Los nombres aparecerán aquí después de consultar la cédula
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Apellidos</label>
-                {formData.apellidos ? (
-                  <div className="api-data-display">
-                    <span className="api-data-text">{formData.apellidos}</span>
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px 16px', color: '#9ca3af', fontStyle: 'italic', fontSize: '14px' }}>
-                    Los apellidos aparecerán aquí después de consultar la cédula
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-3">
-              <div className="form-group">
-                <label className="form-label">Edad</label>
-                {formData.edad ? (
-                  <div className="api-data-display">
-                    <span className="api-data-text">{formData.edad} años</span>
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px 16px', color: '#9ca3af', fontStyle: 'italic', fontSize: '14px' }}>
-                    La edad aparecerá aquí después de consultar la cédula
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Género</label>
-                {formData.genero ? (
-                  <div className="api-data-display">
-                    <span className="api-data-text">{formData.genero}</span>
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px 16px', color: '#9ca3af', fontStyle: 'italic', fontSize: '14px' }}>
-                    El género aparecerá aquí después de consultar la cédula
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Nacionalidad</label>
-                {formData.nacionalidad ? (
-                  <div className="api-data-display">
-                    <span className="api-data-text">{formData.nacionalidad}</span>
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px 16px', color: '#9ca3af', fontStyle: 'italic', fontSize: '14px' }}>
-                    La nacionalidad aparecerá aquí después de consultar la cédula
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">RUC</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {formData.ruc ? (
-                    <div className="api-data-display" style={{ flex: 1 }}>
-                      <span className="api-data-text">{formData.ruc}</span>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '12px 16px', color: '#9ca3af', fontStyle: 'italic', fontSize: '14px', flex: 1 }}>
-                      El RUC aparecerá aquí después de consultar la cédula
-                    </div>
-                  )}
-                  {formData.ruc && (
-                    <div className={`api-data-display ${esValidaParaFacturacion() ? 'validation-valid' : 'validation-invalid'}`} style={{ flex: 'none', minWidth: 'fit-content' }}>
-                      <span className="api-data-text" style={{ fontSize: '13px', fontWeight: '600' }}>
-                        {esValidaParaFacturacion() ? 'Válido para facturación electrónica' : 'No válido para facturación electrónica'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
           )}
 
@@ -1094,6 +1189,8 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   className="form-input"
                   placeholder="Ingresa tu número de celular"
                   maxLength="10"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
                 {errors.celular && (
                   <div className="error-message">
@@ -1260,7 +1357,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
               </div>
             </div>
 
-            <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div className="grid documents-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">Cédula Frontal <span className="required-asterisk">*</span></label>
                 <FileUpload
@@ -1269,6 +1366,9 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   accept="image/*"
                   placeholder="Sube la foto frontal de tu cédula"
                 />
+                <div className="document-info">
+                   Foto clara del frente de tu cédula de identidad.
+                </div>
                 {errors.cedula_frontal && (
                   <div className="error-message">
                     <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -1286,6 +1386,9 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   accept="image/*"
                   placeholder="Sube la foto trasera de tu cédula"
                 />
+                <div className="document-info">
+                   Foto clara del reverso de tu cédula.
+                </div>
                 {errors.cedula_atras && (
                   <div className="error-message">
                     <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -1303,6 +1406,9 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   accept="image/*"
                   placeholder="Sube una selfie sosteniendo tu cédula"
                 />
+                <div className="document-info">
+                   Selfie sosteniendo tu cédula junto a tu rostro. Asegúrate de que tu cara y la cédula sean claramente visibles. No usar accesorios como gorras o lentes.
+                </div>
                 {errors.selfie && (
                   <div className="error-message">
                     <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -1315,7 +1421,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
             </div>
 
             {/* Información del Solicitante */}
-            <div style={{ 
+            <div className="solicitante-info" style={{ 
               background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
               padding: '20px', 
               borderRadius: '12px', 
