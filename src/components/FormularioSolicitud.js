@@ -1293,7 +1293,7 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
               </svg>
               <div>
                 <h3 className="section-title">Información de Contacto</h3>
-                <p className="section-description">Datos para comunicarnos contigo</p>
+                <p className="section-description">Datos para notificacion y entrega de firma electronica</p>
               </div>
             </div>
 
@@ -1329,6 +1329,51 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
                   Correo Electrónico
                   <span className="required-asterisk">*</span>
                 </label>
+                
+                {/* Opción rápida para usar correo registrado */}
+                {user?.email && !formData.correo && (
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', 
+                    padding: '10px 12px', 
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    border: '1px solid #bae6fd',
+                    fontSize: '13px',
+                    color: '#0369a1'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                        </svg>
+                        <span style={{ fontWeight: '500' }}>
+                          Usar correo registrado: {user.email}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, correo: user.email }))}
+                        style={{
+                          background: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = '#2563eb'}
+                        onMouseOut={(e) => e.target.style.background = '#3b82f6'}
+                      >
+                        Usar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <input
                   type="email"
                   name="correo"
