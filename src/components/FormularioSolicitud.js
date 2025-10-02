@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import FileUpload from './FileUpload';
 import { insertSolicitud, uploadFile, updateSolicitud, consultarCedula } from '../lib/supabase';
 
-const FormularioSolicitud = ({ onBack, user }) => {
+const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
   // Estilos minimalistas y neutros
   const localStyles = `
     .form-wrapper {
@@ -446,8 +446,18 @@ const FormularioSolicitud = ({ onBack, user }) => {
   // Wizard por pasos
   const [step, setStep] = useState(1);
   const totalSteps = 5;
-  const goNext = () => setStep((s) => Math.min(totalSteps, s + 1));
-  const goBack = () => setStep((s) => Math.max(1, s - 1));
+  const goNext = () => {
+    setStep((s) => Math.min(totalSteps, s + 1));
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  };
+  const goBack = () => {
+    setStep((s) => Math.max(1, s - 1));
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  };
 
   // Validación ligera por paso para navegación
   const canGoNext = () => {
@@ -461,14 +471,30 @@ const FormularioSolicitud = ({ onBack, user }) => {
       return cedulaOk && huellaOk && datosCargados;
     }
     if (step === 3) {
-      return (
-        !!formData.provincia &&
-        !!formData.ciudad &&
-        !!formData.parroquia &&
-        !!formData.direccion &&
-        /^\d{10}$/.test(formData.celular || '') &&
-        (formData.correo || '').includes('@') && (formData.correo || '').endsWith('.com')
-      );
+      const provinciaOk = !!formData.provincia;
+      const ciudadOk = !!formData.ciudad;
+      const parroquiaOk = !!formData.parroquia;
+      const direccionOk = !!formData.direccion;
+      const celularOk = /^\d{10}$/.test(formData.celular || '');
+      const correoOk = (formData.correo || '').includes('@') && (formData.correo || '').endsWith('.com');
+      
+      console.log('🔍 Validación paso 3:', {
+        provincia: formData.provincia,
+        ciudad: formData.ciudad,
+        parroquia: formData.parroquia,
+        direccion: formData.direccion,
+        celular: formData.celular,
+        correo: formData.correo,
+        provinciaOk,
+        ciudadOk,
+        parroquiaOk,
+        direccionOk,
+        celularOk,
+        correoOk,
+        puedeContinuar: provinciaOk && ciudadOk && parroquiaOk && direccionOk && celularOk && correoOk
+      });
+      
+      return provinciaOk && ciudadOk && parroquiaOk && direccionOk && celularOk && correoOk;
     }
     if (step === 4) {
       return !!archivos.cedula_frontal && !!archivos.cedula_atras && !!archivos.selfie;
@@ -491,7 +517,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
             nombres: resultado.data.nombres,
             apellidos: resultado.data.apellidos,
             nacionalidad: resultado.data.nacionalidad,
-            provincia: resultado.data.provincia,
+            provincia: normalizarProvincia(resultado.data.provincia),
             ciudad: resultado.data.ciudad,
             parroquia: resultado.data.parroquia,
             direccion: resultado.data.direccion,
@@ -501,7 +527,8 @@ const FormularioSolicitud = ({ onBack, user }) => {
           }));
           
           console.log('📋 Datos cargados en formulario:', {
-            provincia: resultado.data.provincia,
+            provinciaOriginal: resultado.data.provincia,
+            provinciaNormalizada: normalizarProvincia(resultado.data.provincia),
             ciudad: resultado.data.ciudad,
             parroquia: resultado.data.parroquia
           });
@@ -567,9 +594,53 @@ const FormularioSolicitud = ({ onBack, user }) => {
   ];
 
   // Función para determinar si la firma es válida para facturación electrónica
+  const normalizarProvincia = (provinciaAPI) => {
+    if (!provinciaAPI) return '';
+    
+    // Mapeo de nombres de provincias de la API a los nombres del select
+    const mapeoProvincias = {
+      'PICHINCHA': 'Pichincha',
+      'GUAYAS': 'Guayas',
+      'AZUAY': 'Azuay',
+      'MANABI': 'Manabí',
+      'EL ORO': 'El Oro',
+      'LOJA': 'Loja',
+      'TUNGURAHUA': 'Tungurahua',
+      'CHIMBORAZO': 'Chimborazo',
+      'COTOPAXI': 'Cotopaxi',
+      'IMBABURA': 'Imbabura',
+      'CARCHI': 'Carchi',
+      'ESMERALDAS': 'Esmeraldas',
+      'LOS RIOS': 'Los Ríos',
+      'SANTA ELENA': 'Santa Elena',
+      'SANTO DOMINGO': 'Santo Domingo de los Tsáchilas',
+      'SANTO DOMINGO DE LOS TSACHILAS': 'Santo Domingo de los Tsáchilas',
+      'MORONA SANTIAGO': 'Morona Santiago',
+      'NAPO': 'Napo',
+      'ORELLANA': 'Orellana',
+      'PASTAZA': 'Pastaza',
+      'SUCUMBIOS': 'Sucumbíos',
+      'ZAMORA CHINCHIPE': 'Zamora Chinchipe',
+      'GALAPAGOS': 'Galápagos',
+      'CANAR': 'Cañar',
+      'BOLIVAR': 'Bolívar'
+    };
+    
+    const provinciaNormalizada = provinciaAPI.toUpperCase().trim();
+    return mapeoProvincias[provinciaNormalizada] || provinciaAPI;
+  };
+
   const esValidaParaFacturacion = () => {
     const duracionesValidas = ['1 año', '2 años', '3 años', '4 años', '5 años'];
     return duracionesValidas.includes(formData.duracion_firma);
+  };
+
+  const validarCorreo = (correo) => {
+    if (!correo) return '';
+    if (!correo.includes('@')) return 'El correo debe contener @';
+    if (!correo.endsWith('.com')) return 'El correo debe terminar en .com';
+    if (correo.length < 5) return 'El correo es muy corto';
+    return '';
   };
 
   const handleInputChange = (e) => {
@@ -590,8 +661,8 @@ const FormularioSolicitud = ({ onBack, user }) => {
   // Limpiar datos cuando se cambie la cédula
   useEffect(() => {
     const ced = formData.numero_cedula;
-    if (ced && ced.length !== 10) {
-      // Limpiar datos si la cédula no tiene 10 dígitos
+    if (ced && ced.length !== 10 && !loadingCedula) {
+      // Solo limpiar datos si la cédula no tiene 10 dígitos Y no se está cargando
       setFormData(prev => ({
         ...prev,
         nombres: '',
@@ -605,7 +676,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
         ruc: ''
       }));
     }
-  }, [formData.numero_cedula]);
+  }, [formData.numero_cedula, loadingCedula]);
 
   const handleFileChange = (tipo, file) => {
     setArchivos(prev => ({
@@ -749,6 +820,11 @@ const FormularioSolicitud = ({ onBack, user }) => {
 
       setSuccess(true);
       
+      // Scroll hacia arriba en móviles después del envío exitoso
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 500);
+      
       setFormData({
         numero_cedula: '',
         nombres: '',
@@ -796,15 +872,56 @@ const FormularioSolicitud = ({ onBack, user }) => {
             Te contactaremos pronto para continuar con el proceso de verificación 
             y entrega de tu certificado digital.
           </p>
-          <button 
-            className="btn btn-primary"
-            onClick={() => {
-              setSuccess(false);
-              setStep(1);
-            }}
-          >
-            Gestionar Otra Firma
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              className="btn btn-primary"
+              style={{ 
+                padding: '12px 20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                borderRadius: '8px',
+                minWidth: '140px'
+              }}
+              onClick={() => {
+                setSuccess(false);
+                setStep(1);
+              }}
+            >
+              Nueva Firma
+            </button>
+            <button 
+              className="btn"
+              style={{ 
+                background: '#059669', 
+                color: '#ffffff', 
+                border: '1px solid #047857',
+                padding: '12px 20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                borderRadius: '8px',
+                minWidth: '140px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+              onClick={() => {
+                // Navegar a la sección de consultar estado
+                if (onServiceSelect) {
+                  onServiceSelect('consultar-estado');
+                } else {
+                  // Fallback si no está disponible
+                  setSuccess(false);
+                  setStep(1);
+                }
+              }}
+            >
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
+              </svg>
+              Consultar Firma
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1215,6 +1332,22 @@ const FormularioSolicitud = ({ onBack, user }) => {
                   className="form-input"
                   placeholder="Ingresa tu correo electrónico"
                 />
+                {formData.correo && validarCorreo(formData.correo) && (
+                  <div className="error-message" style={{ marginTop: '8px' }}>
+                    <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    {validarCorreo(formData.correo)}
+                  </div>
+                )}
+                {formData.correo && !validarCorreo(formData.correo) && (
+                  <div style={{ marginTop: '8px', color: '#10b981', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                    </svg>
+                    Correo válido
+                  </div>
+                )}
                 {errors.correo && (
                   <div className="error-message">
                     <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -1255,7 +1388,7 @@ const FormularioSolicitud = ({ onBack, user }) => {
                 >
                   <option value="">Selecciona una provincia</option>
                   {provincias.map(provincia => (
-                    <option key={provincia} value={provincia}>{provincia}</option>
+                    <option key={provincia} value={provincia}>{provincia.toUpperCase()}</option>
                   ))}
                 </select>
                 {errors.provincia && (
@@ -1520,6 +1653,9 @@ const FormularioSolicitud = ({ onBack, user }) => {
                     accept=".pdf,.jpg,.jpeg,.png"
                     placeholder="Sube el comprobante de pago"
                   />
+                  <div className="document-info">
+                    Comprobante de transferencia o depósito bancario. Acepta PDF, JPG, PNG.
+                  </div>
                   {errors.comprobante_pago && (
                     <div className="error-message">
                       <svg className="error-icon" fill="currentColor" viewBox="0 0 20 20">
@@ -1569,54 +1705,101 @@ const FormularioSolicitud = ({ onBack, user }) => {
 
             {formData.duracion_firma && (
               <div style={{ 
-                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', 
-                padding: '24px', 
-                borderRadius: '16px', 
-                marginTop: '24px',
-                border: '2px solid #bae6fd',
-                boxShadow: '0 8px 25px rgba(14, 165, 233, 0.15)'
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
+                padding: '20px', 
+                borderRadius: '12px', 
+                marginTop: '20px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                   <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
-                    fontSize: '18px',
-                    fontWeight: '700'
+                    fontSize: '14px',
+                    fontWeight: '600'
                   }}>
                     💳
                   </div>
-                  <h4 style={{ margin: '0', color: '#0369a1', fontSize: '18px', fontWeight: '700' }}>
+                  <h4 style={{ margin: '0', color: '#111827', fontSize: '16px', fontWeight: '600' }}>
                     Resumen de Pago
                   </h4>
                 </div>
+                
                 <div style={{ 
                   background: '#ffffff', 
                   padding: '16px', 
-                  borderRadius: '12px',
-                  border: '1px solid #e0f2fe'
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ color: '#374151', fontSize: '15px', fontWeight: '500' }}>
+                    <span style={{ color: '#374151', fontSize: '14px', fontWeight: '500' }}>
                       Firma electrónica - {formData.duracion_firma}
                     </span>
-                    <span style={{ fontSize: '24px', fontWeight: '800', color: '#0369a1' }}>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>
                       ${opcionesPrecio.find(o => o.value === formData.duracion_firma)?.price || 0}
                     </span>
                   </div>
+                  
                   <div style={{ 
                     fontSize: '12px', 
-                    color: '#64748b', 
-                    textAlign: 'center',
+                    color: '#6b7280', 
                     paddingTop: '8px',
-                    borderTop: '1px solid #f1f5f9'
+                    borderTop: '1px solid #f3f4f6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}>
-                    Incluye certificado digital y soporte técnico
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                    </svg>
+                    Precio incluye IVA (15%) y todos los impuestos
+                  </div>
+                  
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#6b7280', 
+                    marginTop: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+                    </svg>
+                    Incluye certificado digital .P12 y soporte técnico
+                  </div>
+                </div>
+                
+                {/* Aviso de Seguridad y Protección de Datos */}
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', 
+                  padding: '12px', 
+                  borderRadius: '8px',
+                  marginTop: '12px',
+                  border: '1px solid #f59e0b',
+                  fontSize: '12px',
+                  color: '#92400e'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style={{ marginTop: '1px', flexShrink: 0 }}>
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    <div>
+                      <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                        🔒 Seguridad y Protección de Datos
+                      </div>
+                      <div style={{ lineHeight: '1.4' }}>
+                        Tus datos están protegidos con encriptación SSL de 256 bits. Cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador. 
+                        No compartimos tu información con terceros sin tu consentimiento expreso.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

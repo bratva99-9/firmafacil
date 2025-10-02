@@ -338,7 +338,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
       case 'firma-electronica':
         return (
           <div>
-            <FormularioSolicitud user={user} />
+            <FormularioSolicitud user={user} onServiceSelect={onServiceSelect} onBack={() => onServiceSelect('home')} />
           </div>
         );
       
