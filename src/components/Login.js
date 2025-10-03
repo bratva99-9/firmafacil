@@ -265,7 +265,7 @@ const Login = ({ onLoginSuccess }) => {
       <div className="login-container">
         <div className="login-header">
           <span className="login-logo">🔐</span>
-          <h1 className="login-title">FIRMAFACIL SAS</h1>
+          <h1 className="login-title">ECUCONTABLE S.A.S. </h1>
           <p className="login-subtitle">Inicia sesión en tu cuenta</p>
         </div>
 

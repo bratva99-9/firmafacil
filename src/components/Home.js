@@ -424,7 +424,7 @@ const Home = ({ onNavigate }) => {
       {/* Hero Section */}
       <div className="hero-section">
         <div className="hero-content">
-          <h1 className="hero-title">FIRMAFACIL SAS</h1>
+          <h1 className="hero-title">ECUCONTABLE SAS</h1>
           <p className="hero-subtitle">
             Soluciones Digitales de Confianza - Certificados digitales seguros y válidos legalmente
           </p>
@@ -439,13 +439,13 @@ const Home = ({ onNavigate }) => {
               className="cta-button"
               onClick={() => onNavigate('ruc-antiguedad')}
             >
-              📊 RUC con Antigüedad
+              📊 Solicitar RUC con Antiguedad
             </button>
             <button 
               className="cta-button"
               onClick={() => onNavigate('consultar-estado')}
             >
-              🔍 Consultar Estado
+              🔍 Consultar mis tramites
             </button>
           </div>
         </div>

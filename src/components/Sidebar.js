@@ -17,7 +17,7 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
     },
     {
       id: 'consultar-estado',
-      titulo: 'Consultar Estado',
+      titulo: 'Consultar mis tramites',
       icono: '🔍',
       descripcion: 'Estado de trámites'
     },
@@ -213,8 +213,8 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
         <div className="sidebar-logo">
           <span className="sidebar-logo-icon">🔐</span>
           <div>
-            <div>FIRMAFACIL</div>
-            <div className="sidebar-subtitle">SAS</div>
+            <div>ECUCONTABLE</div>
+            <div className="sidebar-subtitle">&nbsp;</div>
           </div>
         </div>
       </div>
@@ -238,7 +238,7 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
         
         <div className="sidebar-footer">
           <div className="footer-text">
-            © 2024 FIRMAFACIL SAS<br />
+            © 2024 ECUCONTABLE<br />
             Soluciones Digitales de Confianza
           </div>
           <button 

@@ -57,7 +57,7 @@ const ConsultarEstado = ({ user }) => {
       if (resultado.success) {
         setSolicitudes(resultado.data);
         if (resultado.data.length === 0) {
-          setError('No se encontraron solicitudes para este distribuidor');
+          setError('No se encontraron solicitudes para este usuario');
         }
       } else {
         setError(resultado.error || 'Error al consultar las solicitudes');
@@ -440,7 +440,7 @@ const ConsultarEstado = ({ user }) => {
              <div className="consultar-header">
                <h1 className="consultar-title">Consultar Estado de Trámites</h1>
                <p className="consultar-description">
-                 Aquí puedes ver todas las solicitudes de trámites que has enviado como distribuidor.
+                 Aquí puedes ver todas las solicitudes de trámites que has realizado.
                </p>
              </div>
 

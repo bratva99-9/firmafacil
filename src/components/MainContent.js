@@ -269,7 +269,9 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
               <div className="security-banner">
                 <span className="icon">🔒</span>
                 <div className="text">
-                  Tu tranquilidad es nuestra prioridad: cada servicio está protegido con tecnología de seguridad avanzada para garantizar la integridad de tus documentos.
+                Tus datos y documentos están protegidos bajo estándares internacionales de seguridad. Utilizamos cifrado TLS de 256 bits para garantizar la confidencialidad de la información transmitida.
+                    Cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador y aplicamos estrictas medidas para evitar accesos no autorizados.
+                    👉 La información proporcionada será utilizada únicamente para fines de verificación de identidad.
                 </div>
               </div>
             </div>
