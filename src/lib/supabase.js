@@ -1,18 +1,17 @@
 // Configuración de Supabase y funciones para el formulario
 import { createClient } from '@supabase/supabase-js'
 
-// Configuración de Supabase - Credenciales de prueba
-const supabaseUrl = 'https://eapcqcuzfkpqngbvjtmv.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcGNxY3V6ZmtwcW5nYnZqdG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTEzNzIsImV4cCI6MjA3NDQyNzM3Mn0.-mufqMzFQetktwAL444d1PjdWfdCC5-2ftVs0LnTIL4'
+// Configuración de Supabase - Variables de entorno (producción y desarrollo)
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
 // Validar configuración
-if (supabaseUrl === 'https://your-project.supabase.co' || supabaseKey === 'your-anon-key') {
-  console.error('❌ ERROR: Las credenciales de Supabase no están configuradas correctamente.');
-  console.error('📝 Por favor, crea un archivo .env en la raíz del proyecto con:');
-  console.error('REACT_APP_SUPABASE_URL=https://tu-proyecto.supabase.co');
-  console.error('REACT_APP_SUPABASE_ANON_KEY=tu-clave-anonima');
+if (!supabaseUrl || !supabaseKey) {
+  // No interrumpimos la ejecución del build en cliente, pero avisamos claramente en consola
+  console.error('❌ ERROR: Variables de entorno de Supabase no configuradas.');
+  console.error('📝 Define REACT_APP_SUPABASE_URL y REACT_APP_SUPABASE_ANON_KEY en tu entorno de despliegue.');
 } else {
-  console.log('✅ Credenciales de Supabase configuradas correctamente');
+  console.log('✅ Supabase configurado desde variables de entorno');
 }
 
 // Función para consultar datos de cédula usando caché local y API Zamplisoft

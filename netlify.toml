@@ -3,6 +3,16 @@
   publish = "build"
 
 [[redirects]]
+  from = "http://ecucontable.com/*"
+  to = "https://www.ecucontable.com/:splat"
+  status = 301
+
+[[redirects]]
+  from = "https://ecucontable.com/*"
+  to = "https://www.ecucontable.com/:splat"
+  status = 301
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
