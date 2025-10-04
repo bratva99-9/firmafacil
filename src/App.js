@@ -15,6 +15,13 @@ function App() {
   const [minLoadingTime, setMinLoadingTime] = useState(true);
   const [authMode, setAuthMode] = useState('login'); // 'login' o 'register'
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  
+  // Verificar si estamos en la ruta de política de privacidad
+  useEffect(() => {
+    if (window.location.pathname === '/privacy-policy') {
+      setShowPrivacyPolicy(true);
+    }
+  }, []);
 
   useEffect(() => {
     // Timer mínimo de carga de 3 segundos
@@ -163,15 +170,19 @@ function App() {
     );
   }
 
+  // Mostrar política de privacidad sin autenticación
+  if (showPrivacyPolicy) {
+    return (
+      <PrivacyPolicy 
+        onBack={() => {
+          setShowPrivacyPolicy(false);
+          window.history.pushState({}, '', '/');
+        }}
+      />
+    );
+  }
+
   if (!user) {
-    if (showPrivacyPolicy) {
-      return (
-        <PrivacyPolicy 
-          onBack={() => setShowPrivacyPolicy(false)}
-        />
-      );
-    }
-    
     if (authMode === 'register') {
       return (
         <Register 
