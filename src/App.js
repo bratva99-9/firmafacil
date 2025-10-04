@@ -77,7 +77,7 @@ function App() {
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px'
           }}></div>
-          Cargando FIRMAFACIL SAS...
+          Cargando ECUCONTABLE...
         </div>
       </div>
     );

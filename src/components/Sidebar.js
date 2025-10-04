@@ -67,13 +67,29 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
     }
 
     .sidebar-logo-icon {
-      font-size: 32px;
+      font-size: 28px;
+      flex-shrink: 0;
     }
 
-    .sidebar-subtitle {
+    .sidebar-logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .sidebar-logo-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: white;
+      margin: 0;
+    }
+
+    .sidebar-logo-subtitle {
+      font-size: 12px;
+      font-weight: 500;
       color: rgba(255,255,255,0.7);
-      font-size: 14px;
-      font-weight: 300;
+      margin: 0;
+      margin-top: 2px;
     }
 
     .sidebar-nav {
@@ -212,9 +228,9 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <span className="sidebar-logo-icon">🔐</span>
-          <div>
-            <div>ECUCONTABLE</div>
-            <div className="sidebar-subtitle">&nbsp;</div>
+          <div className="sidebar-logo-text">
+            <div className="sidebar-logo-title">ECUCONTABLE SAS</div>
+            <div className="sidebar-logo-subtitle">Soluciones Contables</div>
           </div>
         </div>
       </div>

@@ -1768,7 +1768,7 @@ const FormularioSolicitud = ({ onBack, user, onServiceSelect }) => {
                       <strong>CUENTA:</strong> 27059110924
                     </div>
                     <div style={{ marginBottom: '6px' }}>
-                      <strong>TITULAR:</strong> FIRMAFACIL SAS
+                      <strong>TITULAR:</strong> ECUCONTABLE
                     </div>
                     <div style={{ marginBottom: '6px' }}>
                       <strong>RUC:</strong> 0993391174001

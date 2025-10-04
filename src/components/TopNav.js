@@ -46,14 +46,36 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       font-size: 18px;
       font-weight: 700;
       color: #1f2937;
     }
 
     .nav-logo-icon {
-      font-size: 18px;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .nav-logo-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .nav-logo-subtitle {
+      font-size: 11px;
+      font-weight: 500;
+      color: #6b7280;
+      margin: 0;
+      margin-top: -1px;
     }
 
     .nav-right {
@@ -266,8 +288,29 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       padding-left: 8px;
+    }
+
+    .mobile-logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .mobile-logo-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      margin: 0;
+    }
+
+    .mobile-logo-subtitle {
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.7);
+      margin: 0;
+      margin-top: -1px;
     }
 
     .mobile-menu-close {
@@ -378,8 +421,12 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
         display: block;
       }
       
-      .nav-logo {
-        font-size: 16px;
+      .nav-logo-title {
+        font-size: 14px;
+      }
+      
+      .nav-logo-subtitle {
+        font-size: 10px;
       }
       
       .nav-logo-icon {
@@ -507,7 +554,10 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
           </button>
           <div className="nav-logo">
             <span className="nav-logo-icon">🔐</span>
-            <span>FIRMAFACIL SAS</span>
+            <div className="nav-logo-text">
+              <div className="nav-logo-title">ECUCONTABLE SAS</div>
+              <div className="nav-logo-subtitle">Soluciones Contables</div>
+            </div>
           </div>
         </div>
 
@@ -604,7 +654,10 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
               </button>
               <div className="mobile-menu-logo">
                 <span style={{ fontSize: '18px' }}>🔐</span>
-                <span>FIRMAFACIL SAS</span>
+                <div className="mobile-logo-text">
+                  <div className="mobile-logo-title">ECUCONTABLE SAS</div>
+                  <div className="mobile-logo-subtitle">Soluciones Contables</div>
+                </div>
               </div>
             </div>
 
