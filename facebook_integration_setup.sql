@@ -77,3 +77,4 @@ CREATE TRIGGER update_profiles_updated_at
 CREATE TRIGGER update_solicitudes_updated_at
   BEFORE UPDATE ON solicitudes
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+

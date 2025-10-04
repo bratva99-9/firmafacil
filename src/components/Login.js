@@ -316,7 +316,6 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
   };
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
     setError('');
 
     try {
@@ -330,12 +329,10 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
       if (error) throw error;
     } catch (error) {
       setError(error.message || 'Error al iniciar sesión con Google');
-      setLoading(false);
     }
   };
 
   const handleFacebookLogin = async () => {
-    setLoading(true);
     setError('');
 
     try {
@@ -350,7 +347,6 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
       if (error) throw error;
     } catch (error) {
       setError(error.message || 'Error al iniciar sesión con Facebook');
-      setLoading(false);
     }
   };
 
@@ -371,7 +367,6 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
           <button 
             onClick={handleGoogleLogin}
             className="google-button"
-            disabled={loading}
             style={{ marginBottom: 10 }}
           >
             <svg className="google-icon" viewBox="0 0 24 24">
@@ -380,18 +375,17 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            {loading ? 'Iniciando...' : 'Continuar con Google'}
+            Continuar con Google
           </button>
 
           <button 
             onClick={handleFacebookLogin}
             className="facebook-button"
-            disabled={loading}
           >
             <svg className="google-icon" viewBox="0 0 24 24">
               <path fill="#FFFFFF" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.988H7.898v-2.89h2.54V9.797c0-2.507 1.493-3.89 3.778-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562v1.875h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
             </svg>
-            {loading ? 'Iniciando...' : 'Continuar con Facebook'}
+            Continuar con Facebook
           </button>
         </div>
 

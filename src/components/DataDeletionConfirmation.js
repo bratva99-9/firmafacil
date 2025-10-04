@@ -240,3 +240,4 @@ const DataDeletionConfirmation = () => {
 };
 
 export default DataDeletionConfirmation;
+

@@ -18,6 +18,7 @@ function App() {
   const [authMode, setAuthMode] = useState('login'); // 'login' o 'register'
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showDataDeletion, setShowDataDeletion] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Cargando aplicación...');
   
   // Verificar rutas públicas
   useEffect(() => {
@@ -33,31 +34,43 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Timer mínimo de carga de 3 segundos
+    // Timer mínimo de carga de 4 segundos
     const minLoadingTimer = setTimeout(() => {
       setMinLoadingTime(false);
-    }, 3000);
+    }, 4000);
 
     return () => clearTimeout(minLoadingTimer);
   }, []);
 
   useEffect(() => {
-    // Verificar sesión activa
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔍 Sesión inicial:', session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    };
-
-    getSession();
-
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Cambio de autenticación:', event, session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        
+        // Solo manejar el evento más relevante para evitar duplicaciones
+        if (event === 'SIGNED_IN') {
+          setLoadingMessage('Validando datos del usuario...');
+          setUser(session?.user ?? null);
+          setLoading(false);
+          setMinLoadingTime(false);
+        } else if (event === 'SIGNED_OUT') {
+          setLoadingMessage('Cerrando sesión...');
+          setUser(null);
+          setLoading(false);
+          setMinLoadingTime(false);
+        } else if (event === 'TOKEN_REFRESHED') {
+          setLoadingMessage('Actualizando sesión...');
+          setUser(session?.user ?? null);
+          setLoading(false);
+          setMinLoadingTime(false);
+        } else if (event === 'INITIAL_SESSION') {
+          setLoadingMessage('Verificando sesión...');
+          setUser(session?.user ?? null);
+          setLoading(false);
+          // Terminar el timer mínimo después de un segundo más
+          setTimeout(() => setMinLoadingTime(false), 1500);
+        }
       }
     );
 
@@ -144,9 +157,18 @@ function App() {
           <div style={{
             fontSize: '16px',
             color: '#6b7280',
-            fontWeight: '400'
+            fontWeight: '400',
+            marginBottom: '20px'
           }}>
             Soluciones Contables y Tributarias
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: '#9ca3af',
+            fontWeight: '500',
+            marginTop: '10px'
+          }}>
+            {loadingMessage}
           </div>
         </div>
         
