@@ -21,43 +21,25 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
     }
 
     .service-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 20px;
-      padding: 40px;
-      margin-bottom: 40px;
-      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .service-header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-      pointer-events: none;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      border-left: 4px solid #667eea;
     }
 
     .service-title {
-      font-size: 36px;
-      font-weight: 800;
-      color: white;
-      margin-bottom: 12px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      position: relative;
-      z-index: 1;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 8px;
     }
 
     .service-description {
-      color: rgba(255,255,255,0.9);
-      font-size: 18px;
-      line-height: 1.7;
-      font-weight: 400;
-      position: relative;
-      z-index: 1;
+      color: #6b7280;
+      font-size: 16px;
+      line-height: 1.6;
     }
 
     .coming-soon {
@@ -92,28 +74,24 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
     .security-banner {
       display: flex;
       align-items: flex-start;
-      gap: 16px;
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      padding: 20px 24px;
-      border-radius: 16px;
-      margin-top: 24px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      backdrop-filter: blur(10px);
-      position: relative;
-      z-index: 1;
+      gap: 10px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #065f46;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-top: 12px;
+      box-shadow: 0 2px 8px rgba(6,95,70,0.06);
     }
     .security-banner .icon {
-      font-size: 24px;
+      font-size: 18px;
       line-height: 1;
       flex-shrink: 0;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
     }
     .security-banner .text {
-      font-size: 15px;
-      line-height: 1.6;
-      font-weight: 500;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 600;
     }
 
     .back-button {
@@ -135,225 +113,111 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
 
     .services-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-      margin-top: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
     }
 
     .service-card {
-      background: white;
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.05);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+      border: 1px solid #e5e7eb;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-    }
-
-    .service-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
+      gap: 10px;
     }
 
     .service-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-      border-color: rgba(102, 126, 234, 0.2);
-    }
-
-    .service-card:hover::before {
-      opacity: 1;
-    }
-
-    .service-card.premium-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .service-card.premium-card .service-card-title,
-    .service-card.premium-card .service-card-description {
-      color: white;
-    }
-
-    .service-card.business-card {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: white;
-    }
-
-    .service-card.business-card .service-card-title,
-    .service-card.business-card .service-card-description {
-      color: white;
-    }
-
-    .service-card.financial-card {
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      color: white;
-    }
-
-    .service-card.financial-card .service-card-title,
-    .service-card.financial-card .service-card-description {
-      color: white;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(17, 24, 39, 0.10);
+      border-color: #c7d2fe;
     }
 
     .service-card.coming-soon-card {
-      opacity: 0.6;
+      opacity: 0.7;
       cursor: not-allowed;
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
     }
 
     .service-card.coming-soon-card:hover {
       transform: none;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-      border-color: rgba(0,0,0,0.05);
-    }
-
-    .service-card.coming-soon-card:hover::before {
-      opacity: 0;
-    }
-
-    .service-card-badge {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      backdrop-filter: blur(10px);
-    }
-
-    .service-card.coming-soon-card .service-card-badge {
-      background: rgba(0,0,0,0.1);
-      color: #6b7280;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      border-color: transparent;
     }
 
     .service-card-icon {
-      font-size: 48px;
+      font-size: 36px;
       display: block;
-      margin-bottom: 8px;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
     }
 
     .service-card-title {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
       color: #111827;
       margin: 0;
-      line-height: 1.3;
     }
 
     .service-card-description {
       color: #6b7280;
-      font-size: 15px;
-      line-height: 1.6;
+      font-size: 13px;
+      line-height: 1.45;
       margin: 0;
     }
 
-    .service-card-features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 8px 0;
-    }
-
-    .feature-tag {
+    .service-card-status {
       display: inline-block;
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 12px;
-      font-weight: 600;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      backdrop-filter: blur(10px);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
 
-    .service-card.coming-soon-card .feature-tag {
-      background: rgba(0,0,0,0.1);
-      color: #6b7280;
+    .service-card:not(.coming-soon-card) .service-card-status {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .service-card.coming-soon-card .service-card-status {
+      background: #fef3c7;
+      color: #92400e;
     }
 
     .service-card-meta {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       margin-top: auto;
-      flex-wrap: wrap;
-    }
-
-    .service-card-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .service-card-status.available {
-      background: rgba(34, 197, 94, 0.2);
-      color: #16a34a;
-      border: 1px solid rgba(34, 197, 94, 0.3);
-    }
-
-    .service-card-status.coming-soon {
-      background: rgba(156, 163, 175, 0.2);
-      color: #6b7280;
-      border: 1px solid rgba(156, 163, 175, 0.3);
     }
 
     .service-card-duration {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 11px;
       font-weight: 700;
-      backdrop-filter: blur(10px);
-    }
-
-    .service-card.coming-soon-card .service-card-duration {
-      background: rgba(0,0,0,0.1);
-      color: #6b7280;
     }
 
     .service-card-price {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #065f46;
+      font-size: 11px;
       font-weight: 700;
-      backdrop-filter: blur(10px);
-    }
-
-    .service-card.coming-soon-card .service-card-price {
-      background: rgba(0,0,0,0.1);
-      color: #6b7280;
     }
 
     @media (max-width: 768px) {
@@ -371,73 +235,61 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
       }
       
       .service-header {
-        padding: 24px 20px;
-        margin-bottom: 24px;
-        border-radius: 16px;
-      }
-      
-      .service-title {
-        font-size: 28px;
-        margin-bottom: 10px;
-      }
-      
-      .service-description {
-        font-size: 16px;
-      }
-      
-      .security-banner {
-        padding: 16px 20px;
-        margin-top: 20px;
+        padding: 16px 12px;
+        margin-bottom: 16px;
         border-radius: 12px;
       }
       
-      .security-banner .text {
+      .service-title {
+        font-size: 22px;
+        margin-bottom: 6px;
+      }
+      
+      .service-description {
         font-size: 14px;
+      }
+      
+      .security-banner {
+        padding: 10px 12px;
+        margin-top: 10px;
+        border-radius: 8px;
+      }
+      
+      .security-banner .text {
+        font-size: 12px;
       }
 
       .services-grid {
         grid-template-columns: 1fr;
-        gap: 20px;
-        margin-top: 20px;
+        gap: 12px;
+        margin-top: 12px;
       }
 
       .service-card {
-        padding: 20px;
-        border-radius: 16px;
+        padding: 16px;
+        border-radius: 12px;
       }
       
       .service-card-icon {
-        font-size: 40px;
+        font-size: 32px;
       }
       
       .service-card-title {
-        font-size: 20px;
+        font-size: 16px;
       }
       
       .service-card-description {
-        font-size: 14px;
+        font-size: 12px;
       }
       
       .service-card-status {
-        padding: 6px 12px;
-        font-size: 11px;
-      }
-      
-      .service-card-duration, .service-card-price {
-        padding: 6px 12px;
-        font-size: 11px;
-      }
-
-      .service-card-badge {
-        top: 12px;
-        right: 12px;
         padding: 4px 8px;
         font-size: 10px;
       }
-
-      .feature-tag {
+      
+      .service-card-duration, .service-card-price {
         padding: 4px 8px;
-        font-size: 11px;
+        font-size: 10px;
       }
       
       .coming-soon {
@@ -476,113 +328,76 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
         return (
           <div>
             <div className="service-header">
-              <h1 className="service-title">🚀 Servicios Digitales</h1>
+              <h1 className="service-title">Enviar Trámites</h1>
               <p className="service-description">
-                Descubre nuestra gama completa de servicios digitales diseñados para simplificar tus trámites y potenciar tu negocio. 
-                Soluciones rápidas, seguras y confiables al alcance de un clic.
+                Selecciona el servicio que necesitas y completa tu solicitud de forma rapida y segura.
               </p>
               <div className="security-banner">
-                <span className="icon">🛡️</span>
+                <span className="icon">🔒</span>
                 <div className="text">
-                  <strong>Seguridad Garantizada:</strong> Protegemos tu información con tecnología de vanguardia. 
-                  Cifrado TLS 256-bit, cumplimiento con la Ley de Protección de Datos del Ecuador y auditorías de seguridad regulares. 
-                  Tu privacidad es nuestra prioridad absoluta.
+                Tus datos y documentos están protegidos bajo estándares internacionales de seguridad. Utilizamos cifrado TLS de 256 bits para garantizar la confidencialidad de la información transmitida.
+                    Cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador y aplicamos estrictas medidas para evitar accesos no autorizados.
+                    👉 La información proporcionada será utilizada únicamente para fines de verificación de identidad.
                 </div>
               </div>
             </div>
             <div className="services-grid">
               {/* 1) Firma Electrónica */}
-              <div className="service-card premium-card" onClick={() => onServiceSelect('firma-electronica')}>
-                <div className="service-card-badge">⭐ Más Popular</div>
+              <div className="service-card" onClick={() => onServiceSelect('firma-electronica')}>
                 <div className="service-card-icon">✍️</div>
                 <h3 className="service-card-title">Firma Electrónica</h3>
-                <p className="service-card-description">Certificados digitales completos para firmar documentos electrónicamente. 
-                Válidos para facturación electrónica, contratos y trámites gubernamentales.</p>
-                <div className="service-card-features">
-                  <span className="feature-tag">📄 Facturación Electrónica</span>
-                  <span className="feature-tag">🏛️ Trámites Gubernamentales</span>
-                </div>
+                <p className="service-card-description">Certificado digitales completos validos para firmar documentos electrónicamente, validos para facturacion electronica</p>
                 <div className="service-card-meta">
-                  <div className="service-card-status available">✅ Disponible</div>
-                  <div className="service-card-duration">⚡ 30 minutos</div>
-                  <div className="service-card-price">💰 Desde $7.50</div>
+                  <div className="service-card-status">Disponible</div>
+                  <div className="service-card-duration">⏱️ 30 min</div>
+                  <div className="service-card-price">Desde $7.5</div>
                 </div>
               </div>
 
               {/* 2) RUC con Antigüedad */}
-              <div className="service-card business-card" onClick={() => onServiceSelect('ruc-antiguedad')}>
-                <div className="service-card-badge">🏢 Para Empresas</div>
+              <div className="service-card" onClick={() => onServiceSelect('ruc-antiguedad')}>
                 <div className="service-card-icon">📊</div>
                 <h3 className="service-card-title">RUC con Antigüedad</h3>
-                <p className="service-card-description">Documentación completa de RUC con historial de antigüedad. 
-                Ideal para trámites bancarios, casas comerciales, visas y procesos corporativos.</p>
-                <div className="service-card-features">
-                  <span className="feature-tag">🏦 Trámites Bancarios</span>
-                  <span className="feature-tag">✈️ Procesos de Visa</span>
-                </div>
+                <p className="service-card-description">Enfocado para tramites bancarios, casas comerciales y visas</p>
                 <div className="service-card-meta">
-                  <div className="service-card-status available">✅ Disponible</div>
-                  <div className="service-card-duration">⏰ 3 horas</div>
-                  <div className="service-card-price">💰 Desde $45.00</div>
+                  <div className="service-card-status">Disponible</div>
+                  <div className="service-card-duration">⏱️ 3 horas</div>
+                  <div className="service-card-price">Desde $45</div>
                 </div>
               </div>
 
               {/* 3) Reporte Equifax 360 */}
-              <div className="service-card financial-card" onClick={() => onServiceSelect('reporte-equifax')}>
-                <div className="service-card-badge">💳 Financiero</div>
+              <div className="service-card" onClick={() => onServiceSelect('reporte-equifax')}>
                 <div className="service-card-icon">📈</div>
                 <h3 className="service-card-title">Reporte Equifax 360</h3>
-                <p className="service-card-description">Reporte crediticio completo y detallado de Equifax. 
-                Información actualizada sobre tu historial crediticio y capacidad de pago.</p>
-                <div className="service-card-features">
-                  <span className="feature-tag">📊 Historial Crediticio</span>
-                  <span className="feature-tag">💼 Evaluación Financiera</span>
-                </div>
+                <p className="service-card-description">Reporte crediticio completo de Equifax</p>
                 <div className="service-card-meta">
-                  <div className="service-card-status available">✅ Disponible</div>
-                  <div className="service-card-duration">⚡ 30 minutos</div>
-                  <div className="service-card-price">💰 Desde $8.00</div>
+                  <div className="service-card-status">Disponible</div>
+                  <div className="service-card-duration">⏱️ 30 min</div>
+                  <div className="service-card-price">Desde $8</div>
                 </div>
               </div>
 
-              {/* Próximos Servicios */}
+              {/* Otros */}
               <div className="service-card coming-soon-card">
-                <div className="service-card-badge">🔮 Próximamente</div>
                 <div className="service-card-icon">🔑</div>
                 <h3 className="service-card-title">Clave Herencia SRI</h3>
-                <p className="service-card-description">Gestión completa de claves de herencia para el Servicio de Rentas Internas. 
-                Simplifica los procesos de sucesión y herencia.</p>
-                <div className="service-card-features">
-                  <span className="feature-tag">🏛️ SRI</span>
-                  <span className="feature-tag">👥 Herencias</span>
-                </div>
-                <div className="service-card-status coming-soon">🚧 En Desarrollo</div>
+                <p className="service-card-description">Gestión de claves de herencia para el Servicio de Rentas Internas</p>
+                <div className="service-card-status">Próximamente</div>
               </div>
 
               <div className="service-card coming-soon-card">
-                <div className="service-card-badge">🔮 Próximamente</div>
                 <div className="service-card-icon">📅</div>
                 <h3 className="service-card-title">RUC Fecha Actual</h3>
-                <p className="service-card-description">Consulta de RUC con información actualizada al día. 
-                Datos en tiempo real para decisiones informadas.</p>
-                <div className="service-card-features">
-                  <span className="feature-tag">📊 Tiempo Real</span>
-                  <span className="feature-tag">📈 Datos Actualizados</span>
-                </div>
-                <div className="service-card-status coming-soon">🚧 En Desarrollo</div>
+                <p className="service-card-description">Consulta de RUC con información actualizada al día</p>
+                <div className="service-card-status">En Desarrollo</div>
               </div>
 
               <div className="service-card coming-soon-card">
-                <div className="service-card-badge">🔮 Próximamente</div>
                 <div className="service-card-icon">🔍</div>
                 <h3 className="service-card-title">Revisión de Crédito</h3>
-                <p className="service-card-description">Análisis y revisión completa de historial crediticio. 
-                Herramientas avanzadas para mejorar tu perfil crediticio.</p>
-                <div className="service-card-features">
-                  <span className="feature-tag">📊 Análisis Avanzado</span>
-                  <span className="feature-tag">📈 Mejora Crediticia</span>
-                </div>
-                <div className="service-card-status coming-soon">🚧 En Desarrollo</div>
+                <p className="service-card-description">Análisis y revisión completa de historial crediticio</p>
+                <div className="service-card-status">Próximamente</div>
               </div>
             </div>
           </div>

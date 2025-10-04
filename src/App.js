@@ -170,8 +170,8 @@ function App() {
           
           @media (max-width: 768px) {
             .loading-logo {
-              width: 56px !important;
-              height: 56px !important;
+              width: 80px !important;
+              height: 80px !important;
             }
           }
         `}</style>
