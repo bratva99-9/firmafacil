@@ -69,7 +69,7 @@ function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'white',
+        background: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -84,21 +84,22 @@ function App() {
           position: 'relative',
           zIndex: 2
         }}>
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
+          <img
+            src="/logo.png"
+            alt="ECUCONTABLE"
+            className="loading-logo"
             style={{
-              width: '200px',
-              height: '200px',
+              width: '120px',
+              height: '120px',
               objectFit: 'contain',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              animation: 
+                'rotate-2s 8s linear infinite, blink-constant 4s ease-in-out infinite',
+              display: 'block',
+              marginLeft: 'auto',
+              marginRight: 'auto'
             }}
-          >
-            <source src="/Cargando.mp4" type="video/mp4" />
-            Tu navegador no soporta videos.
-          </video>
+          />
           <div style={{
             fontSize: '24px',
             fontWeight: '700',
@@ -117,22 +118,29 @@ function App() {
           </div>
         </div>
         
-        {/* Efecto de fondo animado */}
-        <div style={{
-          position: 'absolute',
-          top: '-50%',
-          left: '-50%',
-          width: '200%',
-          height: '200%',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%)',
-          animation: 'float 8s ease-in-out infinite',
-          zIndex: 1
-        }}></div>
-        
         <style>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-30px) rotate(180deg); }
+          @keyframes rotate-2s {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes blink-constant {
+            0%, 50% {
+              opacity: 1;
+            }
+            25%, 75% {
+              opacity: 0.3;
+            }
+          }
+          
+          @media (max-width: 768px) {
+            .loading-logo {
+              width: 80px !important;
+              height: 80px !important;
+            }
           }
         `}</style>
       </div>
