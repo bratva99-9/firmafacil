@@ -134,8 +134,8 @@ function App() {
             alt="ECUCONTABLE"
             className="loading-logo"
             style={{
-              width: '120px',
-              height: '120px',
+              width: '84px',
+              height: '84px',
               objectFit: 'contain',
               marginBottom: '20px',
               animation: 
@@ -192,8 +192,8 @@ function App() {
           
           @media (max-width: 768px) {
             .loading-logo {
-              width: 80px !important;
-              height: 80px !important;
+              width: 56px !important;
+              height: 56px !important;
             }
           }
         `}</style>
