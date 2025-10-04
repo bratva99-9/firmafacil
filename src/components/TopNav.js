@@ -46,14 +46,25 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 3px;
       font-size: 18px;
       font-weight: 700;
       color: #1f2937;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .nav-logo:hover {
+      background: rgba(0,0,0,0.05);
+      transform: scale(1.02);
     }
 
     .nav-logo-icon {
-      font-size: 20px;
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
       flex-shrink: 0;
     }
 
@@ -288,14 +299,24 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 3px;
       padding-left: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 8px;
+      border-radius: 8px;
     }
 
-    .mobile-logo-text {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.2;
+    .mobile-menu-logo:hover {
+      background: rgba(255,255,255,0.1);
+      transform: scale(1.02);
+    }
+
+    .mobile-logo-icon {
+      width: 29px;
+      height: 29px;
+      object-fit: contain;
+      flex-shrink: 0;
     }
 
     .mobile-logo-title {
@@ -430,7 +451,8 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       }
       
       .nav-logo-icon {
-        font-size: 18px;
+        width: 29px;
+        height: 29px;
       }
       
       .user-info {
@@ -552,8 +574,8 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
           >
             ☰
           </button>
-          <div className="nav-logo">
-            <span className="nav-logo-icon">🔐</span>
+          <div className="nav-logo" onClick={() => onServiceSelect('home')}>
+            <img src="/logo.png" alt="ECUCONTABLE" className="nav-logo-icon" />
             <div className="nav-logo-text">
               <div className="nav-logo-title">ECUCONTABLE SAS</div>
               <div className="nav-logo-subtitle">Soluciones Contables</div>
@@ -652,8 +674,8 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
               >
                 ☰
               </button>
-              <div className="mobile-menu-logo">
-                <span style={{ fontSize: '18px' }}>🔐</span>
+              <div className="mobile-menu-logo" onClick={() => { onServiceSelect('home'); setShowMobileMenu(false); }}>
+                <img src="/logo.png" alt="ECUCONTABLE" className="mobile-logo-icon" />
                 <div className="mobile-logo-text">
                   <div className="mobile-logo-title">ECUCONTABLE SAS</div>
                   <div className="mobile-logo-subtitle">Soluciones Contables</div>

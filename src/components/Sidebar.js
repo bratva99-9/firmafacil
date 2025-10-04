@@ -63,11 +63,22 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
       margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 3px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .sidebar-logo:hover {
+      background: rgba(255,255,255,0.1);
+      transform: scale(1.02);
     }
 
     .sidebar-logo-icon {
-      font-size: 28px;
+      width: 45px;
+      height: 45px;
+      object-fit: contain;
       flex-shrink: 0;
     }
 
@@ -226,8 +237,8 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
       <style>{localStyles}</style>
       
       <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <span className="sidebar-logo-icon">🔐</span>
+        <div className="sidebar-logo" onClick={() => onServiceSelect('home')}>
+          <img src="/logo.png" alt="ECUCONTABLE" className="sidebar-logo-icon" />
           <div className="sidebar-logo-text">
             <div className="sidebar-logo-title">ECUCONTABLE SAS</div>
             <div className="sidebar-logo-subtitle">Soluciones Contables</div>

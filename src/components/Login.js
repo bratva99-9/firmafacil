@@ -34,19 +34,27 @@ const Login = ({ onLoginSuccess }) => {
     }
 
     .login-logo {
-      font-size: 40px;
-      margin-bottom: 12px;
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 12px;
       display: block;
+      object-fit: contain;
     }
 
     .login-title {
       font-size: 24px;
       font-weight: 700;
       color: #1f2937;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .login-subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .login-description {
       color: #6b7280;
       font-size: 16px;
     }
@@ -235,7 +243,16 @@ const Login = ({ onLoginSuccess }) => {
       }
       
       .login-subtitle {
+        font-size: 12px;
+      }
+      
+      .login-description {
         font-size: 14px;
+      }
+      
+      .login-logo {
+        width: 50px;
+        height: 50px;
       }
     }
   `;
@@ -316,9 +333,10 @@ const Login = ({ onLoginSuccess }) => {
       
       <div className="login-container">
         <div className="login-header">
-          <span className="login-logo">🔐</span>
-          <h1 className="login-title">ECUCONTABLE S.A.S. </h1>
-          <p className="login-subtitle">Inicia sesión en tu cuenta</p>
+          <img src="/logo.png" alt="ECUCONTABLE" className="login-logo" />
+          <h1 className="login-title">ECUCONTABLE S.A.S.</h1>
+          <p className="login-subtitle">Soluciones Contables y tributarias</p>
+          <p className="login-description">Inicia sesión en tu cuenta</p>
         </div>
 
         <div style={{ marginBottom: 16 }}>

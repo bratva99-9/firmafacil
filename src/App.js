@@ -10,6 +10,16 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeService, setActiveService] = useState('home');
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+
+  useEffect(() => {
+    // Timer mínimo de carga de 3 segundos
+    const minLoadingTimer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 3000);
+
+    return () => clearTimeout(minLoadingTimer);
+  }, []);
 
   useEffect(() => {
     // Verificar sesión activa
@@ -55,30 +65,76 @@ function App() {
     setActiveService(serviceId);
   };
 
-  if (loading) {
+  if (loading || minLoadingTime) {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'white',
+        color: '#1f2937',
         fontSize: '18px',
-        fontWeight: '600'
+        fontWeight: '600',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          textAlign: 'center',
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              width: '200px',
+              height: '200px',
+              objectFit: 'contain',
+              marginBottom: '20px'
+            }}
+          >
+            <source src="/Cargando.mp4" type="video/mp4" />
+            Tu navegador no soporta videos.
+          </video>
           <div style={{
-            width: '50px',
-            height: '50px',
-            border: '4px solid rgba(255,255,255,0.3)',
-            borderTop: '4px solid white',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
-          Cargando ECUCONTABLE...
+            fontSize: '24px',
+            fontWeight: '700',
+            marginBottom: '8px',
+            color: '#1f2937',
+            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            ECUCONTABLE S.A.S.
+          </div>
+          <div style={{
+            fontSize: '16px',
+            color: '#6b7280',
+            fontWeight: '400'
+          }}>
+            Soluciones Contables y Tributarias
+          </div>
         </div>
+        
+        {/* Efecto de fondo animado */}
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%)',
+          animation: 'float 8s ease-in-out infinite',
+          zIndex: 1
+        }}></div>
+        
+        <style>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+          }
+        `}</style>
       </div>
     );
   }

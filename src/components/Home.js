@@ -1,86 +1,68 @@
 import React from 'react';
 
 const Home = ({ onNavigate }) => {
-  const comunicados = [
-    {
-      id: 1,
-      titulo: 'Sistema de Firma Electrónica Disponible',
-      fecha: '27 de Septiembre, 2025',
-      contenido: 'Nuestro sistema de firma electrónica está completamente operativo con certificados digitales seguros y válidos legalmente.',
-      tipo: 'nuevo',
-      icono: '✍️',
-      destacado: true
-    },
-    {
-      id: 2,
-      titulo: 'Nuevos Servicios en Desarrollo',
-      fecha: 'Próximamente',
-      contenido: 'Estamos trabajando en servicios adicionales como Clave Herencia SRI y consulta de RUC en tiempo real.',
-      tipo: 'informacion',
-      icono: '🚀',
-      destacado: false
-    }
-  ];
 
-  const servicios = [
+  // Datos de noticias
+  const noticias = [
     {
       id: 1,
-      titulo: 'Firma Electrónica',
-      descripcion: 'Certificado digital para firmar documentos electrónicamente',
-      estado: 'Disponible',
-      icono: '✍️',
-      color: 'green'
+      titulo: "Nuevo sistema de firma electrónica disponible",
+      contenido: "Ya puedes solicitar tu certificado digital de forma completamente online. Proceso simplificado y más rápido.",
+      fecha: "15 Dic 2024",
+      tipo: "nuevo",
+      icono: "🆕"
     },
     {
       id: 2,
-      titulo: 'RUC con Antigüedad',
-      descripcion: 'Enfocado para tramites bancarios, casas comerciales y visas',
-      estado: 'Disponible',
-      icono: '📊',
-      color: 'green'
+      titulo: "Mantenimiento programado del sistema",
+      contenido: "El próximo domingo realizaremos mantenimiento preventivo. El servicio estará disponible el lunes.",
+      fecha: "12 Dic 2024",
+      tipo: "importante",
+      icono: "⚠️"
     },
     {
       id: 3,
-      titulo: 'Clave Herencia SRI',
-      descripcion: 'Gestión de claves de herencia para el Servicio de Rentas Internas',
-      estado: 'Próximamente',
-      icono: '🔑',
-      color: 'orange'
-    },
-    {
-      id: 4,
-      titulo: 'RUC Fecha Actual',
-      descripcion: 'Consulta de RUC con información actualizada al día',
-      estado: 'En Desarrollo',
-      icono: '📅',
-      color: 'blue'
+      titulo: "Actualización de políticas de seguridad",
+      contenido: "Hemos mejorado nuestros protocolos de seguridad para proteger mejor tu información personal.",
+      fecha: "10 Dic 2024",
+      tipo: "normal",
+      icono: "🔒"
     }
   ];
 
-  const estadisticas = [
+  // Datos de servicios
+  const servicios = [
     {
-      numero: '500+',
-      descripcion: 'Trámites Procesados',
-      icono: '📋',
-      color: 'blue'
+      id: 1,
+      titulo: "Firma Electrónica",
+      descripcion: "Certificado digital para firmar documentos electrónicamente con validez legal completa.",
+      precio: "$25.00",
+      estado: "disponible",
+      icono: "✍️"
     },
     {
-      numero: '99%',
-      descripcion: 'Satisfacción del Cliente',
-      icono: '⭐',
-      color: 'green'
+      id: 2,
+      titulo: "RUC con Antigüedad",
+      descripcion: "Obtención de RUC con historial completo y certificación de antigüedad empresarial.",
+      precio: "$35.00",
+      estado: "disponible",
+      icono: "📜"
     },
     {
-      numero: '24/7',
-      descripcion: 'Soporte Disponible',
-      icono: '🕒',
-      color: 'purple'
+      id: 3,
+      titulo: "Certificado de Ingresos",
+      descripcion: "Certificación oficial de ingresos para trámites bancarios y crediticios.",
+      precio: "$20.00",
+      estado: "proximamente",
+      icono: "💰"
     },
     {
-      numero: '15 min',
-      descripcion: 'Tiempo Promedio',
-      icono: '⚡',
-      color: 'orange'
+      id: 4,
+      titulo: "Constancia Laboral Digital",
+      descripcion: "Constancia de trabajo con firma digital y validación automática.",
+      precio: "$15.00",
+      estado: "desarrollo",
+      icono: "💼"
     }
   ];
 
@@ -92,7 +74,7 @@ const Home = ({ onNavigate }) => {
     }
 
     .hero-section {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
       border-radius: 20px;
       padding: 40px 30px;
       text-align: center;
@@ -397,6 +379,328 @@ const Home = ({ onNavigate }) => {
       line-height: 1.5;
     }
 
+    /* Nuevas secciones elegantes */
+    .features-section {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 20px;
+      padding: 40px 30px;
+      margin-bottom: 30px;
+    }
+
+    .features-title {
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #1f2937;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px 24px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+
+    .feature-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #1f2937;
+    }
+
+    .feature-description {
+      color: #6b7280;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+
+    .final-cta-section {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      border-radius: 20px;
+      padding: 50px 30px;
+      text-align: center;
+      color: white;
+    }
+
+    .final-cta-title {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .final-cta-description {
+      font-size: 18px;
+      opacity: 0.9;
+      margin-bottom: 30px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .final-cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .final-cta-button {
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      min-width: 180px;
+    }
+
+    .final-cta-button.primary {
+      background: linear-gradient(45deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .final-cta-button.primary:hover {
+      background: linear-gradient(45deg, #059669, #047857);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .final-cta-button.secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .final-cta-button.secondary:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.5);
+      transform: translateY(-3px);
+    }
+
+    /* Sección de Noticias */
+    .noticias-section {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .noticias-title {
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #1f2937;
+    }
+
+    .noticias-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .noticia-card {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 24px;
+      border-left: 4px solid #3b82f6;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .noticia-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      background: white;
+    }
+
+    .noticia-card.importante {
+      border-left-color: #ef4444;
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+
+    .noticia-card.nuevo {
+      border-left-color: #10b981;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+
+    .noticia-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .noticia-icon {
+      font-size: 24px;
+    }
+
+    .noticia-titulo {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1f2937;
+      flex: 1;
+    }
+
+    .noticia-fecha {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+      background: rgba(0,0,0,0.05);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .noticia-contenido {
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .noticia-leer-mas {
+      color: #3b82f6;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .noticia-leer-mas:hover {
+      color: #1d4ed8;
+    }
+
+    /* Sección de Servicios */
+    .servicios-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 20px;
+      padding: 40px 30px;
+      margin-bottom: 30px;
+    }
+
+    .servicios-title {
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #1f2937;
+    }
+
+    .servicios-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .servicio-card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .servicio-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+
+    .servicio-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .servicio-icon {
+      font-size: 32px;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 12px;
+      color: white;
+    }
+
+    .servicio-titulo {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1f2937;
+    }
+
+    .servicio-descripcion {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      color: #4b5563;
+    }
+
+    .servicio-precio {
+      font-size: 18px;
+      font-weight: 800;
+      color: #059669;
+      margin-bottom: 12px;
+    }
+
+    .servicio-estado {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .servicio-estado.disponible {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .servicio-estado.proximamente {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .servicio-estado.desarrollo {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
     @media (max-width: 768px) {
       .home-container {
         padding: 0 4px;
@@ -523,6 +827,166 @@ const Home = ({ onNavigate }) => {
       .comunicado-contenido {
         font-size: 13px;
       }
+
+      /* Nuevas secciones móviles */
+      .features-section {
+        padding: 20px 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+      }
+
+      .features-title {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .feature-card {
+        padding: 20px 16px;
+        border-radius: 12px;
+      }
+
+      .feature-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+      }
+
+      .feature-title {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+
+      .feature-description {
+        font-size: 13px;
+      }
+
+
+      .final-cta-section {
+        padding: 30px 16px;
+        border-radius: 12px;
+      }
+
+      .final-cta-title {
+        font-size: 28px;
+        margin-bottom: 12px;
+      }
+
+      .final-cta-description {
+        font-size: 16px;
+        margin-bottom: 24px;
+      }
+
+      .final-cta-buttons {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .final-cta-button {
+        padding: 14px 24px;
+        font-size: 14px;
+        width: 100%;
+        max-width: 280px;
+        min-width: auto;
+      }
+
+      /* Nuevas secciones móviles */
+      .noticias-section {
+        padding: 20px 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+      }
+
+      .noticias-title {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+
+      .noticias-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .noticia-card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+
+      .noticia-header {
+        margin-bottom: 8px;
+      }
+
+      .noticia-icon {
+        font-size: 20px;
+      }
+
+      .noticia-titulo {
+        font-size: 16px;
+      }
+
+      .noticia-fecha {
+        font-size: 10px;
+      }
+
+      .noticia-contenido {
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .noticia-leer-mas {
+        font-size: 12px;
+      }
+
+      .servicios-section {
+        padding: 20px 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+      }
+
+      .servicios-title {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+
+      .servicios-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .servicio-card {
+        padding: 20px 16px;
+        border-radius: 12px;
+      }
+
+      .servicio-header {
+        margin-bottom: 12px;
+        gap: 12px;
+      }
+
+      .servicio-icon {
+        font-size: 24px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+
+      .servicio-titulo {
+        font-size: 16px;
+      }
+
+      .servicio-descripcion {
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .servicio-precio {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
     }
   `;
 
@@ -560,55 +1024,89 @@ const Home = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Estadísticas */}
-      <div className="stats-section">
-        <h2 className="stats-title">📊 Nuestros Números</h2>
-        <div className="stats-grid">
-          {estadisticas.map(stat => (
-            <div key={stat.descripcion} className="stat-card">
-              <span className="stat-icon">{stat.icono}</span>
-              <div className="stat-number">{stat.numero}</div>
-              <div className="stat-description">{stat.descripcion}</div>
+      {/* Características Principales */}
+      <div className="features-section">
+        <h2 className="features-title">✨ ¿Por qué elegirnos?</h2>
+        <div className="features-grid">
+          <div className="feature-card">
+            <div className="feature-icon">🔒</div>
+            <h3 className="feature-title">Seguridad Garantizada</h3>
+            <p className="feature-description">Certificados digitales con máxima seguridad y validación legal</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">⚡</div>
+            <h3 className="feature-title">Proceso Rápido</h3>
+            <p className="feature-description">Tramites completados en minutos, no días</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">📱</div>
+            <h3 className="feature-title">100% Digital</h3>
+            <p className="feature-description">Todo desde tu dispositivo, sin filas ni papeleo</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sección de Noticias */}
+      <div className="noticias-section">
+        <h2 className="noticias-title">📰 Últimas Noticias</h2>
+        <div className="noticias-grid">
+          {noticias.map(noticia => (
+            <div key={noticia.id} className={`noticia-card ${noticia.tipo}`}>
+              <div className="noticia-header">
+                <div className="noticia-icon">{noticia.icono}</div>
+                <h3 className="noticia-titulo">{noticia.titulo}</h3>
+                <div className="noticia-fecha">{noticia.fecha}</div>
+              </div>
+              <p className="noticia-contenido">{noticia.contenido}</p>
+              <div className="noticia-leer-mas">Leer más →</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Servicios */}
+      {/* Sección de Servicios */}
       <div className="servicios-section">
-        <h2 className="section-title">🚀 Nuestros Servicios</h2>
+        <h2 className="servicios-title">🛠️ Nuestros Servicios</h2>
         <div className="servicios-grid">
           {servicios.map(servicio => (
             <div key={servicio.id} className="servicio-card">
               <div className="servicio-header">
-                <span className="servicio-icon">{servicio.icono}</span>
+                <div className="servicio-icon">{servicio.icono}</div>
                 <div>
                   <h3 className="servicio-titulo">{servicio.titulo}</h3>
-                  <span className={`servicio-estado ${servicio.estado.toLowerCase().replace(' ', '')}`}>
-                    {servicio.estado}
-                  </span>
+                  <div className="servicio-precio">{servicio.precio}</div>
                 </div>
               </div>
               <p className="servicio-descripcion">{servicio.descripcion}</p>
+              <div className={`servicio-estado ${servicio.estado}`}>
+                {servicio.estado === 'disponible' && 'Disponible'}
+                {servicio.estado === 'proximamente' && 'Próximamente'}
+                {servicio.estado === 'desarrollo' && 'En Desarrollo'}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Comunicados */}
-      <div className="comunicados-section">
-        <h2 className="section-title">📢 Últimas Noticias</h2>
-        <div className="comunicados-grid">
-          {comunicados.map(comunicado => (
-            <div key={comunicado.id} className={`comunicado-card ${comunicado.tipo}`}>
-              <div className="comunicado-header">
-                <span className="comunicado-icon">{comunicado.icono}</span>
-                <h3 className="comunicado-titulo">{comunicado.titulo}</h3>
-                <span className="comunicado-fecha">{comunicado.fecha}</span>
-              </div>
-              <p className="comunicado-contenido">{comunicado.contenido}</p>
-            </div>
-          ))}
+      {/* CTA Final */}
+      <div className="final-cta-section">
+        <div className="final-cta-content">
+          <h2 className="final-cta-title">🚀 ¿Listo para empezar?</h2>
+          <p className="final-cta-description">Únete a miles de ecuatorianos que ya confían en nosotros</p>
+          <div className="final-cta-buttons">
+            <button 
+              className="final-cta-button primary"
+              onClick={() => onNavigate('firma-electronica')}
+            >
+              ✍️ Comenzar Ahora
+            </button>
+            <button 
+              className="final-cta-button secondary"
+              onClick={() => onNavigate('consultar-estado')}
+            >
+              🔍 Ver Estado
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -616,3 +1114,4 @@ const Home = ({ onNavigate }) => {
 };
 
 export default Home;
+
