@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-const Login = ({ onLoginSuccess }) => {
+const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -197,6 +197,32 @@ const Login = ({ onLoginSuccess }) => {
       opacity: 0.7;
       cursor: not-allowed;
       transform: none;
+    }
+
+    .switch-form {
+      text-align: center;
+      margin-top: 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .switch-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .switch-link:hover {
+      color: #5a67d8;
+    }
+
+    .privacy-link {
+      text-align: center;
+      margin-top: 15px;
+      color: #6b7280;
+      font-size: 12px;
     }
 
     
@@ -412,6 +438,25 @@ const Login = ({ onLoginSuccess }) => {
             )}
           </button>
         </form>
+
+        <div className="switch-form">
+          ¿No tienes una cuenta?{' '}
+          <span 
+            className="switch-link"
+            onClick={onSwitchToRegister}
+          >
+            Regístrate aquí
+          </span>
+        </div>
+
+        <div className="privacy-link">
+          <span 
+            className="switch-link"
+            onClick={onShowPrivacyPolicy}
+          >
+            Política de Privacidad
+          </span>
+        </div>
 
       </div>
     </div>

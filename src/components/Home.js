@@ -502,86 +502,96 @@ const Home = ({ onNavigate }) => {
       transform: translateY(-3px);
     }
 
-    /* Sección de Noticias */
+    /* Sección de Noticias - Moderna */
     .noticias-section {
-      background: white;
-      border-radius: 20px;
-      padding: 40px 30px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 24px;
+      padding: 32px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.05);
     }
 
     .noticias-title {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
       color: #1f2937;
+      background: linear-gradient(135deg, #1f2937, #374151);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .noticias-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
     }
 
     .noticia-card {
-      background: #f8fafc;
-      border-radius: 16px;
-      padding: 24px;
-      border-left: 4px solid #3b82f6;
-      transition: all 0.3s ease;
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid rgba(0,0,0,0.08);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
     }
 
     .noticia-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-      background: white;
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+      border-color: rgba(59, 130, 246, 0.2);
     }
 
     .noticia-card.importante {
-      border-left-color: #ef4444;
-      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-left: 4px solid #ef4444;
+      background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
     }
 
     .noticia-card.nuevo {
-      border-left-color: #10b981;
-      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border-left: 4px solid #10b981;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
     }
 
     .noticia-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
       margin-bottom: 12px;
     }
 
     .noticia-icon {
-      font-size: 24px;
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
     }
 
     .noticia-titulo {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: #1f2937;
+      line-height: 1.4;
       flex: 1;
     }
 
     .noticia-fecha {
-      font-size: 12px;
+      font-size: 11px;
       color: #6b7280;
       font-weight: 500;
       background: rgba(0,0,0,0.05);
       padding: 4px 8px;
-      border-radius: 6px;
+      border-radius: 8px;
+      white-space: nowrap;
     }
 
     .noticia-contenido {
       color: #4b5563;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.5;
       margin-bottom: 12px;
     }
 
@@ -592,48 +602,58 @@ const Home = ({ onNavigate }) => {
       text-decoration: none;
       cursor: pointer;
       transition: color 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .noticia-leer-mas:hover {
       color: #1d4ed8;
     }
 
-    /* Sección de Servicios */
+    /* Sección de Servicios - Moderna */
     .servicios-section {
       background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      border-radius: 20px;
-      padding: 40px 30px;
-      margin-bottom: 30px;
+      border-radius: 24px;
+      padding: 32px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.05);
     }
 
     .servicios-title {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
       color: #1f2937;
+      background: linear-gradient(135deg, #1f2937, #374151);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .servicios-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      gap: 20px;
     }
 
     .servicio-card {
       background: white;
-      border-radius: 16px;
-      padding: 28px 24px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
       position: relative;
       overflow: hidden;
-      transition: all 0.3s ease;
-      border: 1px solid rgba(0,0,0,0.05);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(0,0,0,0.08);
     }
 
     .servicio-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+      border-color: rgba(59, 130, 246, 0.2);
     }
 
     .servicio-header {
@@ -644,33 +664,34 @@ const Home = ({ onNavigate }) => {
     }
 
     .servicio-icon {
-      font-size: 32px;
+      font-size: 24px;
       width: 48px;
       height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      border-radius: 12px;
+      border-radius: 16px;
       color: white;
+      flex-shrink: 0;
     }
 
     .servicio-titulo {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       color: #1f2937;
     }
 
     .servicio-descripcion {
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.5;
       margin-bottom: 16px;
       color: #4b5563;
     }
 
     .servicio-precio {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 800;
       color: #059669;
       margin-bottom: 12px;
@@ -687,17 +708,17 @@ const Home = ({ onNavigate }) => {
     }
 
     .servicio-estado.disponible {
-      background: #dcfce7;
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
       color: #166534;
     }
 
     .servicio-estado.proximamente {
-      background: #fef3c7;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
       color: #92400e;
     }
 
     .servicio-estado.desarrollo {
-      background: #dbeafe;
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
       color: #1e40af;
     }
 
@@ -894,16 +915,16 @@ const Home = ({ onNavigate }) => {
         min-width: auto;
       }
 
-      /* Nuevas secciones móviles */
+      /* Secciones modernas móviles */
       .noticias-section {
-        padding: 20px 12px;
+        padding: 20px 16px;
         margin-bottom: 16px;
-        border-radius: 12px;
+        border-radius: 16px;
       }
 
       .noticias-title {
-        font-size: 24px;
-        margin-bottom: 20px;
+        font-size: 22px;
+        margin-bottom: 16px;
       }
 
       .noticias-grid {
@@ -913,23 +934,25 @@ const Home = ({ onNavigate }) => {
 
       .noticia-card {
         padding: 16px;
-        border-radius: 12px;
+        border-radius: 16px;
       }
 
       .noticia-header {
         margin-bottom: 8px;
+        gap: 8px;
       }
 
       .noticia-icon {
-        font-size: 20px;
+        font-size: 18px;
       }
 
       .noticia-titulo {
-        font-size: 16px;
+        font-size: 14px;
       }
 
       .noticia-fecha {
         font-size: 10px;
+        padding: 3px 6px;
       }
 
       .noticia-contenido {
@@ -942,14 +965,14 @@ const Home = ({ onNavigate }) => {
       }
 
       .servicios-section {
-        padding: 20px 12px;
+        padding: 20px 16px;
         margin-bottom: 16px;
-        border-radius: 12px;
+        border-radius: 16px;
       }
 
       .servicios-title {
-        font-size: 24px;
-        margin-bottom: 20px;
+        font-size: 22px;
+        margin-bottom: 16px;
       }
 
       .servicios-grid {
@@ -958,8 +981,8 @@ const Home = ({ onNavigate }) => {
       }
 
       .servicio-card {
-        padding: 20px 16px;
-        border-radius: 12px;
+        padding: 20px;
+        border-radius: 16px;
       }
 
       .servicio-header {
@@ -968,10 +991,10 @@ const Home = ({ onNavigate }) => {
       }
 
       .servicio-icon {
-        font-size: 24px;
+        font-size: 20px;
         width: 40px;
         height: 40px;
-        border-radius: 10px;
+        border-radius: 12px;
       }
 
       .servicio-titulo {
@@ -984,7 +1007,7 @@ const Home = ({ onNavigate }) => {
       }
 
       .servicio-precio {
-        font-size: 16px;
+        font-size: 18px;
         margin-bottom: 8px;
       }
     }

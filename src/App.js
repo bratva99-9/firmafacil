@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import Login from './components/Login';
+import Register from './components/Register';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import TopNav from './components/TopNav';
@@ -11,6 +13,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [activeService, setActiveService] = useState('home');
   const [minLoadingTime, setMinLoadingTime] = useState(true);
+  const [authMode, setAuthMode] = useState('login'); // 'login' o 'register'
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   useEffect(() => {
     // Timer mínimo de carga de 3 segundos
@@ -46,6 +50,18 @@ function App() {
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+  };
+
+  const handleRegisterSuccess = (userData) => {
+    setUser(userData);
+  };
+
+  const handleSwitchToRegister = () => {
+    setAuthMode('register');
+  };
+
+  const handleSwitchToLogin = () => {
+    setAuthMode('login');
   };
 
   const handleLogout = async () => {
@@ -148,7 +164,30 @@ function App() {
   }
 
   if (!user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    if (showPrivacyPolicy) {
+      return (
+        <PrivacyPolicy 
+          onBack={() => setShowPrivacyPolicy(false)}
+        />
+      );
+    }
+    
+    if (authMode === 'register') {
+      return (
+        <Register 
+          onRegisterSuccess={handleRegisterSuccess}
+          onSwitchToLogin={handleSwitchToLogin}
+          onShowPrivacyPolicy={() => setShowPrivacyPolicy(true)}
+        />
+      );
+    }
+    return (
+      <Login 
+        onLoginSuccess={handleLoginSuccess}
+        onSwitchToRegister={handleSwitchToRegister}
+        onShowPrivacyPolicy={() => setShowPrivacyPolicy(true)}
+      />
+    );
   }
 
   return (
