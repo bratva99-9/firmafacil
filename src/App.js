@@ -3,6 +3,8 @@ import { supabase } from './lib/supabase';
 import Login from './components/Login';
 import Register from './components/Register';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import DataDeletionConfirmation from './components/DataDeletionConfirmation';
+import AuthCallback from './components/AuthCallback';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import TopNav from './components/TopNav';
@@ -15,11 +17,18 @@ function App() {
   const [minLoadingTime, setMinLoadingTime] = useState(true);
   const [authMode, setAuthMode] = useState('login'); // 'login' o 'register'
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showDataDeletion, setShowDataDeletion] = useState(false);
   
-  // Verificar si estamos en la ruta de política de privacidad
+  // Verificar rutas públicas
   useEffect(() => {
-    if (window.location.pathname === '/privacy-policy') {
+    const path = window.location.pathname;
+    if (path === '/privacy-policy') {
       setShowPrivacyPolicy(true);
+    } else if (path === '/data-deletion-confirmation') {
+      setShowDataDeletion(true);
+    } else if (path === '/auth/callback') {
+      // Esta ruta será manejada por AuthCallback
+      return;
     }
   }, []);
 
@@ -161,8 +170,8 @@ function App() {
           
           @media (max-width: 768px) {
             .loading-logo {
-              width: 80px !important;
-              height: 80px !important;
+              width: 56px !important;
+              height: 56px !important;
             }
           }
         `}</style>
@@ -170,7 +179,15 @@ function App() {
     );
   }
 
-  // Mostrar política de privacidad sin autenticación
+  // Mostrar páginas públicas sin autenticación
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback />;
+  }
+
+  if (showDataDeletion) {
+    return <DataDeletionConfirmation />;
+  }
+
   if (showPrivacyPolicy) {
     return (
       <PrivacyPolicy 

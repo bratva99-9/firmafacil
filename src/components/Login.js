@@ -342,7 +342,8 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'email'
         }
       });
 
@@ -362,7 +363,6 @@ const Login = ({ onLoginSuccess, onSwitchToRegister, onShowPrivacyPolicy }) => {
           <img src="/logo.png" alt="ECUCONTABLE" className="login-logo" />
           <h1 className="login-title">ECUCONTABLE S.A.S.</h1>
           <p className="login-subtitle">Soluciones Contables y tributarias</p>
-          <p className="login-description">Inicia sesión en tu cuenta</p>
         </div>
 
         <div style={{ marginBottom: 16 }}>
