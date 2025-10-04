@@ -127,37 +127,55 @@ const Home = ({ onNavigate }) => {
     }
 
     .cta-button {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.25);
       backdrop-filter: blur(10px);
-      border: 2px solid rgba(255,255,255,0.3);
+      border: 2px solid rgba(255,255,255,0.4);
       color: white;
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.3s ease;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      min-width: 200px;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
     .cta-button:hover {
-      background: rgba(255,255,255,0.3);
-      border-color: rgba(255,255,255,0.5);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      background: rgba(255,255,255,0.35);
+      border-color: rgba(255,255,255,0.6);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
     }
 
     .cta-button.primary {
       background: linear-gradient(45deg, #10b981, #059669);
       border-color: #10b981;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
     }
 
     .cta-button.primary:hover {
       background: linear-gradient(45deg, #059669, #047857);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .cta-button.ruc-button {
+      background: linear-gradient(45deg, #3b82f6, #2563eb);
+      border-color: #3b82f6;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .cta-button.ruc-button:hover {
+      background: linear-gradient(45deg, #2563eb, #1d4ed8);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
     }
 
     .stats-section {
@@ -381,38 +399,129 @@ const Home = ({ onNavigate }) => {
 
     @media (max-width: 768px) {
       .home-container {
-        padding: 0 15px;
+        padding: 0 4px;
       }
       
       .hero-section {
-        padding: 30px 20px;
+        padding: 20px 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
       }
       
       .hero-title {
-        font-size: 32px;
+        font-size: 28px;
+        margin-bottom: 10px;
       }
       
       .hero-subtitle {
-        font-size: 16px;
+        font-size: 14px;
+        margin-bottom: 20px;
       }
       
       .hero-cta {
         flex-direction: column;
         align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      
+      .cta-button {
+        padding: 12px 20px;
+        font-size: 14px;
+        width: 100%;
+        max-width: 300px;
+        min-width: auto;
+        border-radius: 10px;
       }
       
       .stats-section, .servicios-section, .comunicados-section {
-        padding: 25px 20px;
+        padding: 16px 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+      }
+      
+      .stats-title, .section-title {
+        font-size: 22px;
+        margin-bottom: 16px;
       }
       
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
+        gap: 12px;
+      }
+      
+      .stat-card {
+        padding: 16px 12px;
+      }
+      
+      .stat-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      
+      .stat-number {
+        font-size: 22px;
+        margin-bottom: 4px;
+      }
+      
+      .stat-description {
+        font-size: 12px;
       }
       
       .servicios-grid {
         grid-template-columns: 1fr;
-        gap: 15px;
+        gap: 12px;
+      }
+      
+      .servicio-card {
+        padding: 16px;
+        border-radius: 12px;
+      }
+      
+      .servicio-header {
+        margin-bottom: 12px;
+      }
+      
+      .servicio-icon {
+        font-size: 24px;
+      }
+      
+      .servicio-titulo {
+        font-size: 16px;
+      }
+      
+      .servicio-descripcion {
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+      
+      .comunicados-grid {
+        gap: 12px;
+      }
+      
+      .comunicado-card {
+        padding: 16px;
+        border-radius: 10px;
+      }
+      
+      .comunicado-header {
+        margin-bottom: 8px;
+      }
+      
+      .comunicado-icon {
+        font-size: 18px;
+      }
+      
+      .comunicado-titulo {
+        font-size: 16px;
+      }
+      
+      .comunicado-fecha {
+        font-size: 11px;
+      }
+      
+      .comunicado-contenido {
+        font-size: 13px;
       }
     }
   `;
@@ -431,15 +540,15 @@ const Home = ({ onNavigate }) => {
           <div className="hero-cta">
             <button 
               className="cta-button primary"
-              onClick={() => onNavigate('enviar-tramites')}
+              onClick={() => onNavigate('firma-electronica')}
             >
               ✍️ Solicitar Firma Electrónica
             </button>
             <button 
-              className="cta-button"
+              className="cta-button ruc-button"
               onClick={() => onNavigate('ruc-antiguedad')}
             >
-              📊 Solicitar RUC con Antiguedad
+              📜 Solicitar RUC con Antiguedad
             </button>
             <button 
               className="cta-button"

@@ -226,29 +226,95 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
       }
       
       .content-wrapper {
-        padding: 20px;
+        padding: 8px 4px;
       }
       
       .content-wrapper.full-width {
-        padding: 16px 8px;
+        padding: 4px 2px;
         max-width: 100%;
       }
       
       .service-header {
-        padding: 20px;
+        padding: 16px 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
       }
       
       .service-title {
-        font-size: 24px;
+        font-size: 22px;
+        margin-bottom: 6px;
+      }
+      
+      .service-description {
+        font-size: 14px;
+      }
+      
+      .security-banner {
+        padding: 10px 12px;
+        margin-top: 10px;
+        border-radius: 8px;
+      }
+      
+      .security-banner .text {
+        font-size: 12px;
       }
 
       .services-grid {
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 12px;
+        margin-top: 12px;
       }
 
       .service-card {
-        padding: 20px;
+        padding: 16px;
+        border-radius: 12px;
+      }
+      
+      .service-card-icon {
+        font-size: 32px;
+      }
+      
+      .service-card-title {
+        font-size: 16px;
+      }
+      
+      .service-card-description {
+        font-size: 12px;
+      }
+      
+      .service-card-status {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      
+      .service-card-duration, .service-card-price {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      
+      .coming-soon {
+        padding: 40px 20px;
+        border-radius: 12px;
+      }
+      
+      .coming-soon-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      
+      .coming-soon-title {
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+      
+      .coming-soon-description {
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+      
+      .back-button {
+        padding: 10px 20px;
+        font-size: 14px;
       }
     }
   `;
