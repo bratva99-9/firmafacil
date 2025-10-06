@@ -548,6 +548,13 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       icono: '❓',
       descripcion: 'Soporte y ayuda'
     }
+    ,
+    {
+      id: 'herramientas',
+      titulo: 'Herramientas',
+      icono: '🧰',
+      descripcion: 'Búsquedas y utilidades'
+    }
   ];
 
   const handleLogout = async () => {

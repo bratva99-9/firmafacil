@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Home from './Home';
 import FormularioSolicitud from './FormularioSolicitud';
 import FormularioRUC from './FormularioRUC';
 import ConsultarEstado from './ConsultarEstado';
+import ValidadorFirma from './ValidadorFirma';
+import ConsultaPlacas from './ConsultaPlacas';
 // import CreateUser from './CreateUser';
 
 const MainContent = ({ activeService, onServiceSelect, user }) => {
@@ -887,6 +889,11 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
           </div>
         );
       
+      case 'herramientas':
+        return (
+          <HerramientasSection />
+        );
+      
       
       default:
         return <Home onNavigate={onServiceSelect} />;
@@ -906,3 +913,63 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
 };
 
 export default MainContent;
+
+function HerramientasSection() {
+  const [abierta, setAbierta] = useState(null)
+  return (
+    <div>
+      <div className="service-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+          <div>
+            <h1 className="service-title" style={{ marginBottom: 4 }}>Herramientas</h1>
+            <p className="service-description" style={{ margin: 0 }}>{abierta ? 'Vista de herramienta' : 'Selecciona una herramienta para abrir su formulario.'}</p>
+          </div>
+          {abierta && (
+            <button
+              onClick={() => setAbierta(null)}
+              className="back-button"
+              style={{ padding: '10px 16px', borderRadius: 10 }}
+            >
+              ← Volver
+            </button>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .tool-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+        .tool-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(17,24,39,.08); border-color: #d4d4ff; }
+        .tool-icon { font-size: 22px; }
+        .tool-title { font-size: 14px; font-weight: 800; color: #111827; margin: 6px 0 2px; }
+        .tool-desc { font-size: 12px; color: #6b7280; margin: 0; }
+        .tool-panel { margin-top: 8px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px; background: #fbfbfd; }
+      `}</style>
+      {!abierta && (
+        <div className="tools-grid">
+          <div className="tool-card" onClick={() => setAbierta('nombres')}>
+            <div className="tool-icon">🪪</div>
+            <div className="tool-title">Cuál es mi número de cédula</div>
+            <p className="tool-desc">Busca por apellidos y nombres.</p>
+          </div>
+          <div className="tool-card" onClick={() => setAbierta('placas')}>
+            <div className="tool-icon">🚗</div>
+            <div className="tool-title">Consultar placas</div>
+            <p className="tool-desc">Detalle, propietario y valores SRI.</p>
+          </div>
+        </div>
+      )}
+
+      {abierta === 'nombres' && (
+        <div className="tool-panel" style={{ padding: 12 }}>
+          <ValidadorFirma />
+        </div>
+      )}
+      {abierta === 'placas' && (
+        <div className="tool-panel" style={{ padding: 12 }}>
+          <ConsultaPlacas />
+        </div>
+      )}
+    </div>
+  )
+}

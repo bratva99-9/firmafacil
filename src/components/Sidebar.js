@@ -33,6 +33,13 @@ const Sidebar = ({ activeService, onServiceSelect, onLogout }) => {
       icono: '❓',
       descripcion: 'Soporte y ayuda'
     }
+    ,
+    {
+      id: 'herramientas',
+      titulo: 'Herramientas',
+      icono: '🧰',
+      descripcion: 'Búsquedas y utilidades'
+    }
   ];
 
   const localStyles = `

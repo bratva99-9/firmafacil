@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 // Configuración de Supabase - Credenciales de prueba
 const supabaseUrl = 'https://eapcqcuzfkpqngbvjtmv.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcGNxY3V6ZmtwcW5nYnZqdG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTEzNzIsImV4cCI6MjA3NDQyNzM3Mn0.-mufqMzFQetktwAL444d1PjdWfdCC5-2ftVs0LnTIL4'
+// URL base de funciones Edge
+export const EDGE_URL = 'https://eapcqcuzfkpqngbvjtmv.functions.supabase.co'
 
 // Validar configuración
 if (supabaseUrl === 'https://your-project.supabase.co' || supabaseKey === 'your-anon-key') {
