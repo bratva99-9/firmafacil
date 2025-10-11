@@ -103,7 +103,7 @@ export default function ConsultaPlacas() {
 
       <h3 className="cp-title">Consultar placas</h3>
       <form className="cp-form" onSubmit={consultar}>
-        <input className="cp-input" value={placa} onChange={(e) => setPlaca(e.target.value)} placeholder="Ej. JV792R" />
+        <input className="cp-input" value={placa} onChange={(e) => setPlaca(e.target.value)} placeholder="Ej. PCW1234" />
         <button className="cp-btn" type="submit" disabled={cargando}>{cargando ? 'Consultando…' : 'Consultar'}</button>
       </form>
 

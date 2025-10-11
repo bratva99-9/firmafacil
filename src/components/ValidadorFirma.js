@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { EDGE_URL } from '../lib/supabase'
 
 export default function ValidadorFirma() {
@@ -6,6 +6,16 @@ export default function ValidadorFirma() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [resultado, setResultado] = useState(null)
+  const [cooldownMs, setCooldownMs] = useState(0)
+  const cacheRef = useRef(new Map()) // key: nombre normalizado, value: { data, ts }
+  const TTL_MS = 15 * 60 * 1000 // 15 minutos
+
+  // temporizador para countdown
+  useEffect(() => {
+    if (cooldownMs <= 0) return
+    const id = setInterval(() => setCooldownMs((ms) => Math.max(0, ms - 1000)), 1000)
+    return () => clearInterval(id)
+  }, [cooldownMs])
   // Diseño simplificado: sin filtro y sin detalles
 
   const consultar = async (e) => {
@@ -19,16 +29,29 @@ export default function ValidadorFirma() {
     setCargando(true)
     try {
       const normalizado = nombre.trim().replace(/\s+/g, ' ').toUpperCase()
+      // cache local
+      const cached = cacheRef.current.get(normalizado)
+      if (cached && Date.now() - cached.ts < TTL_MS) {
+        setResultado(cached.data)
+        setCargando(false)
+        return
+      }
       const params = new URLSearchParams({ q: normalizado })
       const resp = await fetch(`${EDGE_URL}/nombres-proxy?${params.toString()}`)
       if (resp.status === 404) {
         setResultado([])
+        cacheRef.current.set(normalizado, { data: [], ts: Date.now() })
+      } else if (resp.status === 429) {
+        // Límite alcanzado: aplicar cooldown de 60s
+        setError('Límite de consultas alcanzado. Intenta nuevamente en 60 segundos.')
+        setCooldownMs(60 * 1000)
       } else if (!resp.ok) {
         const texto = await resp.text()
         throw new Error(`Error ${resp.status}: ${texto}`)
       } else {
         const data = await resp.json()
         setResultado(data)
+        cacheRef.current.set(normalizado, { data, ts: Date.now() })
       }
     } catch (err) {
       setError(err.message || 'Error desconocido')
@@ -69,14 +92,14 @@ export default function ValidadorFirma() {
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            placeholder="Apellidos y nombres (ej. CENTENO KEVIN)"
+            placeholder="Apellidos y nombres (ej. RODRIGUEZ CARLOS)"
           />
           <button
             type="submit"
-            disabled={cargando}
+            disabled={cargando || cooldownMs > 0}
             style={{ border: '1px solid #a5b4fc', background: '#eef2ff', color: '#3730a3', borderRadius: 6, padding: '6px 10px', fontWeight: 700, fontSize: 12 }}
           >
-            {cargando ? 'Consultando…' : 'Consultar'}
+            {cargando ? 'Consultando…' : cooldownMs > 0 ? `Espera ${Math.ceil(cooldownMs/1000)}s` : 'Consultar'}
           </button>
         </form>
       </div>
