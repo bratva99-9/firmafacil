@@ -44,7 +44,7 @@ const Home = ({ onNavigate }) => {
       id: 2,
       titulo: "RUC con Antigüedad",
       descripcion: "Obtención de RUC con historial completo y certificación de antigüedad empresarial.",
-      precio: "60.00",
+      precio: "45.00",
       estado: "disponible",
       icono: "📜"
     },
