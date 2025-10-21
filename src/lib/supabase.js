@@ -7,6 +7,24 @@ const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1
 // URL base de funciones Edge
 export const EDGE_URL = 'https://eapcqcuzfkpqngbvjtmv.functions.supabase.co'
 
+// Función para hacer peticiones a través del proxy de Edge Functions
+export const fetchWithProxy = async (url, options = {}) => {
+  try {
+    // Si es una URL de Zamplisoft, usar el proxy
+    if (url.includes('api.zamplisoft.com')) {
+      const proxyUrl = `${EDGE_URL}/api-proxy/${url.replace('https://api.zamplisoft.com/', '')}`;
+      console.log(`🔄 Usando proxy para: ${proxyUrl}`);
+      return await fetch(proxyUrl, options);
+    }
+    
+    // Para otras URLs, usar directamente
+    return await fetch(url, options);
+  } catch (error) {
+    console.error('Error en fetchWithProxy:', error);
+    throw error;
+  }
+};
+
 // Validar configuración
 if (supabaseUrl === 'https://your-project.supabase.co' || supabaseKey === 'your-anon-key') {
   console.error('❌ ERROR: Las credenciales de Supabase no están configuradas correctamente.');
@@ -38,7 +56,7 @@ export const consultarCedula = async (numeroCedula) => {
       
       console.log(`🔄 Consultando: ${apiUrl}`);
       
-      const response = await fetch(apiUrl, {
+      const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         redirect: 'follow'
       });
@@ -528,7 +546,7 @@ export const probarAPISRI = async () => {
       const apiUrl = proxyUrl + encodeURIComponent(sriUrl);
       console.log(`🔗 URL con proxy: ${apiUrl}`);
       
-      const response = await fetch(apiUrl, {
+      const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json'
@@ -581,7 +599,7 @@ export const consultarRUC = async (numeroRUC) => {
       console.log(`🔄 Consultando: ${apiUrl}`);
       console.log(`🔍 RUC a consultar: ${numeroRUC}`);
       
-      const response = await fetch(apiUrl, {
+      const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json'
