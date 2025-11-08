@@ -312,7 +312,7 @@ export default function ConsultaCedula() {
               className="cc-input" 
               value={cedula} 
               onChange={(e) => setCedula(e.target.value)} 
-              placeholder="Ej. 0958398984" 
+              placeholder="Ej. 0958424587" 
               maxLength="10"
             />
           </div>
