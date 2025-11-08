@@ -1,35 +1,6 @@
-import React, { useState } from 'react';
-import DiagnosticoConexion from './DiagnosticoConexion';
+import React from 'react';
 
 const Home = ({ onNavigate }) => {
-  const [mostrarDiagnostico, setMostrarDiagnostico] = useState(false);
-
-  // Función para probar conexión básica
-  const probarConexion = async () => {
-    try {
-      console.log('🔍 Probando conexión básica...');
-      
-      // Probar conexión a Supabase
-      const supabaseUrl = 'https://eapcqcuzfkpqngbvjtmv.supabase.co';
-      const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-        method: 'GET',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcGNxY3V6ZmtwcW5nYnZqdG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTEzNzIsImV4cCI6MjA3NDQyNzM3Mn0.-mufqMzFQetktwAL444d1PjdWfdCC5-2ftVs0LnTIL4'
-        }
-      });
-      
-      if (response.ok) {
-        console.log('✅ Conexión a Supabase exitosa');
-        alert('✅ Conexión a Supabase exitosa');
-      } else {
-        console.log('❌ Error en conexión a Supabase:', response.status);
-        alert(`❌ Error en conexión a Supabase: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('❌ Error de conexión:', error);
-      alert(`❌ Error de conexión: ${error.message}`);
-    }
-  };
 
   // Datos de noticias
   const noticias = [
@@ -1075,49 +1046,6 @@ const Home = ({ onNavigate }) => {
           </div>
         </div>
       </div>
-
-      {/* Botón de Diagnóstico Temporal */}
-      <div style={{ textAlign: 'center', margin: '20px 0', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-        <h3 style={{ color: '#dc3545', marginBottom: '15px' }}>🔧 Diagnóstico de Conexión</h3>
-        <p style={{ marginBottom: '15px', color: '#6c757d' }}>
-          Si tienes problemas para acceder al sitio, usa estas herramientas de diagnóstico:
-        </p>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={probarConexion}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            🔍 Probar Conexión Supabase
-          </button>
-          <button 
-            onClick={() => setMostrarDiagnostico(!mostrarDiagnostico)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            📊 Diagnóstico Completo
-          </button>
-        </div>
-      </div>
-
-      {/* Componente de Diagnóstico */}
-      {mostrarDiagnostico && (
-        <div style={{ margin: '20px 0' }}>
-          <DiagnosticoConexion />
-        </div>
-      )}
 
       {/* Características Principales */}
       <div className="features-section">

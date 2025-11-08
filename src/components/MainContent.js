@@ -5,6 +5,7 @@ import FormularioRUC from './FormularioRUC';
 import ConsultarEstado from './ConsultarEstado';
 import ValidadorFirma from './ValidadorFirma';
 import ConsultaPlacas from './ConsultaPlacas';
+import ConsultaCedula from './ConsultaCedula';
 // import CreateUser from './CreateUser';
 
 const MainContent = ({ activeService, onServiceSelect, user }) => {
@@ -952,6 +953,11 @@ function HerramientasSection() {
             <div className="tool-title">Cuál es mi número de cédula</div>
             <p className="tool-desc">Busca por apellidos y nombres.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('cedula')}>
+            <div className="tool-icon">🆔</div>
+            <div className="tool-title">Consulta de Cédula</div>
+            <p className="tool-desc">Consulta información completa de una cédula.</p>
+          </div>
           <div className="tool-card" onClick={() => setAbierta('placas')}>
             <div className="tool-icon">🚗</div>
             <div className="tool-title">Consultar placas</div>
@@ -963,6 +969,11 @@ function HerramientasSection() {
       {abierta === 'nombres' && (
         <div className="tool-panel" style={{ padding: 12 }}>
           <ValidadorFirma />
+        </div>
+      )}
+      {abierta === 'cedula' && (
+        <div className="tool-panel" style={{ padding: 12 }}>
+          <ConsultaCedula />
         </div>
       )}
       {abierta === 'placas' && (
