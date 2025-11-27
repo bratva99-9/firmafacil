@@ -1,0 +1,345 @@
+import React, { useMemo, useRef, useState } from 'react';
+import { consultarCedula as consultarCedulaService } from '../lib/supabase';
+
+function FotoComponent({ imageSrc, base64Reparado }) {
+  const [srcActual, setSrcActual] = useState(imageSrc);
+  const [haFallado, setHaFallado] = useState(false);
+  const intentadoRef = useRef(false);
+  
+  const manejarError = (e) => {
+    if (intentadoRef.current || haFallado) {
+      e.target.style.display = 'none';
+      e.target.onerror = null;
+      return;
+    }
+    
+    intentadoRef.current = true;
+    setHaFallado(true);
+    
+    if (base64Reparado && !imageSrc.includes('png')) {
+      const nuevoSrc = `data:image/png;base64,${base64Reparado}`;
+      setTimeout(() => {
+        setSrcActual(nuevoSrc);
+        intentadoRef.current = false;
+        setHaFallado(false);
+      }, 250);
+    } else {
+      e.target.style.display = 'none';
+      e.target.onerror = null;
+    }
+  };
+  
+  return (
+    <div className="cc-photo-section">
+      <div className="cc-photo-container">
+        <img 
+          key={srcActual}
+          src={srcActual}
+          alt="Foto de cédula" 
+          className="cc-photo"
+          onError={manejarError}
+          onLoad={() => {
+            intentadoRef.current = false;
+            setHaFallado(false);
+          }}
+        />
+        <div className="cc-photo-label">Foto de Cédula</div>
+      </div>
+    </div>
+  );
+}
+
+const repararBase64 = (valor) => {
+  if (!valor || typeof valor !== 'string') return null;
+  let base = valor.replace(/[\s\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, '');
+  base = base.replace(/[^A-Za-z0-9+/=]/g, '');
+  base = base.replace(/=+$/, '');
+  const resto = base.length % 4;
+  if (resto) {
+    base += '='.repeat(4 - resto);
+  }
+  if (base.length < 50) return null;
+  try {
+    atob(base.substring(0, 80));
+  } catch {
+    return null;
+  }
+  return base;
+};
+
+const construirFotoNormalizada = (datos) => {
+  if (!datos) return null;
+  const fotoField =
+    datos.fotoBase64 ||
+    datos.foto_base64 ||
+    datos.imagenBase64 ||
+    datos.imagen ||
+    datos.foto ||
+    datos.fotoCedula ||
+    datos.foto_cedula;
+
+  if (!fotoField || typeof fotoField !== 'string') return null;
+
+  let base64Reparado = null;
+  let imageSrc = null;
+
+  if (fotoField.startsWith('data:image/')) {
+    const base64Part = fotoField.split('base64,')[1];
+    if (base64Part) {
+      base64Reparado = repararBase64(base64Part);
+      if (base64Reparado) {
+        const mimeMatch = fotoField.match(/data:image\/([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'jpeg';
+        imageSrc = `data:image/${mimeType};base64,${base64Reparado}`;
+      }
+    }
+  } else if (fotoField.includes('base64,')) {
+    const base64Part = fotoField.split('base64,')[1];
+    if (base64Part) {
+      base64Reparado = repararBase64(base64Part);
+      if (base64Reparado) {
+        imageSrc = `data:image/jpeg;base64,${base64Reparado}`;
+      }
+    }
+  } else {
+    base64Reparado = repararBase64(fotoField);
+    if (base64Reparado) {
+      imageSrc = `data:image/jpeg;base64,${base64Reparado}`;
+    }
+  }
+
+  if (!imageSrc || !base64Reparado) return null;
+  return { imageSrc, base64Reparado };
+};
+
+const prepararResumen = (datos, edadDetallada) => [
+  { label: 'Cédula', value: datos?.cedula || datos?.numeroCedula },
+  { label: 'Edad verificada', value: edadDetallada ? `${edadDetallada} años` : null },
+  { label: 'Estado', value: datos?.estado },
+  { label: 'Expedición', value: datos?.fechaCedulacion }
+];
+
+const prepararPersonales = (datos) => [
+  { label: 'Nombres', value: datos?.nombres },
+  { label: 'Apellidos', value: datos?.apellidos },
+  { label: 'Nombre completo', value: datos?.nombre },
+  { label: 'Fecha de nacimiento', value: datos?.fechaNacimiento },
+  { label: 'Género', value: datos?.genero },
+  { label: 'Estado civil', value: datos?.estadoCivil },
+  { label: 'Edad (registro)', value: datos?.edad ? `${datos.edad} años` : null }
+].filter(item => item.value);
+
+const prepararUbicacion = (datos) => [
+  { label: 'Nacionalidad', value: datos?.nacionalidad },
+  { label: 'Provincia', value: datos?.provincia },
+  { label: 'Ciudad', value: datos?.ciudad },
+  { label: 'Parroquia', value: datos?.parroquia },
+  { label: 'Dirección', value: datos?.direccion },
+  { label: 'Lugar de nacimiento', value: datos?.lugarNacimiento }
+].filter(item => item.value);
+
+const prepararExtras = (datos) => {
+  if (!datos) return [];
+  const excluir = new Set([
+    'nombres', 'apellidos', 'nombre', 'cedula', 'numeroCedula', 'fechaNacimiento', 'edad',
+    'genero', 'estadoCivil', 'nacionalidad', 'provincia', 'ciudad', 'parroquia', 'direccion',
+    'estado', 'lugarNacimiento', 'fechaCedulacion', 'nombreMadre', 'nombrePadre',
+    'instruccion', 'profesion', 'conyuge', 'foto', 'fotoBase64', 'foto_base64',
+    'imagen', 'imagenBase64', 'fotoCedula', 'foto_cedula', 'edadVerificada'
+  ]);
+
+  return Object.entries(datos)
+    .filter(([key, value]) => {
+      if (excluir.has(key)) return false;
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'object') return false;
+      return String(value).trim().length > 0;
+    })
+    .map(([key, value]) => ({ key, value: String(value).trim() }));
+};
+
+export default function ConsultaCedula() {
+  const [cedula, setCedula] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState('');
+  const [datos, setDatos] = useState(null);
+  const [fuenteDatos, setFuenteDatos] = useState('');
+  const [edadError, setEdadError] = useState('');
+
+  const fotoInfo = useMemo(() => construirFotoNormalizada(datos), [datos]);
+  const edadDetallada = useMemo(() => {
+    if (!datos) return null;
+    return datos.edadVerificada || datos.edad || null;
+  }, [datos]);
+
+  const resumen = useMemo(() => prepararResumen(datos, edadDetallada).filter(item => item.value), [datos, edadDetallada]);
+  const personales = useMemo(() => prepararPersonales(datos), [datos]);
+  const ubicacion = useMemo(() => prepararUbicacion(datos), [datos]);
+  const extras = useMemo(() => prepararExtras(datos), [datos]);
+
+  const renderFotoCedula = () => {
+    if (!fotoInfo) {
+      return (
+        <div className="cc-photo-placeholder">
+          <span>Sin imagen disponible</span>
+        </div>
+      );
+    }
+    return <FotoComponent imageSrc={fotoInfo.imageSrc} base64Reparado={fotoInfo.base64Reparado} />;
+  };
+
+  const consultar = async (e) => {
+    e.preventDefault();
+    setError('');
+    setEdadError('');
+    setDatos(null);
+    setFuenteDatos('');
+
+    const ced = cedula.trim();
+    if (!/^\d{10}$/.test(ced)) {
+      setError('Ingresa una cédula válida (10 dígitos)');
+      return;
+    }
+
+    setCargando(true);
+    try {
+      const resultado = await consultarCedulaService(ced);
+      if (!resultado?.success || !resultado.data) {
+        throw new Error(resultado?.error || 'No se encontró información para esta cédula.');
+      }
+      setDatos(resultado.data);
+      setFuenteDatos(
+        resultado.desdeCache
+          ? 'Datos obtenidos desde caché seguro (sin consumo adicional).'
+          : 'Datos consultados en vivo y almacenados automáticamente.'
+      );
+      setEdadError(resultado.edadError || '');
+    } catch (err) {
+      setError(err.message || 'Error al consultar la cédula');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: 8 }}>
+      <style>{`
+        .cc-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .cc-form-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+        .cc-input-group { display: flex; flex-direction: column; gap: 4px; }
+        .cc-input-label { font-size: 11px; color: #6b7280; font-weight: 600; }
+        .cc-input { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+        .cc-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12); }
+        .cc-btn { border: 1px solid #a5b4fc; background: #eef2ff; color: #3730a3; border-radius: 6px; padding: 8px 14px; font-weight: 700; font-size: 12px; cursor: pointer; min-width: 120px; }
+        .cc-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .cc-empty { padding: 8px 10px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
+        .cc-success { padding: 8px 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
+        .cc-title { font-size: 16px; font-weight: 800; margin: 0 0 6px; }
+        .cc-expediente { border: 1px solid #e5e7eb; border-radius: 16px; padding: 18px; background: #fff; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12); }
+        .cc-expediente-header { display: flex; gap: 18px; flex-wrap: wrap; }
+        .cc-photo-wrapper { flex: 1 1 240px; min-width: 220px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; }
+        .cc-photo-placeholder { text-align: center; font-size: 12px; color: #9ca3af; padding: 24px; }
+        .cc-summary { flex: 2 1 320px; display: flex; flex-direction: column; gap: 12px; }
+        .cc-summary-label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #64748b; margin: 0; }
+        .cc-summary-name { margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; }
+        .cc-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1 fr)); gap: 10px; }
+        .cc-summary-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; background: #f9fafb; }
+        .cc-summary-item .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cc-summary-item .value { font-size: 14px; font-weight: 700; color: #111827; }
+        .cc-section { margin-top: 16px; }
+        .cc-section h4 { margin: 0 0 8px; font-size: 13px; font-weight: 800; color: #111827; }
+        .cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+        .cc-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; background: #fafafa; }
+        .cc-label { font-size: 11px; color: #6b7280; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cc-value { font-size: 13px; font-weight: 700; color: #111827; margin: 2px 0 0; }
+        .cc-badge { font-size: 11px; font-weight: 600; border: 1px solid #e5e7eb; border-radius: 999px; padding: 4px 8px; display: inline-block; margin: 2px 6px 2px 0; background: #f1f5f9; color: #0f172a; }
+        @media (max-width: 640px) {
+          .cc-form-row { grid-template-columns: 1fr; }
+          .cc-expediente-header { flex-direction: column; }
+        }
+      `}</style>
+
+      <h3 className="cc-title">Consultar Cédula</h3>
+
+      {fuenteDatos && !error && <div className="cc-success">{fuenteDatos}</div>}
+      {error && <div className="cc-empty">{error}</div>}
+
+      <form className="cc-form" onSubmit={consultar}>
+        <div className="cc-form-row">
+          <div className="cc-input-group">
+            <label className="cc-input-label">Número de Cédula</label>
+            <input
+              className="cc-input"
+              value={cedula}
+              onChange={(e) => setCedula(e.target.value)}
+              placeholder="Ej. 0958424587"
+              maxLength="10"
+            />
+          </div>
+          <button className="cc-btn" type="submit" disabled={cargando}>
+            {cargando ? 'Consultando…' : 'Consultar'}
+          </button>
+        </div>
+      </form>
+
+      {datos && (
+        <div className="cc-expediente">
+          <div className="cc-expediente-header">
+            <div className="cc-photo-wrapper">{renderFotoCedula()}</div>
+            <div className="cc-summary">
+              <p className="cc-summary-label">Expediente de identidad</p>
+              <h3 className="cc-summary-name">
+                {datos.nombre || `${datos.nombres || ''} ${datos.apellidos || ''}`.trim() || 'Sin registro'}
+              </h3>
+              <div className="cc-summary-grid">
+                {resumen.map(item => (
+                  <div className="cc-summary-item" key={item.label}>
+                    <span className="label">{item.label}</span>
+                    <span className="value">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="cc-section">
+            <h4>Datos personales</h4>
+            <div className="cc-grid">
+              {personales.map(item => (
+                <div className="cc-card" key={item.label}>
+                  <p className="cc-label">{item.label}</p>
+                  <p className="cc-value">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="cc-section">
+            <h4>Ubicación y contacto</h4>
+            <div className="cc-grid">
+              {ubicacion.map(item => (
+                <div className="cc-card" key={item.label}>
+                  <p className="cc-label">{item.label}</p>
+                  <p className="cc-value">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {extras.length > 0 && (
+            <div className="cc-section">
+              <h4>Información adicional</h4>
+              <div>
+                {extras.map(item => (
+                  <span key={item.key} className="cc-badge">
+                    {item.key}: {item.value}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {edadError && <div className="cc-empty" style={{ marginTop: 10 }}>{edadError}</div>}
+    </div>

@@ -6,6 +6,7 @@ import ConsultarEstado from './ConsultarEstado';
 import ValidadorFirma from './ValidadorFirma';
 import ConsultaPlacas from './ConsultaPlacas';
 import ConsultaCedula from './ConsultaCedula';
+import CorreosTool from './CorreosTool';
 // import CreateUser from './CreateUser';
 
 const MainContent = ({ activeService, onServiceSelect, user }) => {
@@ -916,20 +917,54 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
 export default MainContent;
 
 function HerramientasSection() {
-  const [abierta, setAbierta] = useState(null)
+  const [abierta, setAbierta] = useState(null);
+  const [pin, setPin] = useState('');
+  const [autenticado, setAutenticado] = useState(false);
+  const [pinError, setPinError] = useState('');
+
+  const validarPin = (e) => {
+    e.preventDefault();
+    if (pin.trim() === '112677') {
+      setAutenticado(true);
+      setPinError('');
+    } else {
+      setPinError('Código incorrecto. Intenta nuevamente.');
+    }
+  };
+
   return (
-    <div>
-      <div className="service-header">
+    <div style={{ background: '#f8fafc', borderRadius: 18, padding: 18, boxShadow: '0 12px 30px rgba(148,163,184,0.35)', border: '1px solid rgba(148,163,184,0.3)', color: '#1f2937', fontFamily: '"JetBrains Mono", "Fira Code", monospace' }}>
+      <div
+        className="service-header"
+        style={{
+          background: '#ffffff',
+          border: '1px solid rgba(148,163,184,0.35)',
+          borderRadius: 16,
+          padding: 24,
+          color: '#1f2937',
+          boxShadow: '0 12px 22px rgba(148,163,184,0.35)'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
           <div>
-            <h1 className="service-title" style={{ marginBottom: 4 }}>Herramientas</h1>
-            <p className="service-description" style={{ margin: 0 }}>{abierta ? 'Vista de herramienta' : 'Selecciona una herramienta para abrir su formulario.'}</p>
+            <h1 className="service-title" style={{ marginBottom: 4, color: '#0f172a' }}>Herramientas</h1>
+            <p className="service-description" style={{ margin: 0, color: '#475569' }}>
+              {autenticado
+                ? (abierta ? 'Vista de herramienta' : 'Selecciona una utilidad disponible.')
+                : 'Zona restringida. Ingresa el código para continuar.'}
+            </p>
           </div>
-          {abierta && (
+          {autenticado && abierta && (
             <button
               onClick={() => setAbierta(null)}
               className="back-button"
-              style={{ padding: '10px 16px', borderRadius: 10 }}
+              style={{
+                padding: '10px 16px',
+                borderRadius: 10,
+                background: '#eef2ff',
+                border: '1px solid #c7d2fe',
+                color: '#1e3a8a'
+              }}
             >
               ← Volver
             </button>
@@ -937,16 +972,120 @@ function HerramientasSection() {
         </div>
       </div>
 
+      {!autenticado && (
+        <div
+          style={{
+            marginTop: 16,
+            background: '#ffffff',
+            border: '1px solid rgba(96,165,250,0.5)',
+            borderRadius: 16,
+            padding: 24,
+            boxShadow: '0 18px 32px rgba(148,163,184,0.45)',
+            color: '#1f2937',
+            fontFamily: '"JetBrains Mono", "Fira Code", monospace'
+          }}
+        >
+          <div style={{ fontSize: 12, letterSpacing: 2, color: '#1e40af', textTransform: 'uppercase' }}>
+            // TOOLS GATEWAY
+          </div>
+          <h3 style={{ margin: '8px 0 4px', fontSize: 20 }}>Autenticación requerida</h3>
+          <p style={{ margin: 0, fontSize: 13, color: '#475569' }}>
+            Introduce el código para habilitar las herramientas.
+          </p>
+
+          <form onSubmit={validarPin} style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 340 }}>
+            <label style={{ fontSize: 12, letterSpacing: 1, color: '#94a3b8', textTransform: 'uppercase' }}>
+              Código
+              <input
+                type="password"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                placeholder="••••••"
+                style={{
+                  marginTop: 6,
+                  padding: '11px 14px',
+                  borderRadius: 10,
+                  border: '1px solid rgba(148,163,184,0.6)',
+                  background: '#f8fafc',
+                  color: '#111827',
+                  fontSize: 15,
+                  letterSpacing: 4
+                }}
+              />
+            </label>
+            {pinError && (
+              <div style={{ color: '#dc2626', fontSize: 12, fontWeight: 600 }}>
+                {pinError}
+              </div>
+            )}
+            <button
+              type="submit"
+              style={{
+                alignSelf: 'flex-start',
+                padding: '10px 24px',
+                borderRadius: 999,
+                border: '1px solid rgba(59,130,246,0.4)',
+                background: 'rgba(191,219,254,0.35)',
+                color: '#1d4ed8',
+                fontWeight: 700,
+                letterSpacing: 1,
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+            >
+              Desbloquear
+            </button>
+          </form>
+        </div>
+      )}
+
       <style>{`
-        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-        .tool-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
-        .tool-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(17,24,39,.08); border-color: #d4d4ff; }
-        .tool-icon { font-size: 22px; }
-        .tool-title { font-size: 14px; font-weight: 800; color: #111827; margin: 6px 0 2px; }
-        .tool-desc { font-size: 12px; color: #6b7280; margin: 0; }
-        .tool-panel { margin-top: 8px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px; background: #fbfbfd; }
+        .tools-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 12px;
+          margin-top: 18px;
+        }
+        .tool-card {
+          background: #ffffff;
+          border: 1px solid rgba(148, 163, 184, 0.5);
+          border-radius: 14px;
+          padding: 16px;
+          cursor: pointer;
+          transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+          color: #0f172a;
+        }
+        .tool-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 20px 30px rgba(148,163,184,0.45);
+          border-color: rgba(59, 130, 246, 0.5);
+        }
+        .tool-icon {
+          font-size: 22px;
+          color: #4c1d95;
+        }
+        .tool-title {
+          font-size: 14px;
+          font-weight: 800;
+          margin: 6px 0 2px;
+          color: #1e3a8a;
+        }
+        .tool-desc {
+          font-size: 12px;
+          color: #475569;
+          margin: 0;
+        }
+        .tool-panel {
+          margin-top: 18px;
+          border: 1px solid rgba(148,163,184,0.35);
+          border-radius: 12px;
+          padding: 12px;
+          background: #ffffff;
+        }
       `}</style>
-      {!abierta && (
+      {autenticado && !abierta && (
         <div className="tools-grid">
           <div className="tool-card" onClick={() => setAbierta('nombres')}>
             <div className="tool-icon">🪪</div>
@@ -963,22 +1102,32 @@ function HerramientasSection() {
             <div className="tool-title">Consultar placas</div>
             <p className="tool-desc">Detalle, propietario y valores SRI.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('correos')}>
+            <div className="tool-icon">📬</div>
+            <div className="tool-title">Correos temporales</div>
+            <p className="tool-desc">Genera cuentas y lee mensajes rápidos.</p>
+          </div>
         </div>
       )}
 
-      {abierta === 'nombres' && (
+      {autenticado && abierta === 'nombres' && (
         <div className="tool-panel" style={{ padding: 12 }}>
           <ValidadorFirma />
         </div>
       )}
-      {abierta === 'cedula' && (
+      {autenticado && abierta === 'cedula' && (
         <div className="tool-panel" style={{ padding: 12 }}>
           <ConsultaCedula />
         </div>
       )}
-      {abierta === 'placas' && (
+      {autenticado && abierta === 'placas' && (
         <div className="tool-panel" style={{ padding: 12 }}>
           <ConsultaPlacas />
+        </div>
+      )}
+      {autenticado && abierta === 'correos' && (
+        <div className="tool-panel" style={{ padding: 12 }}>
+          <CorreosTool />
         </div>
       )}
     </div>

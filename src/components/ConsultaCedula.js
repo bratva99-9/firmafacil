@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 // Componente para mostrar foto con manejo de errores sin loops
 function FotoComponent({ imageSrc, base64Reparado }) {
@@ -60,6 +60,16 @@ export default function ConsultaCedula() {
   const [error, setError] = useState('');
   const [datos, setDatos] = useState(null);
   const [infoToken, setInfoToken] = useState(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState('');
+  const [tokenError, setTokenError] = useState('');
+  const [tokenExpiryMs, setTokenExpiryMs] = useState(null);
+  const [edadInfo, setEdadInfo] = useState(null);
+  const [edadError, setEdadError] = useState('');
+
+  const TOKEN_USER = '0993391174001';
+  const TOKEN_PASSWORD = '0993391174001';
+  const TOKEN_BUFFER_MS = 60 * 1000;
 
   // Función robusta para reparar base64 (similar a base64.guru/tools/repair)
   const repararBase64 = (str) => {
@@ -161,49 +171,198 @@ export default function ConsultaCedula() {
     }
   };
 
+  const formatearTiempoRestante = (expMs) => {
+    if (!expMs) return 'Desconocido';
+    const restante = expMs - Date.now();
+    if (restante <= 0) return 'Expirado';
+    const horas = Math.floor(restante / 3600000);
+    const minutos = Math.floor((restante % 3600000) / 60000);
+    return `${horas}h ${minutos}m`;
+  };
+
+  const prepararInfoToken = (tok) => {
+    if (!tok) {
+      setInfoToken(null);
+      setTokenExpiryMs(null);
+      return { valido: false, mensaje: 'Ingresa el token (x-token)' };
+    }
+
+    const validacionToken = verificarToken(tok);
+    if (!validacionToken.valido) {
+      setInfoToken(null);
+      setTokenExpiryMs(null);
+      return validacionToken;
+    }
+
+    if (validacionToken.payload) {
+      const exp = validacionToken.payload.exp;
+      const expMs = exp ? exp * 1000 : null;
+      const expiraEn = formatearTiempoRestante(expMs);
+      setTokenExpiryMs(expMs);
+      setInfoToken(expiraEn === 'Expirado' ? null : { expiraEn });
+    } else {
+      setInfoToken(null);
+      setTokenExpiryMs(null);
+    }
+
+    return { valido: true };
+  };
+
+  const obtenerEdadExtendida = () => {
+    if (!datos && !edadInfo) return null;
+    return datos?.edad ?? edadInfo?.edad ?? edadInfo?.Edad ?? edadInfo?.data?.edad ?? null;
+  };
+
+  const construirFoto = () => {
+    if (!datos) return null;
+    const fotoField =
+      datos.fotoBase64 ||
+      datos.foto_base64 ||
+      datos.imagenBase64 ||
+      datos.imagen ||
+      datos.foto ||
+      datos.fotoCedula ||
+      datos.foto_cedula;
+
+    if (!fotoField || typeof fotoField !== 'string') {
+      return null;
+    }
+
+    let base64Reparado = null;
+    let imageSrc = null;
+
+    if (fotoField.startsWith('data:image/')) {
+      const base64Part = fotoField.split('base64,')[1];
+      if (base64Part) {
+        base64Reparado = repararBase64(base64Part);
+        if (base64Reparado) {
+          const mimeMatch = fotoField.match(/data:image\/([^;]+)/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'jpeg';
+          imageSrc = `data:image/${mimeType};base64,${base64Reparado}`;
+        }
+      }
+    } else if (fotoField.includes('base64,')) {
+      const base64Part = fotoField.split('base64,')[1];
+      if (base64Part) {
+        base64Reparado = repararBase64(base64Part);
+        if (base64Reparado) {
+          imageSrc = `data:image/jpeg;base64,${base64Reparado}`;
+        }
+      }
+    } else {
+      base64Reparado = repararBase64(fotoField);
+      if (base64Reparado) {
+        imageSrc = `data:image/jpeg;base64,${base64Reparado}`;
+      }
+    }
+
+    if (!imageSrc || !base64Reparado) {
+      return null;
+    }
+
+    return { imageSrc, base64Reparado };
+  };
+
+  const renderFotoCedula = () => {
+    const foto = construirFoto();
+    if (!foto) {
+      return (
+        <div className="cc-photo-placeholder">
+          <span>Sin imagen disponible</span>
+        </div>
+      );
+    }
+    return <FotoComponent imageSrc={foto.imageSrc} base64Reparado={foto.base64Reparado} />;
+  };
+
+  const solicitarToken = async () => {
+    setTokenLoading(true);
+    setTokenStatus('Generando token…');
+    setTokenError('');
+    try {
+      const response = await fetch('https://apifirmas.firmasecuador.com/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user: TOKEN_USER,
+          password: TOKEN_PASSWORD
+        })
+      });
+
+      if (!response.ok) {
+        const texto = await response.text();
+        throw new Error(texto || `Error ${response.status} al solicitar el token`);
+      }
+
+      const data = await response.json();
+      const nuevoToken = data.token || data.accessToken || data?.data?.token;
+
+      if (!nuevoToken) {
+        throw new Error('La respuesta no incluyó el token (x-token).');
+      }
+
+      setToken(nuevoToken);
+      const validacion = prepararInfoToken(nuevoToken);
+      if (!validacion.valido) {
+        throw new Error(validacion.mensaje || 'Token recibido, pero no se pudo validar.');
+      }
+      setTokenStatus('Token listo.');
+      setDatos(null);
+      setError('');
+      return nuevoToken;
+    } catch (err) {
+      setTokenStatus('');
+      setTokenError(err.message || 'No se pudo obtener el token.');
+      throw err;
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const asegurarTokenValido = async () => {
+    const ahora = Date.now();
+    if (token && tokenExpiryMs && ahora < tokenExpiryMs - TOKEN_BUFFER_MS) {
+      prepararInfoToken(token);
+      return token;
+    }
+    return await solicitarToken();
+  };
+
+  useEffect(() => {
+    asegurarTokenValido().catch(() => {
+      // errores ya manejados en solicitarToken
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const consultar = async (e) => {
     e.preventDefault();
     setError('');
     setDatos(null);
+    setEdadInfo(null);
+    setEdadError('');
     
     const ced = cedula.trim();
-    const tok = token.trim();
     
     if (!/^\d{10}$/.test(ced)) {
       setError('Ingresa una cédula válida (10 dígitos)');
       return;
     }
     
-    if (!tok) {
-      setError('Ingresa el token (x-token)');
+    let tokActual = token;
+    try {
+      tokActual = await asegurarTokenValido();
+    } catch (err) {
+      setError(err.message || 'No se pudo generar el token');
       return;
     }
     
-    // Verificar token antes de hacer la petición
-    const validacionToken = verificarToken(tok);
+    const validacionToken = prepararInfoToken(tokActual);
     if (!validacionToken.valido) {
       setError(`⚠️ ${validacionToken.mensaje}`);
-      setInfoToken(null);
       return;
-    }
-    
-    // Mostrar información del token si es válido
-    if (validacionToken.payload) {
-      const exp = validacionToken.payload.exp;
-      const ahora = Math.floor(Date.now() / 1000);
-      const tiempoRestante = exp - ahora;
-      const horasRestantes = Math.floor(tiempoRestante / 3600);
-      const minutosRestantes = Math.floor((tiempoRestante % 3600) / 60);
-      
-      setInfoToken({
-        nombre: validacionToken.payload.nombre || 'N/A',
-        id: validacionToken.payload.id || 'N/A',
-        nivel: validacionToken.payload.nivel || 'N/A',
-        expiraEn: tiempoRestante > 0 
-          ? `${horasRestantes}h ${minutosRestantes}m` 
-          : 'Expirado',
-        fechaExpiracion: exp ? new Date(exp * 1000).toLocaleString() : 'N/A'
-      });
     }
     
     setCargando(true);
@@ -214,7 +373,7 @@ export default function ConsultaCedula() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-token': tok
+          'x-token': tokActual
         },
         body: JSON.stringify({
           cedula: ced
@@ -254,6 +413,26 @@ export default function ConsultaCedula() {
 
       const resultado = await response.json();
       setDatos(resultado);
+
+      try {
+        const edadResponse = await fetch('https://apifirmas.firmasecuador.com/api/usuarios/consultarEdad', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-token': tokActual
+          },
+          body: JSON.stringify({ cedula: ced })
+        });
+
+        if (!edadResponse.ok) {
+          throw new Error(`Edad: ${edadResponse.status}`);
+        }
+
+        const edadData = await edadResponse.json();
+        setEdadInfo(edadData);
+      } catch (edadErr) {
+        setEdadError(edadErr.message || 'No se pudo obtener la edad adicional.');
+      }
     } catch (e) {
       setError(e.message || 'Error al consultar la cédula');
     } finally {
@@ -291,20 +470,33 @@ export default function ConsultaCedula() {
         .cc-photo-container { display: inline-block; border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px; background: #fafafa; }
         .cc-photo { max-width: 100%; max-height: 400px; border-radius: 4px; display: block; }
         .cc-photo-label { font-size: 12px; color: #6b7280; margin-top: 6px; font-weight: 600; }
+        .cc-expediente { border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; background: #fff; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08); margin-top: 12px; }
+        .cc-expediente-header { display: flex; gap: 16px; flex-wrap: wrap; }
+        .cc-photo-wrapper { flex: 1 1 240px; min-width: 220px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px; display: flex; align-items: center; justify-content: center; }
+        .cc-photo-wrapper .cc-photo-section { width: 100%; margin-top: 0; }
+        .cc-photo-placeholder { text-align: center; font-size: 12px; color: #9ca3af; padding: 24px; }
+        .cc-summary { flex: 2 1 320px; display: flex; flex-direction: column; gap: 12px; }
+        .cc-summary-label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #64748b; margin: 0; }
+        .cc-summary-name { margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; }
+        .cc-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .cc-summary-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; background: #f9fafb; }
+        .cc-summary-item .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cc-summary-item .value { font-size: 14px; font-weight: 700; color: #111827; }
+        .cc-expediente-body { margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
+        @media (max-width: 640px) {
+          .cc-expediente-header { flex-direction: column; }
+        }
       `}</style>
 
       <h3 className="cc-title">Consultar Cédula</h3>
+
+      {tokenStatus && (
+        <div className="cc-success">{tokenStatus}</div>
+      )}
+      {tokenError && (
+        <div className="cc-empty">{tokenError}</div>
+      )}
       <form className="cc-form" onSubmit={consultar}>
-        <div className="cc-input-group">
-          <label className="cc-input-label">Token (x-token)</label>
-          <input 
-            className="cc-input" 
-            type="text"
-            value={token} 
-            onChange={(e) => setToken(e.target.value)} 
-            placeholder="Ingresa el token de autenticación"
-          />
-        </div>
         <div className="cc-form-row">
           <div className="cc-input-group" style={{ margin: 0 }}>
             <label className="cc-input-label">Número de Cédula</label>
@@ -316,7 +508,7 @@ export default function ConsultaCedula() {
               maxLength="10"
             />
           </div>
-          <button className="cc-btn" type="submit" disabled={cargando} style={{ alignSelf: 'flex-end' }}>
+          <button className="cc-btn" type="submit" disabled={cargando || tokenLoading} style={{ alignSelf: 'flex-end' }}>
             {cargando ? 'Consultando…' : 'Consultar'}
           </button>
         </div>
@@ -324,221 +516,129 @@ export default function ConsultaCedula() {
 
       {infoToken && (
         <div className="cc-info-token">
-          <strong>ℹ️ Información del Token:</strong>
-          <span>ID: {infoToken.id}</span>
-          <span>Nombre: {infoToken.nombre}</span>
-          <span>Nivel: {infoToken.nivel}</span>
+          <strong>🔐 Token automático</strong>
           <span>Expira en: {infoToken.expiraEn}</span>
-          <span>Fecha expiración: {infoToken.fechaExpiracion}</span>
         </div>
       )}
       
       {error && <div className="cc-empty">{error}</div>}
       
-      {datos && (
-        <div className="cc-result">
-          <div className="cc-success">✅ Datos encontrados</div>
-          
-          {/* Mostrar foto si está disponible en base64 */}
-          {(() => {
-            // Buscar campo de foto en diferentes posibles nombres
-            const fotoField = datos.fotoBase64 || datos.foto_base64 || datos.imagenBase64 || 
-                            datos.imagen || datos.foto || datos.fotoCedula || datos.foto_cedula;
-            
-            if (!fotoField || typeof fotoField !== 'string') {
-              return null;
-            }
-            
-            // Preparar imagen usando función de reparación robusta
-            let imageSrc = null;
-            let base64Reparado = null;
-            
-            // Extraer el base64 puro
-            if (fotoField.startsWith('data:image/')) {
-              // Ya tiene formato, extraer el base64
-              const base64Part = fotoField.split('base64,')[1];
-              if (base64Part) {
-                base64Reparado = repararBase64(base64Part);
-                if (base64Reparado) {
-                  // Mantener el tipo MIME original si es posible
-                  const mimeMatch = fotoField.match(/data:image\/([^;]+)/);
-                  const mimeType = mimeMatch ? mimeMatch[1] : 'jpeg';
-                  imageSrc = `data:image/${mimeType};base64,${base64Reparado}`;
-                }
-              }
-            } else if (fotoField.includes('base64,')) {
-              // Tiene prefijo base64, pero no data:image
-              const base64Part = fotoField.split('base64,')[1];
-              if (base64Part) {
-                base64Reparado = repararBase64(base64Part);
-                if (base64Reparado) {
-                  imageSrc = `data:image/jpeg;base64,${base64Reparado}`;
-                }
-              }
-            } else {
-              // Es base64 puro
-              base64Reparado = repararBase64(fotoField);
-              if (base64Reparado) {
-                imageSrc = `data:image/jpeg;base64,${base64Reparado}`;
-              }
-            }
-            
-            if (!imageSrc || !base64Reparado) {
-              return null;
-            }
-            
-            return (
-              <FotoComponent imageSrc={imageSrc} base64Reparado={base64Reparado} />
-            );
-          })()}
+      {datos && (() => {
+        const edadDetallada = obtenerEdadExtendida();
+        const nombrePrincipal =
+          datos.nombre ||
+          `${datos.nombres || ''} ${datos.apellidos || ''}`.trim() ||
+          'Sin registro';
 
-          {/* Mostrar datos personales */}
-          <div className="cc-grid">
-            {datos.nombres && (
-              <div className="cc-card">
-                <p className="cc-label">Nombres</p>
-                <p className="cc-value">{datos.nombres}</p>
-              </div>
-            )}
-            {datos.apellidos && (
-              <div className="cc-card">
-                <p className="cc-label">Apellidos</p>
-                <p className="cc-value">{datos.apellidos}</p>
-              </div>
-            )}
-            {datos.nombre && (
-              <div className="cc-card" style={{ gridColumn: '1 / -1' }}>
-                <p className="cc-label">Nombre Completo</p>
-                <p className="cc-value">{datos.nombre}</p>
-              </div>
-            )}
-            {datos.cedula && (
-              <div className="cc-card">
-                <p className="cc-label">Cédula</p>
-                <p className="cc-value">{datos.cedula}</p>
-              </div>
-            )}
-            {datos.fechaNacimiento && (
-              <div className="cc-card">
-                <p className="cc-label">Fecha de Nacimiento</p>
-                <p className="cc-value">{datos.fechaNacimiento}</p>
-              </div>
-            )}
-            {datos.edad && (
-              <div className="cc-card">
-                <p className="cc-label">Edad</p>
-                <p className="cc-value">{datos.edad} años</p>
-              </div>
-            )}
-            {datos.genero && (
-              <div className="cc-card">
-                <p className="cc-label">Género</p>
-                <p className="cc-value">{datos.genero}</p>
-              </div>
-            )}
-            {datos.estadoCivil && (
-              <div className="cc-card">
-                <p className="cc-label">Estado Civil</p>
-                <p className="cc-value">{datos.estadoCivil}</p>
-              </div>
-            )}
-            {datos.nacionalidad && (
-              <div className="cc-card">
-                <p className="cc-label">Nacionalidad</p>
-                <p className="cc-value">{datos.nacionalidad}</p>
-              </div>
-            )}
-            {datos.provincia && (
-              <div className="cc-card">
-                <p className="cc-label">Provincia</p>
-                <p className="cc-value">{datos.provincia}</p>
-              </div>
-            )}
-            {datos.ciudad && (
-              <div className="cc-card">
-                <p className="cc-label">Ciudad</p>
-                <p className="cc-value">{datos.ciudad}</p>
-              </div>
-            )}
-            {datos.parroquia && (
-              <div className="cc-card">
-                <p className="cc-label">Parroquia</p>
-                <p className="cc-value">{datos.parroquia}</p>
-              </div>
-            )}
-            {datos.direccion && (
-              <div className="cc-card" style={{ gridColumn: '1 / -1' }}>
-                <p className="cc-label">Dirección</p>
-                <p className="cc-value">{datos.direccion}</p>
-              </div>
-            )}
-            {datos.estado && (
-              <div className="cc-card">
-                <p className="cc-label">Estado</p>
-                <p className="cc-value">{datos.estado}</p>
-              </div>
-            )}
-            {datos.lugarNacimiento && (
-              <div className="cc-card">
-                <p className="cc-label">Lugar de Nacimiento</p>
-                <p className="cc-value">{datos.lugarNacimiento}</p>
-              </div>
-            )}
-            {datos.fechaCedulacion && (
-              <div className="cc-card">
-                <p className="cc-label">Fecha de Cedulación</p>
-                <p className="cc-value">{datos.fechaCedulacion}</p>
-              </div>
-            )}
-          </div>
+        const resumenItems = [
+          { label: 'Cédula', value: datos.cedula },
+          { label: 'Edad verificada', value: edadDetallada ? `${edadDetallada} años` : null },
+          { label: 'Estado', value: datos.estado },
+          { label: 'Expedición', value: datos.fechaCedulacion }
+        ];
 
-          {/* Mostrar otros campos que puedan existir (excluyendo campos de imagen) */}
-          {Object.keys(datos).some(key => {
-            const camposExcluidos = [
-              'nombres', 'apellidos', 'nombre', 'cedula', 'fechaNacimiento', 'edad', 'genero', 
-              'estadoCivil', 'nacionalidad', 'provincia', 'ciudad', 'parroquia', 'direccion', 
-              'estado', 'lugarNacimiento', 'fechaCedulacion', 'nombreMadre', 'nombrePadre', 
-              'instruccion', 'profesion', 'conyuge',
-              'foto', 'fotoBase64', 'foto_base64', 'imagen', 'imagenBase64', 'fotoCedula'
-            ];
-            return !camposExcluidos.includes(key);
-          }) && (
-            <div className="cc-section">
-              <h4>Información Adicional</h4>
-              <div>
-                {Object.entries(datos).map(([key, value]) => {
-                  const camposExcluidos = [
-                    'nombres', 'apellidos', 'nombre', 'cedula', 'fechaNacimiento', 'edad', 'genero', 
-                    'estadoCivil', 'nacionalidad', 'provincia', 'ciudad', 'parroquia', 'direccion', 
-                    'estado', 'lugarNacimiento', 'fechaCedulacion',
-                    'foto', 'fotoBase64', 'foto_base64', 'imagen', 'imagenBase64', 'fotoCedula'
-                  ];
-                  
-                  if (camposExcluidos.includes(key)) {
-                    return null;
-                  }
-                  
-                  // Ignorar valores vacíos, null, undefined o objetos
-                  if (!value || typeof value === 'object') {
-                    return null;
-                  }
-                  
-                  const valorStr = String(value).trim();
-                  if (valorStr) {
-                    return (
-                      <span key={key} className="cc-badge ok">
-                        {key}: {valorStr}
-                      </span>
-                    );
-                  }
-                  return null;
-                })}
+        const datosPersonales = [
+          { label: 'Nombres', value: datos.nombres },
+          { label: 'Apellidos', value: datos.apellidos },
+          { label: 'Nombre completo', value: datos.nombre },
+          { label: 'Fecha de nacimiento', value: datos.fechaNacimiento },
+          { label: 'Género', value: datos.genero },
+          { label: 'Estado civil', value: datos.estadoCivil },
+          { label: 'Edad (registro)', value: datos.edad ? `${datos.edad} años` : null }
+        ];
+
+        const datosUbicacion = [
+          { label: 'Nacionalidad', value: datos.nacionalidad },
+          { label: 'Provincia', value: datos.provincia },
+          { label: 'Ciudad', value: datos.ciudad },
+          { label: 'Parroquia', value: datos.parroquia },
+          { label: 'Dirección', value: datos.direccion },
+          { label: 'Lugar de nacimiento', value: datos.lugarNacimiento }
+        ];
+
+        const camposAdicionales = Object.entries(datos).filter(([key, value]) => {
+          const camposExcluidos = [
+            'nombres', 'apellidos', 'nombre', 'cedula', 'fechaNacimiento', 'edad', 'genero',
+            'estadoCivil', 'nacionalidad', 'provincia', 'ciudad', 'parroquia', 'direccion',
+            'estado', 'lugarNacimiento', 'fechaCedulacion', 'nombreMadre', 'nombrePadre',
+            'instruccion', 'profesion', 'conyuge',
+            'foto', 'fotoBase64', 'foto_base64', 'imagen', 'imagenBase64', 'fotoCedula'
+          ];
+          if (camposExcluidos.includes(key)) return false;
+          if (!value || typeof value === 'object') return false;
+          return String(value).trim().length > 0;
+        });
+
+        return (
+          <div className="cc-expediente">
+            <div className="cc-expediente-header">
+              <div className="cc-photo-wrapper">
+                {renderFotoCedula()}
+              </div>
+              <div className="cc-summary">
+                <p className="cc-summary-label">Expediente de identidad</p>
+                <h3 className="cc-summary-name">{nombrePrincipal}</h3>
+                <div className="cc-summary-grid">
+                  {resumenItems.filter(item => item.value).map(item => (
+                    <div className="cc-summary-item" key={item.label}>
+                      <span className="label">{item.label}</span>
+                      <span className="value">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="cc-expediente-body">
+              <div className="cc-section">
+                <h4>Datos personales</h4>
+                <div className="cc-grid">
+                  {datosPersonales.filter(item => item.value).map(item => (
+                    <div className="cc-card" key={item.label}>
+                      <p className="cc-label">{item.label}</p>
+                      <p className="cc-value">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="cc-section">
+                <h4>Ubicación y contacto</h4>
+                <div className="cc-grid">
+                  {datosUbicacion.filter(item => item.value).map(item => (
+                    <div className="cc-card" key={item.label}>
+                      <p className="cc-label">{item.label}</p>
+                      <p className="cc-value">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {camposAdicionales.length > 0 && (
+                <div className="cc-section">
+                  <h4>Información adicional</h4>
+                  <div>
+                    {camposAdicionales.map(([key, value]) => (
+                      <span key={key} className="cc-badge ok">
+                        {key}: {String(value).trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {edadError && (
+        <div className="cc-empty">{edadError}</div>
       )}
     </div>
   );
 }
+
+
+
+
 
