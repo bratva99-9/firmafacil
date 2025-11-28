@@ -791,7 +791,7 @@ export default function ConsultaCedula() {
   };
 
   return (
-    <div style={{ padding: 8 }}>
+    <div style={{ padding: 8 }} className="cc-container">
       <style>{`
         .cc-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
         .cc-form-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
@@ -820,6 +820,15 @@ export default function ConsultaCedula() {
         .cc-photo-container { display: inline-block; border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px; background: #fafafa; }
         .cc-photo { max-width: 100%; max-height: 400px; border-radius: 4px; display: block; }
         .cc-photo-label { font-size: 12px; color: #6b7280; margin-top: 6px; font-weight: 600; }
+        
+        /* Contenedor principal - responsive */
+        @media (max-width: 768px) {
+          .cc-container {
+            padding: 0 !important;
+            margin: 0;
+          }
+        }
+        
         /* Estilos de expediente policial */
         .cc-expediente-policial { 
           background: #ffffff; 
@@ -1056,21 +1065,85 @@ export default function ConsultaCedula() {
         }
         
         @media (max-width: 768px) {
+          /* Contenedor principal sin padding en móvil */
+          .cc-container {
+            padding: 0 !important;
+            margin: 0;
+          }
+          
+          .cc-expediente-policial {
+            margin: 0;
+            border-left: none;
+            border-right: none;
+            border-radius: 0;
+            border-width: 2px;
+          }
+          
+          .cc-exp-header {
+            padding: 12px 14px;
+          }
+          
           .cc-exp-main {
             flex-direction: column;
-            padding: 16px;
+            padding: 12px 14px;
+            gap: 12px;
           }
+          
           .cc-exp-photo-section {
             flex: 0 0 auto;
+            width: 100%;
           }
+          
+          .cc-exp-photo-section .cc-photo-container {
+            max-width: 140px;
+            margin: 0 auto;
+          }
+          
+          .cc-exp-name {
+            font-size: 20px;
+          }
+          
           .cc-exp-quick-info {
             grid-template-columns: 1fr;
+            gap: 8px;
           }
+          
+          .cc-exp-section-header {
+            padding: 10px 14px;
+          }
+          
+          .cc-exp-section-content {
+            padding: 12px 14px;
+          }
+          
           .cc-exp-data-grid {
             grid-template-columns: 1fr;
+            gap: 8px;
           }
-          .cc-exp-name {
-            font-size: 24px;
+          
+          .cc-exp-data-item {
+            padding: 8px 10px;
+          }
+          
+          .cc-exp-footer {
+            padding: 10px 14px;
+          }
+          
+          /* Contenedores de denuncias en móvil */
+          .cc-denuncia-container {
+            margin-bottom: 20px !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-radius: 0 !important;
+            border-width: 1px !important;
+          }
+          
+          .cc-denuncia-container > div:first-child {
+            padding: 12px 14px !important;
+          }
+          
+          .cc-denuncia-container > div:last-child {
+            padding: 12px 14px !important;
           }
         }
       `}</style>
@@ -1501,6 +1574,7 @@ export default function ConsultaCedula() {
                             return (
                               <div 
                                 key={index} 
+                                className="cc-denuncia-container"
                                 style={{ 
                                   marginBottom: '32px',
                                   border: '2px solid #e5e7eb',
