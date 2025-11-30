@@ -111,77 +111,17 @@ serve(async (req) => {
         
         if (response.ok) {
           // Si la respuesta es exitosa, procesar
-          const dataArray = await response.json()
-          console.log('Datos recibidos del SRI:', JSON.stringify(dataArray, null, 2))
+          let dataArray = null
+          const responseText = await response.text()
           
-          // La API del SRI devuelve un array, tomamos el primer elemento
-          const data = Array.isArray(dataArray) && dataArray.length > 0 ? dataArray[0] : (dataArray && typeof dataArray === 'object' ? dataArray : null)
-          
-          if (data && data.numeroRuc) {
-            // Consultar datos adicionales de establecimientos
-            let establecimientosDetalle: any[] = []
-            try {
-              console.log('Consultando datos de establecimientos...')
-              const establecimientosUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/Establecimiento/consultarPorNumeroRuc?numeroRuc=${ruc}`
-              
-              const establecimientosController = new AbortController()
-              const establecimientosTimeoutId = setTimeout(() => establecimientosController.abort(), 20000)
-              
-              const establecimientosResponse = await fetch(establecimientosUrl, {
-                method: 'GET',
-                headers: {
-                  ...headers,
-                  'Accept': 'application/json, text/plain, */*'
-                },
-                signal: establecimientosController.signal,
-                redirect: 'follow'
-              })
-              
-              clearTimeout(establecimientosTimeoutId)
-              
-              if (establecimientosResponse.ok) {
-                const establecimientosData = await establecimientosResponse.json()
-                console.log('Datos de establecimientos recibidos:', JSON.stringify(establecimientosData, null, 2))
-                
-                // La API devuelve un array de establecimientos
-                if (Array.isArray(establecimientosData)) {
-                  establecimientosDetalle = establecimientosData
-                } else if (establecimientosData && typeof establecimientosData === 'object') {
-                  establecimientosDetalle = [establecimientosData]
-                }
-              } else {
-                console.warn('⚠️ No se pudieron obtener datos de establecimientos:', establecimientosResponse.status)
-              }
-            } catch (establecimientosError: any) {
-              console.warn('⚠️ Error al consultar establecimientos (no crítico):', establecimientosError.message)
-              // No fallar si no se pueden obtener los establecimientos
-            }
-            
+          // Si la respuesta está vacía, significa que no hay RUC
+          if (!responseText || responseText.trim().length === 0) {
+            console.log('Respuesta vacía - No hay RUC registrado para esta cédula')
             return new Response(
-              JSON.stringify({
-                success: true,
+              JSON.stringify({ 
+                success: true, 
                 data: {
-                  numero_ruc: data.numeroRuc,
-                  razon_social: data.razonSocial,
-                  estado_contribuyente_ruc: data.estadoContribuyenteRuc,
-                  actividad_economica_principal: data.actividadEconomicaPrincipal,
-                  tipo_contribuyente: data.tipoContribuyente,
-                  regimen: data.regimen,
-                  categoria: data.categoria,
-                  obligado_llevar_contabilidad: data.obligadoLlevarContabilidad,
-                  agente_retencion: data.agenteRetencion,
-                  contribuyente_especial: data.contribuyenteEspecial,
-                  fecha_inicio_actividades: data.informacionFechasContribuyente?.fechaInicioActividades,
-                  fecha_cese: data.informacionFechasContribuyente?.fechaCese,
-                  fecha_reinicio_actividades: data.informacionFechasContribuyente?.fechaReinicioActividades,
-                  fecha_actualizacion: data.informacionFechasContribuyente?.fechaActualizacion,
-                  contribuyente_fantasma: data.contribuyenteFantasma,
-                  transacciones_inexistente: data.transaccionesInexistente,
-                  clasificacion_mipyme: data.clasificacionMiPyme,
-                  motivo_cancelacion_suspension: data.motivoCancelacionSuspension,
-                  representantes_legales: data.representantesLegales || [],
-                  establecimientos: data.establecimientos || [],
-                  establecimientos_detalle: establecimientosDetalle // Datos adicionales de establecimientos
+                  mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
                 }
               }),
               { 
@@ -189,18 +129,125 @@ serve(async (req) => {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
               }
             )
-          } else {
+          }
+          
+          try {
+            dataArray = JSON.parse(responseText) as any
+            console.log('Datos recibidos del SRI:', JSON.stringify(dataArray, null, 2))
+          } catch (parseError) {
+            console.error('Error al parsear JSON del SRI:', parseError)
+            // Si no es JSON válido y está vacío o parece indicar que no hay datos
+            if (responseText.trim().length === 0 || 
+                responseText.toLowerCase().includes('no se encontr') ||
+                responseText.toLowerCase().includes('sin datos')) {
+              console.log('Respuesta indica que no hay RUC')
+              return new Response(
+                JSON.stringify({ 
+                  success: true, 
+                  data: {
+                    mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
+                  }
+                }),
+                { 
+                  status: 200, 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+                }
+              )
+            }
+            throw parseError
+          }
+          
+          // La API del SRI devuelve un array, tomamos el primer elemento
+          const data = Array.isArray(dataArray) && dataArray.length > 0 ? dataArray[0] : (dataArray && typeof dataArray === 'object' ? dataArray : null)
+          
+          // Si el array está vacío o no hay datos, significa que no hay RUC
+          if (!data || !data.numeroRuc) {
+            console.log('No se encontró RUC en la respuesta del SRI')
             return new Response(
               JSON.stringify({ 
-                success: false, 
-                error: 'RUC no encontrado en el sistema del SRI' 
+                success: true, 
+                data: {
+                  mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
+                }
               }),
               { 
-                status: 404, 
+                status: 200, 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
               }
             )
           }
+          
+          // Consultar datos adicionales de establecimientos
+          let establecimientosDetalle: any[] = []
+          try {
+            console.log('Consultando datos de establecimientos...')
+            const establecimientosUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/Establecimiento/consultarPorNumeroRuc?numeroRuc=${ruc}`
+            
+            const establecimientosController = new AbortController()
+            const establecimientosTimeoutId = setTimeout(() => establecimientosController.abort(), 20000)
+            
+            const establecimientosResponse = await fetch(establecimientosUrl, {
+              method: 'GET',
+              headers: {
+                ...headers,
+                'Accept': 'application/json, text/plain, */*'
+              },
+              signal: establecimientosController.signal,
+              redirect: 'follow'
+            })
+            
+            clearTimeout(establecimientosTimeoutId)
+            
+            if (establecimientosResponse.ok) {
+              const establecimientosData = await establecimientosResponse.json()
+              console.log('Datos de establecimientos recibidos:', JSON.stringify(establecimientosData, null, 2))
+              
+              // La API devuelve un array de establecimientos
+              if (Array.isArray(establecimientosData)) {
+                establecimientosDetalle = establecimientosData
+              } else if (establecimientosData && typeof establecimientosData === 'object') {
+                establecimientosDetalle = [establecimientosData]
+              }
+            } else {
+              console.warn('⚠️ No se pudieron obtener datos de establecimientos:', establecimientosResponse.status)
+            }
+          } catch (establecimientosError: any) {
+            console.warn('⚠️ Error al consultar establecimientos (no crítico):', establecimientosError.message)
+            // No fallar si no se pueden obtener los establecimientos
+          }
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                numero_ruc: data.numeroRuc,
+                razon_social: data.razonSocial,
+                estado_contribuyente_ruc: data.estadoContribuyenteRuc,
+                actividad_economica_principal: data.actividadEconomicaPrincipal,
+                tipo_contribuyente: data.tipoContribuyente,
+                regimen: data.regimen,
+                categoria: data.categoria,
+                obligado_llevar_contabilidad: data.obligadoLlevarContabilidad,
+                agente_retencion: data.agenteRetencion,
+                contribuyente_especial: data.contribuyenteEspecial,
+                fecha_inicio_actividades: data.informacionFechasContribuyente?.fechaInicioActividades,
+                fecha_cese: data.informacionFechasContribuyente?.fechaCese,
+                fecha_reinicio_actividades: data.informacionFechasContribuyente?.fechaReinicioActividades,
+                fecha_actualizacion: data.informacionFechasContribuyente?.fechaActualizacion,
+                contribuyente_fantasma: data.contribuyenteFantasma,
+                transacciones_inexistente: data.transaccionesInexistente,
+                clasificacion_mipyme: data.clasificacionMiPyme,
+                motivo_cancelacion_suspension: data.motivoCancelacionSuspension,
+                representantes_legales: data.representantesLegales || [],
+                establecimientos: data.establecimientos || [],
+                establecimientos_detalle: establecimientosDetalle // Datos adicionales de establecimientos
+              }
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
         } else {
           // Si no es 200, intentar parsear el error
           try {

@@ -87,7 +87,10 @@ export default function ConsultaCedula() {
   const [sriError, setSriError] = useState('');
   const [sriCargando, setSriCargando] = useState(false);
   const [actuacionesExpandidas, setActuacionesExpandidas] = useState(new Set());
-  const [seccionesExpandidas, setSeccionesExpandidas] = useState(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']));
+  const [seccionesActuacionesExpandidas, setSeccionesActuacionesExpandidas] = useState(new Set());
+  const [procesosExpandidos, setProcesosExpandidos] = useState(new Set());
+  const [denunciasExpandidas, setDenunciasExpandidas] = useState(new Set());
+  const [seccionesExpandidas, setSeccionesExpandidas] = useState(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09']));
   const [antHistorialExpandido, setAntHistorialExpandido] = useState(true);
   const [antCitacionesExpandido, setAntCitacionesExpandido] = useState(true);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
@@ -145,7 +148,7 @@ export default function ConsultaCedula() {
     try {
       // Expandir todas las secciones temporalmente para capturar todo el contenido
       const seccionesOriginales = new Set(seccionesExpandidas);
-      setSeccionesExpandidas(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']));
+      setSeccionesExpandidas(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09']));
 
       // Esperar un momento para que las secciones se expandan
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1037,11 +1040,19 @@ export default function ConsultaCedula() {
       }
 
       if (!data || !data.success) {
+        // Si hay un mensaje indicando que no hay RUC, no es un error
+        if (data?.data?.mensaje && data.data.mensaje.includes('No se encontró')) {
+          console.log('ℹ️ No hay RUC registrado para esta cédula');
+          setDatosSRI(data.data);
+          return;
+        }
         // Si el RUC no existe, no es un error crítico
         if (data?.error && (data.error.includes('no encontrado') || data.error.includes('404'))) {
           console.log('ℹ️ RUC no encontrado (normal si la persona no tiene RUC registrado)');
           setSriError('');
-          setDatosSRI(null);
+          setDatosSRI({
+            mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
+          });
           return;
         }
         throw new Error(data?.error || 'Error al consultar RUC');
@@ -1052,10 +1063,17 @@ export default function ConsultaCedula() {
       
     } catch (err) {
       console.error('❌ Error al consultar RUC:', err);
-      // No mostrar error si es simplemente que no existe el RUC
-      if (err.message && (err.message.includes('no encontrado') || err.message.includes('404'))) {
+      // No mostrar error si es simplemente que no existe el RUC o es un error de parsing
+      if (err.message && (
+        err.message.includes('no encontrado') || 
+        err.message.includes('404') ||
+        err.message.includes('Unexpected end of JSON') ||
+        err.message.includes('JSON')
+      )) {
         setSriError('');
-        setDatosSRI(null);
+        setDatosSRI({
+          mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
+        });
       } else {
         setSriError(err.message || 'No se pudieron obtener los datos del RUC.');
       }
@@ -2356,20 +2374,36 @@ export default function ConsultaCedula() {
                               }
                             }
                             
+                            const denunciaKey = denuncia.numeroNoticia || `denuncia-${index}`;
+                            const isDenunciaExpanded = denunciasExpandidas.has(denunciaKey);
+                            
+                            const toggleDenuncia = () => {
+                              setDenunciasExpandidas(prev => {
+                                const nuevo = new Set(prev);
+                                if (nuevo.has(denunciaKey)) {
+                                  nuevo.delete(denunciaKey);
+                                } else {
+                                  nuevo.add(denunciaKey);
+                                }
+                                return nuevo;
+                              });
+                            };
+                            
                             return (
                               <div 
                                 key={index} 
                                 className="cc-denuncia-container"
                                 style={{ 
-                                  marginBottom: '32px',
+                                  marginBottom: '6px',
                                   border: '2px solid #e5e7eb',
                                   borderRadius: '8px',
                                   background: '#ffffff',
                                   overflow: 'hidden'
                                 }}
                               >
-                                {/* Encabezado de la denuncia con rol */}
+                                {/* Encabezado de la denuncia con rol - Clickable */}
                                 <div 
+                                  onClick={toggleDenuncia}
                                   style={{ 
                                     background: rolPersona === 'DENUNCIANTE' ? 'linear-gradient(135deg, #065f46 0%, #047857 100%)' :
                                                rolPersona === 'SOSPECHOSO' ? 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)' :
@@ -2378,56 +2412,86 @@ export default function ConsultaCedula() {
                                     padding: '14px 18px',
                                     borderBottom: '2px solid ' + (rolPersona === 'DENUNCIANTE' ? '#10b981' :
                                                                     rolPersona === 'SOSPECHOSO' ? '#dc2626' :
-                                                                    rolPersona === 'VÍCTIMA' ? '#3b82f6' : '#dc2626')
+                                                                    rolPersona === 'VÍCTIMA' ? '#3b82f6' : '#dc2626'),
+                                    cursor: 'pointer',
+                                    transition: 'opacity 0.2s',
+                                    userSelect: 'none'
                                   }}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                                 >
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                                    <div>
-                                      <div style={{ color: '#ffffff', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px', opacity: 0.9 }}>
-                                        NOTICIA DEL DELITO
-                                      </div>
-                                      <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '900', letterSpacing: '0.5px' }}>
-                                        Nro. {denuncia.numeroNoticia || `${index + 1}`}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                        <div>
+                                          <div style={{ color: '#ffffff', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px', opacity: 0.9 }}>
+                                            NOTICIA DEL DELITO
+                                          </div>
+                                          <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '900', letterSpacing: '0.5px' }}>
+                                            Nro. {denuncia.numeroNoticia || `${index + 1}`}
+                                          </div>
+                                        </div>
+                                        {/* Separador vertical elegante */}
+                                        {denuncia.delito && (
+                                          <>
+                                            <div style={{ 
+                                              width: '1px', 
+                                              height: '32px', 
+                                              background: 'rgba(255, 255, 255, 0.3)',
+                                              alignSelf: 'center'
+                                            }}></div>
+                                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                              <div style={{ color: '#ffffff', fontSize: '8px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '3px', opacity: 0.85 }}>
+                                                DELITO
+                                              </div>
+                                              <div style={{ 
+                                                color: '#ffffff', 
+                                                fontSize: '15px', 
+                                                fontWeight: '800', 
+                                                letterSpacing: '0.2px',
+                                                lineHeight: '1.3',
+                                                textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                                              }}>
+                                                {denuncia.delito}
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
-                                    {rolPersona && (
-                                      <div style={{
-                                        background: bgColorRol,
-                                        color: colorRol,
-                                        padding: '8px 12px',
-                                        borderRadius: '4px',
-                                        fontSize: '10px',
-                                        fontWeight: '900',
-                                        letterSpacing: '1px',
-                                        textTransform: 'uppercase',
-                                        border: `2px solid ${colorRol}`,
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      {rolPersona && (
+                                        <div style={{
+                                          background: bgColorRol,
+                                          color: colorRol,
+                                          padding: '8px 12px',
+                                          borderRadius: '4px',
+                                          fontSize: '10px',
+                                          fontWeight: '900',
+                                          letterSpacing: '1px',
+                                          textTransform: 'uppercase',
+                                          border: `2px solid ${colorRol}`,
+                                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                        }}>
+                                          {rolPersona}
+                                        </div>
+                                      )}
+                                      <div style={{ 
+                                        fontSize: '18px',
+                                        color: '#ffffff',
+                                        transition: 'transform 0.3s',
+                                        transform: isDenunciaExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        opacity: 0.9
                                       }}>
-                                        {rolPersona}
-              </div>
-            )}
+                                        ▼
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                                 
-                                {/* Contenido de la denuncia - Diseño compacto y elegante */}
+                                {/* Contenido de la denuncia - Expandible */}
+                                {isDenunciaExpanded && (
                                 <div style={{ padding: '14px 18px' }}>
-                                  {/* Delito destacado */}
-                                  {denuncia.delito && (
-                                    <div style={{ 
-                                      marginBottom: '14px',
-                                      padding: '10px 14px',
-                                      background: '#fef2f2',
-                                      borderLeft: '3px solid #dc2626',
-                                      borderRadius: '4px'
-                                    }}>
-                                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#991b1b', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                        DELITO
-                                      </div>
-                                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#dc2626' }}>
-                                        {denuncia.delito}
-                                      </div>
-              </div>
-            )}
                                   
                                   {/* Información principal en formato compacto */}
                                   <div style={{ 
@@ -2605,6 +2669,7 @@ export default function ConsultaCedula() {
               </div>
             )}
                                 </div>
+                                )}
                               </div>
                             );
                           })}
@@ -2616,8 +2681,8 @@ export default function ConsultaCedula() {
               </div>
             )}
 
-            {/* Sección 7: Procesos Judiciales */}
-            {(procesosJudiciales || procesosCargando || procesosError) && (
+            {/* Sección 7: Procesos Judiciales (Unificada) */}
+            {((procesosJudiciales || procesosCargando || procesosError) || (procesosDenunciante || procesosDenuncianteCargando || procesosDenuncianteError)) && (
               <div className="cc-exp-section">
                 <div 
                   className="cc-exp-section-header"
@@ -2630,18 +2695,19 @@ export default function ConsultaCedula() {
                   </span>
                 </div>
                 <div className={`cc-exp-section-content ${seccionesExpandidas.has('07') ? '' : 'collapsed'}`}>
-                  {procesosCargando && (
+                  {(procesosCargando || procesosDenuncianteCargando) && (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
                       <div style={{ marginBottom: '8px' }}>Consultando procesos judiciales...</div>
                       <div style={{ fontSize: '12px' }}>Buscando información en el sistema judicial</div>
               </div>
             )}
-                  {procesosError && (
+                  {(procesosError || procesosDenuncianteError) && (
                     <div className="cc-exp-data-item full-width" style={{ background: '#fef2f2', borderLeftColor: '#ef4444' }}>
                       <div className="cc-exp-data-label" style={{ color: '#dc2626' }}>ERROR AL CONSULTAR</div>
-                      <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{procesosError}</div>
+                      <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{procesosError || procesosDenuncianteError}</div>
               </div>
             )}
+                  {/* Procesos Judiciales como Actor/Demandado */}
                   {procesosJudiciales && !procesosCargando && (
                     <>
                       {procesosJudiciales.mensaje && (
@@ -2675,74 +2741,121 @@ export default function ConsultaCedula() {
                                 })
                               : 'N/A';
                             
+                    const procesoKey = proceso.idJuicio || `proceso-${index}`;
+                    // Por defecto contraído: si está en el Set, está expandido
+                    const isProcesoExpanded = procesosExpandidos.has(procesoKey);
+                    
+                    const toggleProceso = () => {
+                      setProcesosExpandidos(prev => {
+                        const nuevo = new Set(prev);
+                        if (nuevo.has(procesoKey)) {
+                          nuevo.delete(procesoKey);
+                        } else {
+                          nuevo.add(procesoKey);
+                        }
+                        return nuevo;
+                      });
+                    };
+                    
                     return (
                               <div 
                                 key={index} 
                                 className="cc-denuncia-container"
                                 style={{ 
-                                  marginBottom: '32px',
+                                  marginBottom: '6px',
                                   border: '2px solid #e5e7eb',
                                   borderRadius: '8px',
                                   background: '#ffffff',
                                   overflow: 'hidden'
                                 }}
                               >
-                                {/* Encabezado del proceso */}
+                                {/* Encabezado del proceso - Clickable */}
                                 <div 
+                                  onClick={toggleProceso}
                                   style={{ 
                                     background: rolPersona === 'ACTOR' ? 'linear-gradient(135deg, #065f46 0%, #047857 100%)' :
                                                rolPersona === 'DEMANDADO' ? 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)' :
                                                'linear-gradient(135deg, #374151 0%, #1f2937 100%)',
                                     padding: '14px 18px',
                                     borderBottom: '2px solid ' + (rolPersona === 'ACTOR' ? '#10b981' :
-                                                                    rolPersona === 'DEMANDADO' ? '#dc2626' : '#dc2626')
+                                                                    rolPersona === 'DEMANDADO' ? '#dc2626' : '#dc2626'),
+                                    cursor: 'pointer',
+                                    transition: 'opacity 0.2s',
+                                    userSelect: 'none'
                                   }}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                                 >
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                                    <div>
-                                      <div style={{ color: '#ffffff', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px', opacity: 0.9 }}>
-                                        PROCESO JUDICIAL
-                                      </div>
-                                      <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '900', letterSpacing: '0.5px' }}>
-                                        Nro. {proceso.idJuicio || `${index + 1}`}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                        <div>
+                                          <div style={{ color: '#ffffff', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px', opacity: 0.9 }}>
+                                            PROCESO JUDICIAL
+                                          </div>
+                                          <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '900', letterSpacing: '0.5px' }}>
+                                            Nro. {proceso.idJuicio || `${index + 1}`}
+                                          </div>
+                                        </div>
+                                        {/* Separador vertical elegante */}
+                                        {proceso.nombreDelito && (
+                                          <>
+                                            <div style={{ 
+                                              width: '1px', 
+                                              height: '32px', 
+                                              background: 'rgba(255, 255, 255, 0.3)',
+                                              alignSelf: 'center'
+                                            }}></div>
+                                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                              <div style={{ color: '#ffffff', fontSize: '8px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '3px', opacity: 0.85 }}>
+                                                DELITO/MATERIA
+                                              </div>
+                                              <div style={{ 
+                                                color: '#ffffff', 
+                                                fontSize: '15px', 
+                                                fontWeight: '800', 
+                                                letterSpacing: '0.2px',
+                                                lineHeight: '1.3',
+                                                textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                                              }}>
+                                                {proceso.nombreDelito}
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
-                                    <div style={{
-                                      background: bgColorRol,
-                                      color: colorRol,
-                                      padding: '8px 12px',
-                                      borderRadius: '4px',
-                                      fontSize: '10px',
-                                      fontWeight: '900',
-                                      letterSpacing: '1px',
-                                      textTransform: 'uppercase',
-                                      border: `2px solid ${colorRol}`,
-                                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                    }}>
-                                      {rolPersona}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <div style={{
+                                        background: bgColorRol,
+                                        color: colorRol,
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: '900',
+                                        letterSpacing: '1px',
+                                        textTransform: 'uppercase',
+                                        border: `2px solid ${colorRol}`,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                      }}>
+                                        {rolPersona}
+                                      </div>
+                                      <div style={{ 
+                                        fontSize: '18px',
+                                        color: '#ffffff',
+                                        transition: 'transform 0.3s',
+                                        transform: isProcesoExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        opacity: 0.9
+                                      }}>
+                                        ▼
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                                 
-                                {/* Contenido del proceso */}
+                                {/* Contenido del proceso - Expandible */}
+                                {isProcesoExpanded && (
                                 <div style={{ padding: '14px 18px' }}>
-                                  {/* Delito/Materia destacado */}
-                                  {proceso.nombreDelito && (
-                                    <div style={{ 
-                                      marginBottom: '14px',
-                                      padding: '10px 14px',
-                                      background: '#fef2f2',
-                                      borderLeft: '3px solid #dc2626',
-                                      borderRadius: '4px'
-                                    }}>
-                                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#991b1b', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                        DELITO/MATERIA
-                                      </div>
-                                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#dc2626' }}>
-                                        {proceso.nombreDelito}
-                                      </div>
-              </div>
-            )}
                                   
                                   {/* Información principal */}
                                   <div style={{ 
@@ -3009,23 +3122,64 @@ export default function ConsultaCedula() {
                                                   {proceso.actuaciones && Array.isArray(proceso.actuaciones) && proceso.actuaciones.length > 0 && (
                                                     proceso.actuaciones
                                                       .filter(act => act.idIncidenteJudicatura === incidente.idIncidenteJudicatura)
-                                                      .map((actuacionItem, actIndex) => (
-                                                        actuacionItem.actuaciones && Array.isArray(actuacionItem.actuaciones) && actuacionItem.actuaciones.length > 0 ? (
+                                                      .map((actuacionItem, actIndex) => {
+                                                        const seccionActuacionesKey = `${proceso.idJuicio}-${incidente.idIncidenteJudicatura}-seccion`;
+                                                        const isSeccionActuacionesExpanded = seccionesActuacionesExpandidas.has(seccionActuacionesKey);
+                                                        
+                                                        const toggleSeccionActuaciones = () => {
+                                                          setSeccionesActuacionesExpandidas(prev => {
+                                                            const nuevo = new Set(prev);
+                                                            if (nuevo.has(seccionActuacionesKey)) {
+                                                              nuevo.delete(seccionActuacionesKey);
+                                                            } else {
+                                                              nuevo.add(seccionActuacionesKey);
+                                                            }
+                                                            return nuevo;
+                                                          });
+                                                        };
+                                                        
+                                                        return actuacionItem.actuaciones && Array.isArray(actuacionItem.actuaciones) && actuacionItem.actuaciones.length > 0 ? (
                                                           <div key={actIndex} style={{ 
                                                             marginTop: '14px', 
                                                             paddingTop: '14px', 
                                                             borderTop: '2px solid #e5e7eb'
                                                           }}>
-                                                            <div style={{ 
-                                                              fontSize: '9px', 
-                                                              fontWeight: '800', 
-                                                              color: '#7c3aed', 
-                                                              letterSpacing: '0.5px', 
-                                                              textTransform: 'uppercase', 
-                                                              marginBottom: '12px' 
-                                                            }}>
-                                                              ACTUACIONES JUDICIALES
+                                                            <div 
+                                                              onClick={toggleSeccionActuaciones}
+                                                              style={{ 
+                                                                fontSize: '9px', 
+                                                                fontWeight: '800', 
+                                                                color: '#7c3aed', 
+                                                                letterSpacing: '0.5px', 
+                                                                textTransform: 'uppercase', 
+                                                                marginBottom: '12px',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                padding: '8px 12px',
+                                                                background: '#faf5ff',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #e9d5ff',
+                                                                transition: 'background 0.2s',
+                                                                userSelect: 'none'
+                                                              }}
+                                                              onMouseEnter={(e) => e.currentTarget.style.background = '#f3e8ff'}
+                                                              onMouseLeave={(e) => e.currentTarget.style.background = '#faf5ff'}
+                                                            >
+                                                              <span>
+                                                                ACTUACIONES JUDICIALES ({actuacionItem.actuaciones.length})
+                                                              </span>
+                                                              <span style={{ 
+                                                                fontSize: '14px',
+                                                                transition: 'transform 0.3s',
+                                                                transform: isSeccionActuacionesExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+                                                              }}>
+                                                                ▼
+                                                              </span>
                                                             </div>
+                                                            {isSeccionActuacionesExpanded && (
+                                                            <div>
                                                             {actuacionItem.actuaciones.map((actuacion, actuacionIndex) => {
                                                               const actuacionKey = `${proceso.idJuicio}-${incidente.idIncidenteJudicatura}-${actuacionIndex}`;
                                                               const isExpanded = actuacionesExpandidas.has(actuacionKey);
@@ -3317,9 +3471,11 @@ export default function ConsultaCedula() {
                                                                 </div>
                                                               );
                                                             })}
+                                                            </div>
+                                                            )}
                                                           </div>
                                                         ) : null
-                                                      ))
+                                                      })
                                                   )}
                                                 </div>
                                               ))}
@@ -3360,6 +3516,7 @@ export default function ConsultaCedula() {
                                     </div>
                                   )}
                                 </div>
+                                )}
                               </div>
                             );
                           })}
@@ -3367,44 +3524,9 @@ export default function ConsultaCedula() {
                       )}
                     </>
                   )}
-              </div>
-            </div>
-            )}
-
-            {/* Sección 8: Procesos Judiciales como Denunciante/Afectado */}
-            {(procesosDenunciante || procesosDenuncianteCargando || procesosDenuncianteError) && (
-              <div className="cc-exp-section">
-                <div 
-                  className="cc-exp-section-header"
-                  onClick={() => toggleSeccion('08')}
-                >
-                  <span className="cc-exp-section-number">08</span>
-                  <h3 className="cc-exp-section-title">PROCESOS JUDICIALES COMO DENUNCIANTE/AFECTADO</h3>
-                  <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('08') ? 'expanded' : ''}`}>
-                    ▼
-                  </span>
-                </div>
-                <div className={`cc-exp-section-content ${seccionesExpandidas.has('08') ? '' : 'collapsed'}`}>
-                  {procesosDenuncianteCargando && (
-                    <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-                      <div style={{ marginBottom: '8px' }}>Consultando procesos como denunciante/afectado...</div>
-                      <div style={{ fontSize: '12px' }}>Buscando información en el sistema judicial</div>
-                    </div>
-                  )}
-                  {procesosDenuncianteError && (
-                    <div className="cc-exp-data-item full-width" style={{ background: '#fef2f2', borderLeftColor: '#ef4444' }}>
-                      <div className="cc-exp-data-label" style={{ color: '#dc2626' }}>ERROR AL CONSULTAR</div>
-                      <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{procesosDenuncianteError}</div>
-                    </div>
-                  )}
+                  {/* Procesos Judiciales como Denunciante/Afectado */}
                   {procesosDenunciante && !procesosDenuncianteCargando && (
                     <>
-                      {procesosDenunciante.mensaje && (
-                        <div className="cc-exp-data-item full-width" style={{ marginBottom: '16px' }}>
-                          <div className="cc-exp-data-label">INFORMACIÓN</div>
-                          <div className="cc-exp-data-value">{procesosDenunciante.mensaje}</div>
-                        </div>
-                      )}
                       {procesosDenunciante.procesos && procesosDenunciante.procesos.length > 0 && (
                         <div style={{ width: '100%' }}>
                           {procesosDenunciante.procesos.map((proceso, index) => {
@@ -3421,71 +3543,117 @@ export default function ConsultaCedula() {
                                 })
                               : 'N/A';
                             
+                            const procesoKeyDenunciante = proceso.idJuicio || `proceso-denunciante-${index}`;
+                            const isProcesoExpandedDenunciante = procesosExpandidos.has(procesoKeyDenunciante);
+                            
+                            const toggleProcesoDenunciante = () => {
+                              setProcesosExpandidos(prev => {
+                                const nuevo = new Set(prev);
+                                if (nuevo.has(procesoKeyDenunciante)) {
+                                  nuevo.delete(procesoKeyDenunciante);
+                                } else {
+                                  nuevo.add(procesoKeyDenunciante);
+                                }
+                                return nuevo;
+                              });
+                            };
+                            
                             return (
                               <div 
                                 key={index} 
                                 className="cc-denuncia-container"
                                 style={{ 
-                                  marginBottom: '32px',
+                                  marginBottom: '6px',
                                   border: '2px solid #e5e7eb',
                                   borderRadius: '8px',
                                   background: '#ffffff',
                                   overflow: 'hidden'
                                 }}
                               >
-                                {/* Encabezado del proceso */}
+                                {/* Encabezado del proceso - Clickable */}
                                 <div 
+                                  onClick={toggleProcesoDenunciante}
                                   style={{ 
                                     background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
                                     padding: '14px 18px',
-                                    borderBottom: '2px solid #3b82f6'
+                                    borderBottom: '2px solid #3b82f6',
+                                    cursor: 'pointer',
+                                    transition: 'opacity 0.2s',
+                                    userSelect: 'none'
                                   }}
+                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                                 >
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                                    <div>
-                                      <div style={{ color: '#ffffff', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px', opacity: 0.9 }}>
-                                        PROCESO JUDICIAL
-                                      </div>
-                                      <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '900', letterSpacing: '0.5px' }}>
-                                        Nro. {proceso.idJuicio || `${index + 1}`}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                        <div>
+                                          <div style={{ color: '#ffffff', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px', opacity: 0.9 }}>
+                                            PROCESO JUDICIAL
+                                          </div>
+                                          <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '900', letterSpacing: '0.5px' }}>
+                                            Nro. {proceso.idJuicio || `${index + 1}`}
+                                          </div>
+                                        </div>
+                                        {/* Separador vertical elegante */}
+                                        {proceso.nombreDelito && (
+                                          <>
+                                            <div style={{ 
+                                              width: '1px', 
+                                              height: '32px', 
+                                              background: 'rgba(255, 255, 255, 0.3)',
+                                              alignSelf: 'center'
+                                            }}></div>
+                                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                              <div style={{ color: '#ffffff', fontSize: '8px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '3px', opacity: 0.85 }}>
+                                                DELITO/MATERIA
+                                              </div>
+                                              <div style={{ 
+                                                color: '#ffffff', 
+                                                fontSize: '15px', 
+                                                fontWeight: '800', 
+                                                letterSpacing: '0.2px',
+                                                lineHeight: '1.3',
+                                                textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                                              }}>
+                                                {proceso.nombreDelito}
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
-                                    <div style={{
-                                      background: bgColorRol,
-                                      color: colorRol,
-                                      padding: '8px 12px',
-                                      borderRadius: '4px',
-                                      fontSize: '10px',
-                                      fontWeight: '900',
-                                      letterSpacing: '1px',
-                                      textTransform: 'uppercase',
-                                      border: `2px solid ${colorRol}`,
-                                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                    }}>
-                                      {rolPersona}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <div style={{
+                                        background: bgColorRol,
+                                        color: colorRol,
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: '900',
+                                        letterSpacing: '1px',
+                                        textTransform: 'uppercase',
+                                        border: `2px solid ${colorRol}`,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                      }}>
+                                        {rolPersona}
+                                      </div>
+                                      <div style={{ 
+                                        fontSize: '18px',
+                                        color: '#ffffff',
+                                        transition: 'transform 0.3s',
+                                        transform: isProcesoExpandedDenunciante ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        opacity: 0.9
+                                      }}>
+                                        ▼
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                                 
-                                {/* Contenido del proceso - Reutilizar el mismo formato que la sección 7 */}
+                                {/* Contenido del proceso - Expandible */}
+                                {isProcesoExpandedDenunciante && (
                                 <div style={{ padding: '14px 18px' }}>
-                                  {/* Delito/Materia destacado */}
-                                  {proceso.nombreDelito && (
-                                    <div style={{ 
-                                      marginBottom: '14px',
-                                      padding: '10px 14px',
-                                      background: '#fef2f2',
-                                      borderLeft: '3px solid #dc2626',
-                                      borderRadius: '4px'
-                                    }}>
-                                      <div style={{ fontSize: '9px', fontWeight: '800', color: '#991b1b', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                        DELITO/MATERIA
-                                      </div>
-                                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#dc2626' }}>
-                                        {proceso.nombreDelito}
-                                      </div>
-                                    </div>
-                                  )}
                                   
                                   {/* Información principal */}
                                   <div style={{ 
@@ -3752,23 +3920,64 @@ export default function ConsultaCedula() {
                                                   {proceso.actuaciones && Array.isArray(proceso.actuaciones) && proceso.actuaciones.length > 0 && (
                                                     proceso.actuaciones
                                                       .filter(act => act.idIncidenteJudicatura === incidente.idIncidenteJudicatura)
-                                                      .map((actuacionItem, actIndex) => (
-                                                        actuacionItem.actuaciones && Array.isArray(actuacionItem.actuaciones) && actuacionItem.actuaciones.length > 0 ? (
+                                                      .map((actuacionItem, actIndex) => {
+                                                        const seccionActuacionesKeyDenunciante = `${proceso.idJuicio}-${incidente.idIncidenteJudicatura}-seccion-denunciante`;
+                                                        const isSeccionActuacionesExpandedDenunciante = seccionesActuacionesExpandidas.has(seccionActuacionesKeyDenunciante);
+                                                        
+                                                        const toggleSeccionActuacionesDenunciante = () => {
+                                                          setSeccionesActuacionesExpandidas(prev => {
+                                                            const nuevo = new Set(prev);
+                                                            if (nuevo.has(seccionActuacionesKeyDenunciante)) {
+                                                              nuevo.delete(seccionActuacionesKeyDenunciante);
+                                                            } else {
+                                                              nuevo.add(seccionActuacionesKeyDenunciante);
+                                                            }
+                                                            return nuevo;
+                                                          });
+                                                        };
+                                                        
+                                                        return actuacionItem.actuaciones && Array.isArray(actuacionItem.actuaciones) && actuacionItem.actuaciones.length > 0 ? (
                                                           <div key={actIndex} style={{ 
                                                             marginTop: '14px', 
                                                             paddingTop: '14px', 
                                                             borderTop: '2px solid #e5e7eb'
                                                           }}>
-                                                            <div style={{ 
-                                                              fontSize: '9px', 
-                                                              fontWeight: '800', 
-                                                              color: '#7c3aed', 
-                                                              letterSpacing: '0.5px', 
-                                                              textTransform: 'uppercase', 
-                                                              marginBottom: '12px' 
-                                                            }}>
-                                                              ACTUACIONES JUDICIALES
+                                                            <div 
+                                                              onClick={toggleSeccionActuacionesDenunciante}
+                                                              style={{ 
+                                                                fontSize: '9px', 
+                                                                fontWeight: '800', 
+                                                                color: '#7c3aed', 
+                                                                letterSpacing: '0.5px', 
+                                                                textTransform: 'uppercase', 
+                                                                marginBottom: '12px',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                padding: '8px 12px',
+                                                                background: '#faf5ff',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #e9d5ff',
+                                                                transition: 'background 0.2s',
+                                                                userSelect: 'none'
+                                                              }}
+                                                              onMouseEnter={(e) => e.currentTarget.style.background = '#f3e8ff'}
+                                                              onMouseLeave={(e) => e.currentTarget.style.background = '#faf5ff'}
+                                                            >
+                                                              <span>
+                                                                ACTUACIONES JUDICIALES ({actuacionItem.actuaciones.length})
+                                                              </span>
+                                                              <span style={{ 
+                                                                fontSize: '14px',
+                                                                transition: 'transform 0.3s',
+                                                                transform: isSeccionActuacionesExpandedDenunciante ? 'rotate(180deg)' : 'rotate(0deg)'
+                                                              }}>
+                                                                ▼
+                                                              </span>
                                                             </div>
+                                                            {isSeccionActuacionesExpandedDenunciante && (
+                                                            <div>
                                                             {actuacionItem.actuaciones.map((actuacion, actuacionIndex) => {
                                                               const actuacionKey = `${proceso.idJuicio}-${incidente.idIncidenteJudicatura}-${actuacionIndex}`;
                                                               const isExpanded = actuacionesExpandidas.has(actuacionKey);
@@ -4054,9 +4263,11 @@ export default function ConsultaCedula() {
                                                                 </div>
                                                               );
                                                             })}
+                                                            </div>
+                                                            )}
                                                           </div>
                                                         ) : null
-                                                      ))
+                                                      })
                                                   )}
                                                 </div>
                                               ))}
@@ -4097,6 +4308,7 @@ export default function ConsultaCedula() {
                                     </div>
                                   )}
                                 </div>
+                                )}
                               </div>
                             );
                           })}
@@ -4108,20 +4320,20 @@ export default function ConsultaCedula() {
               </div>
             )}
 
-            {/* Sección 9: Información de Agencia Nacional de Tránsito */}
+            {/* Sección 8: Información de Agencia Nacional de Tránsito */}
             {(datosANT || antCargando || antError) && (
               <div className="cc-exp-section">
                 <div 
                   className="cc-exp-section-header"
-                  onClick={() => toggleSeccion('09')}
+                  onClick={() => toggleSeccion('08')}
                 >
-                  <span className="cc-exp-section-number">09</span>
+                  <span className="cc-exp-section-number">08</span>
                   <h3 className="cc-exp-section-title">AGENCIA NACIONAL DE TRÁNSITO - PUNTOS DE LICENCIA</h3>
-                  <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('09') ? 'expanded' : ''}`}>
+                  <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('08') ? 'expanded' : ''}`}>
                     ▼
                   </span>
                 </div>
-                <div className={`cc-exp-section-content ${seccionesExpandidas.has('09') ? '' : 'collapsed'}`}>
+                <div className={`cc-exp-section-content ${seccionesExpandidas.has('08') ? '' : 'collapsed'}`}>
                   {antCargando && (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
                       <div style={{ marginBottom: '8px' }}>Consultando puntos de licencia...</div>
@@ -4144,28 +4356,67 @@ export default function ConsultaCedula() {
                         </div>
                       )}
                       {/* Puntos totales destacados */}
-                      {datosANT.puntos !== undefined && datosANT.puntos !== null && (
-                        <div style={{ 
-                          marginBottom: '20px',
-                          padding: '16px 18px',
-                          background: datosANT.puntos >= 30 ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' :
-                                      datosANT.puntos >= 20 ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
-                                      'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          borderRadius: '8px',
-                          color: '#ffffff',
-                          textAlign: 'center'
-                        }}>
-                          <div style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.9 }}>
-                            PUNTOS ACUMULADOS
+                      {datosANT.puntos !== undefined && datosANT.puntos !== null && (() => {
+                        // Obtener valor absoluto de puntos desde el inicio
+                        const puntosNum = Math.abs(parseFloat(datosANT.puntos) || 0);
+                        
+                        // Verificar si solo hay "control inicial" y no hay otras infracciones
+                        const tieneHistorial = datosANT.detallePuntos && datosANT.detallePuntos.rows && Array.isArray(datosANT.detallePuntos.rows) && datosANT.detallePuntos.rows.length > 0;
+                        
+                        let esSoloControlInicial = false;
+                        if (tieneHistorial && datosANT.detallePuntos.rows.length === 1) {
+                          const primeraFila = datosANT.detallePuntos.rows[0];
+                          if (primeraFila.cell && primeraFila.cell[3]) {
+                            const descripcion = String(primeraFila.cell[3]).toLowerCase();
+                            esSoloControlInicial = descripcion.includes('control inicial') || 
+                                                   descripcion.includes('inicial de puntos') ||
+                                                   descripcion.includes('puntos iniciales');
+                          }
+                        }
+                        
+                        // Si tiene 30 puntos pero es solo control inicial, no está suspendida
+                        // También verificar si los puntos después son 30 y los puntos antes son 0 (control inicial)
+                        if (tieneHistorial && datosANT.detallePuntos.rows.length === 1) {
+                          const primeraFila = datosANT.detallePuntos.rows[0];
+                          if (primeraFila.cell) {
+                            const puntosAntes = parseFloat(primeraFila.cell[4]) || 0;
+                            const puntosDespues = parseFloat(primeraFila.cell[6]) || 0;
+                            // Si puntos antes es 0 y puntos después es 30, es control inicial
+                            if (puntosAntes === 0 && puntosDespues === 30) {
+                              esSoloControlInicial = true;
+                            }
+                          }
+                        }
+                        
+                        // Solo está suspendida si tiene 30+ puntos Y NO es solo control inicial
+                        const estaSuspendida = puntosNum >= 30 && !esSoloControlInicial;
+                        
+                        return (
+                          <div style={{ 
+                            marginBottom: '20px',
+                            padding: '16px 18px',
+                            background: estaSuspendida ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' :
+                                        puntosNum >= 20 && !esSoloControlInicial ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
+                                        'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            borderRadius: '8px',
+                            color: '#ffffff',
+                            textAlign: 'center'
+                          }}>
+                            <div style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.9 }}>
+                              PUNTOS ACUMULADOS
+                            </div>
+                            <div style={{ fontSize: '36px', fontWeight: '900', letterSpacing: '2px' }}>
+                              {puntosNum}
+                            </div>
+                            <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.9 }}>
+                              {estaSuspendida ? 'LICENCIA SUSPENDIDA' : 
+                               puntosNum >= 20 && !esSoloControlInicial ? 'ALERTA - Cerca del límite' : 
+                               esSoloControlInicial ? 'Puntos iniciales' : 
+                               'Estado normal'}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '36px', fontWeight: '900', letterSpacing: '2px' }}>
-                            {datosANT.puntos}
-                          </div>
-                          <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.9 }}>
-                            {datosANT.puntos >= 30 ? 'LICENCIA SUSPENDIDA' : datosANT.puntos >= 20 ? 'ALERTA - Cerca del límite' : 'Estado normal'}
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Licencias */}
                       {datosANT.licencias && Array.isArray(datosANT.licencias) && datosANT.licencias.length > 0 && (
@@ -4291,9 +4542,20 @@ export default function ConsultaCedula() {
                               const fecha = cells[1] || cells[2] || row.id || 'N/A';
                               const descripcion = cells[3] || 'Sin descripción';
                               const puntosAntes = cells[4] || '0';
-                              const puntosDescontados = cells[5] || '0';
+                              const puntosDescontadosRaw = cells[5] || '0';
                               const puntosDespues = cells[6] || '0';
                               const tipo = cells[7] || 'N/A';
+                              
+                              // Convertir a número para determinar si suma o resta puntos
+                              const puntosDescontadosNum = parseFloat(puntosDescontadosRaw) || 0;
+                              // Si puntos después > puntos antes, significa que se SUMARON puntos (es positivo)
+                              // Si puntos después < puntos antes, significa que se RESTARON puntos (es negativo)
+                              const puntosAntesNum = parseFloat(puntosAntes) || 0;
+                              const puntosDespuesNum = parseFloat(puntosDespues) || 0;
+                              const sumaPuntos = puntosDespuesNum > puntosAntesNum;
+                              const puntosMostrar = sumaPuntos ? puntosDescontadosNum : -Math.abs(puntosDescontadosNum);
+                              const colorPuntos = sumaPuntos ? '#10b981' : '#dc2626';
+                              const signoPuntos = sumaPuntos ? '+' : '';
                               
                               return (
                                 <div 
@@ -4301,7 +4563,7 @@ export default function ConsultaCedula() {
                                   style={{
                                     padding: '12px 14px',
                                     background: '#f9fafb',
-                                    borderLeft: '3px solid #dc2626',
+                                    borderLeft: `3px solid ${sumaPuntos ? '#10b981' : '#dc2626'}`,
                                     borderRadius: '4px',
                                     border: '1px solid #e5e7eb'
                                   }}
@@ -4319,8 +4581,8 @@ export default function ConsultaCedula() {
                                       <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
                                         PUNTOS
                                       </div>
-                                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#dc2626' }}>
-                                        -{puntosDescontados}
+                                      <div style={{ fontSize: '14px', fontWeight: '900', color: colorPuntos }}>
+                                        {signoPuntos}{Math.abs(puntosDescontadosNum)}
                                       </div>
                                     </div>
                                   </div>
@@ -4602,19 +4864,19 @@ export default function ConsultaCedula() {
               </div>
             )}
 
-            {/* Sección 10: Información del Servicio de Rentas Internas (SRI) */}
+            {/* Sección 9: Información del Servicio de Rentas Internas (SRI) */}
             <div className="cc-exp-section">
               <div 
                 className="cc-exp-section-header"
-                onClick={() => toggleSeccion('10')}
+                onClick={() => toggleSeccion('09')}
               >
-                <span className="cc-exp-section-number">10</span>
+                <span className="cc-exp-section-number">09</span>
                 <h3 className="cc-exp-section-title">SERVICIO DE RENTAS INTERNAS - DATOS COMERCIALES</h3>
-                <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('10') ? 'expanded' : ''}`}>
+                <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('09') ? 'expanded' : ''}`}>
                   ▼
                 </span>
               </div>
-              <div className={`cc-exp-section-content ${seccionesExpandidas.has('10') ? '' : 'collapsed'}`}>
+              <div className={`cc-exp-section-content ${seccionesExpandidas.has('09') ? '' : 'collapsed'}`}>
                 {sriCargando && (
                   <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
                     <div style={{ marginBottom: '8px' }}>Consultando datos del SRI...</div>
@@ -4630,16 +4892,17 @@ export default function ConsultaCedula() {
                     <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{sriError}</div>
                   </div>
                 )}
-                {!datosSRI && !sriCargando && !sriError && (datos || datosZamplisoft) && (
-                  <div className="cc-exp-data-item full-width" style={{ background: '#f9fafb', borderLeftColor: '#6b7280' }}>
-                    <div className="cc-exp-data-label" style={{ color: '#6b7280' }}>INFORMACIÓN</div>
-                    <div className="cc-exp-data-value" style={{ color: '#4b5563' }}>
-                      No se encontraron datos de RUC registrados en el SRI para esta cédula (RUC consultado: {(datos?.cedula || datosZamplisoft?.cedula || cedula) + '001'})
-                    </div>
-                  </div>
-                )}
                 {datosSRI && !sriCargando && (
                   <>
+                    {/* Mensaje cuando no hay RUC */}
+                    {datosSRI.mensaje && !datosSRI.numero_ruc && (
+                      <div className="cc-exp-data-item full-width" style={{ background: '#f9fafb', borderLeftColor: '#6b7280' }}>
+                        <div className="cc-exp-data-label" style={{ color: '#6b7280' }}>INFORMACIÓN</div>
+                        <div className="cc-exp-data-value" style={{ color: '#4b5563' }}>
+                          {datosSRI.mensaje} (RUC consultado: {(datos?.cedula || datosZamplisoft?.cedula || cedula) + '001'})
+                        </div>
+                      </div>
+                    )}
                     {/* Información Principal */}
                     <div style={{ marginBottom: '20px' }}>
                       <div style={{ 
