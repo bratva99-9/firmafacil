@@ -80,10 +80,42 @@ export default function ConsultaCedula() {
   const [procesosDenunciante, setProcesosDenunciante] = useState(null);
   const [procesosDenuncianteError, setProcesosDenuncianteError] = useState('');
   const [procesosDenuncianteCargando, setProcesosDenuncianteCargando] = useState(false);
+  const [datosANT, setDatosANT] = useState(null);
+  const [antError, setAntError] = useState('');
+  const [antCargando, setAntCargando] = useState(false);
   const [actuacionesExpandidas, setActuacionesExpandidas] = useState(new Set());
-  const [seccionesExpandidas, setSeccionesExpandidas] = useState(new Set(['01', '02', '03', '04', '05', '06', '07', '08']));
+  const [seccionesExpandidas, setSeccionesExpandidas] = useState(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09']));
+  const [antHistorialExpandido, setAntHistorialExpandido] = useState(true);
+  const [antCitacionesExpandido, setAntCitacionesExpandido] = useState(true);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const expedienteRef = useRef(null);
+
+  // Función para determinar si una licencia está activa o caducada
+  const verificarEstadoLicencia = (validez) => {
+    if (!validez || typeof validez !== 'string') return { activa: false, mensaje: 'Sin información' };
+    
+    // Formato esperado: "23/04/2025 - 22/04/2030" o similar
+    // Extraer la fecha final (después del guión)
+    const partes = validez.split(' - ');
+    if (partes.length < 2) return { activa: false, mensaje: 'Formato inválido' };
+    
+    const fechaFinalStr = partes[1].trim();
+    // Convertir formato DD/MM/YYYY a Date
+    const [dia, mes, anio] = fechaFinalStr.split('/');
+    if (!dia || !mes || !anio) return { activa: false, mensaje: 'Formato inválido' };
+    
+    const fechaFinal = new Date(parseInt(anio), parseInt(mes) - 1, parseInt(dia));
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Resetear horas para comparar solo fechas
+    
+    const activa = fechaFinal >= hoy;
+    
+    return {
+      activa,
+      mensaje: activa ? 'ACTIVA' : 'CADUCADA',
+      fechaFinal: fechaFinalStr
+    };
+  };
 
   // Función para alternar el estado de una sección
   const toggleSeccion = (numeroSeccion) => {
@@ -110,7 +142,7 @@ export default function ConsultaCedula() {
     try {
       // Expandir todas las secciones temporalmente para capturar todo el contenido
       const seccionesOriginales = new Set(seccionesExpandidas);
-      setSeccionesExpandidas(new Set(['01', '02', '03', '04', '05', '06', '07', '08']));
+      setSeccionesExpandidas(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09']));
 
       // Esperar un momento para que las secciones se expandan
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -918,6 +950,38 @@ export default function ConsultaCedula() {
     }
   };
 
+  // Función para consultar puntos de licencia de ANT usando Edge Function de Supabase
+  const consultarPuntosANT = async (cedulaNum) => {
+    setAntCargando(true);
+    setAntError('');
+    setDatosANT(null);
+    
+    try {
+      console.log('🔍 Consultando puntos de licencia ANT para cédula:', cedulaNum);
+      
+      const { data, error } = await supabase.functions.invoke('ant-puntos', {
+        body: { cedula: cedulaNum }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Error al invocar la función de ANT');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Error al consultar puntos de licencia');
+      }
+
+      console.log('📄 Datos de ANT recibidos:', data.data);
+      setDatosANT(data.data);
+      
+    } catch (err) {
+      console.error('❌ Error al consultar puntos de ANT:', err);
+      setAntError(err.message || 'No se pudieron obtener los puntos de licencia. Verifica tu conexión e intenta nuevamente.');
+    } finally {
+      setAntCargando(false);
+    }
+  };
+
   // Función para consultar denuncias de fiscalía usando Edge Function de Supabase
   const consultarDenunciasFiscalia = async (cedulaNum) => {
     setDenunciasCargando(true);
@@ -1025,6 +1089,9 @@ export default function ConsultaCedula() {
     setProcesosDenunciante(null);
     setProcesosDenuncianteError('');
     setProcesosDenuncianteCargando(false);
+    setDatosANT(null);
+    setAntError('');
+    setAntCargando(false);
     
     const ced = cedula.trim();
     
@@ -1197,6 +1264,11 @@ export default function ConsultaCedula() {
       
       // Consultar procesos judiciales (como actor/demandado)
       consultarProcesosJudiciales(ced).catch(() => {
+        // Errores ya manejados en la función
+      });
+      
+      // Consultar puntos de licencia ANT (en paralelo, no bloquea)
+      consultarPuntosANT(ced).catch(() => {
         // Errores ya manejados en la función
       });
       
@@ -3938,6 +4010,493 @@ export default function ConsultaCedula() {
                               </div>
                             );
                           })}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Sección 9: Información de Agencia Nacional de Tránsito */}
+            {(datosANT || antCargando || antError) && (
+              <div className="cc-exp-section">
+                <div 
+                  className="cc-exp-section-header"
+                  onClick={() => toggleSeccion('09')}
+                >
+                  <span className="cc-exp-section-number">09</span>
+                  <h3 className="cc-exp-section-title">AGENCIA NACIONAL DE TRÁNSITO - PUNTOS DE LICENCIA</h3>
+                  <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('09') ? 'expanded' : ''}`}>
+                    ▼
+                  </span>
+                </div>
+                <div className={`cc-exp-section-content ${seccionesExpandidas.has('09') ? '' : 'collapsed'}`}>
+                  {antCargando && (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                      <div style={{ marginBottom: '8px' }}>Consultando puntos de licencia...</div>
+                      <div style={{ fontSize: '12px' }}>Buscando información en el sistema de ANT</div>
+                    </div>
+                  )}
+                  {antError && (
+                    <div className="cc-exp-data-item full-width" style={{ background: '#fef2f2', borderLeftColor: '#ef4444' }}>
+                      <div className="cc-exp-data-label" style={{ color: '#dc2626' }}>ERROR AL CONSULTAR</div>
+                      <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{antError}</div>
+                    </div>
+                  )}
+                  {datosANT && !antCargando && (
+                    <>
+                      {/* Puntos totales destacados */}
+                      {datosANT.puntos !== undefined && datosANT.puntos !== null && (
+                        <div style={{ 
+                          marginBottom: '20px',
+                          padding: '16px 18px',
+                          background: datosANT.puntos >= 30 ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' :
+                                      datosANT.puntos >= 20 ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
+                                      'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          borderRadius: '8px',
+                          color: '#ffffff',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.9 }}>
+                            PUNTOS ACUMULADOS
+                          </div>
+                          <div style={{ fontSize: '36px', fontWeight: '900', letterSpacing: '2px' }}>
+                            {datosANT.puntos}
+                          </div>
+                          <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.9 }}>
+                            {datosANT.puntos >= 30 ? 'LICENCIA SUSPENDIDA' : datosANT.puntos >= 20 ? 'ALERTA - Cerca del límite' : 'Estado normal'}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Licencias */}
+                      {datosANT.licencias && Array.isArray(datosANT.licencias) && datosANT.licencias.length > 0 && (
+                        <div style={{ marginBottom: '20px' }}>
+                          <div style={{ 
+                            fontSize: '9px', 
+                            fontWeight: '800', 
+                            color: '#6b7280', 
+                            letterSpacing: '0.5px', 
+                            textTransform: 'uppercase', 
+                            marginBottom: '12px' 
+                          }}>
+                            LICENCIAS DE CONDUCIR
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                            {datosANT.licencias.map((licencia, index) => {
+                              const estadoLicencia = verificarEstadoLicencia(licencia.validez);
+                              const esActiva = estadoLicencia.activa;
+                              
+                              return (
+                                <div 
+                                  key={index}
+                                  style={{
+                                    padding: '12px 14px',
+                                    background: esActiva ? '#ecfdf5' : '#fef2f2',
+                                    borderLeft: `3px solid ${esActiva ? '#10b981' : '#dc2626'}`,
+                                    borderRadius: '4px',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                  }}
+                                >
+                                  {/* Badge de estado */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '8px',
+                                    right: '8px',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '8px',
+                                    fontWeight: '900',
+                                    letterSpacing: '0.5px',
+                                    textTransform: 'uppercase',
+                                    background: esActiva ? '#10b981' : '#dc2626',
+                                    color: '#ffffff',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                  }}>
+                                    {estadoLicencia.mensaje}
+                                  </div>
+                                  
+                                  <div style={{ fontSize: '8px', fontWeight: '800', color: esActiva ? '#065f46' : '#991b1b', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                    TIPO DE LICENCIA
+                                  </div>
+                                  <div style={{ fontSize: '20px', fontWeight: '900', color: esActiva ? '#059669' : '#dc2626', marginBottom: '8px' }}>
+                                    {licencia.tipoLicencia || 'N/A'}
+                                  </div>
+                                  {licencia.validez && (
+                                    <>
+                                      <div style={{ fontSize: '8px', fontWeight: '800', color: esActiva ? '#065f46' : '#991b1b', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                        VALIDEZ
+                                      </div>
+                                      <div style={{ fontSize: '12px', fontWeight: '700', color: esActiva ? '#047857' : '#b91c1c' }}>
+                                        {licencia.validez}
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ID Persona */}
+                      {datosANT.idPersona && (
+                        <div className="cc-exp-data-item" style={{ marginBottom: '16px' }}>
+                          <div className="cc-exp-data-label">ID PERSONA</div>
+                          <div className="cc-exp-data-value">{datosANT.idPersona}</div>
+                        </div>
+                      )}
+
+                      {/* Detalle de Puntos (Infracciones) - Desplegable */}
+                      {datosANT.detallePuntos && datosANT.detallePuntos.rows && Array.isArray(datosANT.detallePuntos.rows) && datosANT.detallePuntos.rows.length > 0 && (
+                        <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                          <div 
+                            onClick={() => setAntHistorialExpandido(!antHistorialExpandido)}
+                            style={{ 
+                              fontSize: '9px', 
+                              fontWeight: '800', 
+                              color: '#6b7280', 
+                              letterSpacing: '0.5px', 
+                              textTransform: 'uppercase', 
+                              marginBottom: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 12px',
+                              background: '#f9fafb',
+                              borderRadius: '4px',
+                              border: '1px solid #e5e7eb',
+                              transition: 'background 0.2s ease',
+                              userSelect: 'none'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#f9fafb'}
+                          >
+                            <span>
+                              HISTORIAL DE PUNTOS ({datosANT.detallePuntos.records || datosANT.detallePuntos.rows.length} registro{datosANT.detallePuntos.records !== 1 ? 's' : ''})
+                            </span>
+                            <span style={{ 
+                              fontSize: '14px',
+                              transition: 'transform 0.3s ease',
+                              transform: antHistorialExpandido ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}>
+                              ▼
+                            </span>
+                          </div>
+                          {antHistorialExpandido && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {datosANT.detallePuntos.rows.map((row, index) => {
+                              // cell[0] = número, cell[1] = fecha formato, cell[2] = fecha completa, cell[3] = descripción, cell[4] = puntos antes, cell[5] = puntos descontados, cell[6] = puntos después, cell[7] = tipo
+                              const cells = row.cell || [];
+                              const fecha = cells[1] || cells[2] || row.id || 'N/A';
+                              const descripcion = cells[3] || 'Sin descripción';
+                              const puntosAntes = cells[4] || '0';
+                              const puntosDescontados = cells[5] || '0';
+                              const puntosDespues = cells[6] || '0';
+                              const tipo = cells[7] || 'N/A';
+                              
+                              return (
+                                <div 
+                                  key={index}
+                                  style={{
+                                    padding: '12px 14px',
+                                    background: '#f9fafb',
+                                    borderLeft: '3px solid #dc2626',
+                                    borderRadius: '4px',
+                                    border: '1px solid #e5e7eb'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div>
+                                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                        FECHA
+                                      </div>
+                                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                        {fecha}
+                                      </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                        PUNTOS
+                                      </div>
+                                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#dc2626' }}>
+                                        -{puntosDescontados}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div style={{ marginBottom: '8px' }}>
+                                    <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                      INFRACCIÓN
+                                    </div>
+                                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#374151', lineHeight: '1.5' }}>
+                                      {descripcion}
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '10px', color: '#6b7280', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                                    <div>
+                                      <span style={{ fontWeight: '700' }}>Puntos antes:</span> {puntosAntes}
+                                    </div>
+                                    <div>
+                                      <span style={{ fontWeight: '700' }}>Puntos después:</span> {puntosDespues}
+                                    </div>
+                                    {tipo && tipo !== 'N/A' && (
+                                      <div>
+                                        <span style={{ fontWeight: '700' }}>Tipo:</span> {tipo}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Detalle de Citaciones Pendientes - Desplegable */}
+                      {datosANT.detalleCitacionesPendientes && datosANT.detalleCitacionesPendientes.rows && Array.isArray(datosANT.detalleCitacionesPendientes.rows) && datosANT.detalleCitacionesPendientes.rows.length > 0 && (
+                        <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                          <div 
+                            onClick={() => setAntCitacionesExpandido(!antCitacionesExpandido)}
+                            style={{ 
+                              fontSize: '9px', 
+                              fontWeight: '800', 
+                              color: '#6b7280', 
+                              letterSpacing: '0.5px', 
+                              textTransform: 'uppercase', 
+                              marginBottom: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 12px',
+                              background: '#fffbeb',
+                              borderRadius: '4px',
+                              border: '1px solid #e5e7eb',
+                              transition: 'background 0.2s ease',
+                              userSelect: 'none'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#fef3c7'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#fffbeb'}
+                          >
+                            <span>
+                              CITACIONES PENDIENTES ({datosANT.detalleCitacionesPendientes.records || datosANT.detalleCitacionesPendientes.rows.length} registro{datosANT.detalleCitacionesPendientes.records !== 1 ? 's' : ''})
+                            </span>
+                            <span style={{ 
+                              fontSize: '14px',
+                              transition: 'transform 0.3s ease',
+                              transform: antCitacionesExpandido ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}>
+                              ▼
+                            </span>
+                          </div>
+                          {antCitacionesExpandido && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {datosANT.detalleCitacionesPendientes.rows.map((row, index) => {
+                              // Estructura según ejemplo: cell[0]=número, cell[1]=id, cell[2]=autoridad, cell[3]=número infracción, cell[4]=placa, cell[5]=tipo, cell[6]=fecha infracción, cell[7]=fecha notificación, cell[8]=fecha vencimiento, cell[9]=puntos, cell[13]=valor, cell[15]=interés, cell[16]=total, cell[17]=artículo/motivo
+                              const cells = row.cell || [];
+                              const id = cells[1] || row.id || 'N/A';
+                              const autoridad = cells[2] || 'N/A';
+                              const numeroInfraccion = cells[3] || 'N/A';
+                              const placa = cells[4] || 'N/A';
+                              const fechaInfraccion = cells[6] || 'N/A';
+                              const fechaNotificacion = cells[7] || 'N/A';
+                              const fechaVencimiento = cells[8] || 'N/A';
+                              const puntos = cells[9] || '0';
+                              const valor = cells[13] || '0';
+                              const interes = cells[15] || '0';
+                              const total = cells[16] || '0';
+                              const motivo = cells[17] || 'Sin motivo';
+                              
+                              return (
+                                <div 
+                                  key={index}
+                                  style={{
+                                    padding: '12px 14px',
+                                    background: '#fffbeb',
+                                    borderLeft: '3px solid #f59e0b',
+                                    borderRadius: '4px',
+                                    border: '1px solid #e5e7eb'
+                                  }}
+                                >
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+                                    {numeroInfraccion && numeroInfraccion !== 'N/A' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          # CITACIÓN
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                          {numeroInfraccion}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {fechaInfraccion && fechaInfraccion !== 'N/A' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          FECHA EMISIÓN
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                          {fechaInfraccion}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {fechaNotificacion && fechaNotificacion !== 'N/A' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          FECHA REGISTRO
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                          {fechaNotificacion}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {fechaVencimiento && fechaVencimiento !== 'N/A' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          FECHA VENCIMIENTO
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                          {fechaVencimiento}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {puntos && puntos !== '0' && puntos !== 'N' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          PUNTOS
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>
+                                          {puntos}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {valor && valor !== '0' && valor !== 'N' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          VALOR
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                          ${parseFloat(valor).toFixed(2)}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {interes && interes !== '0' && interes !== 'N' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          INTERÉS
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                                          ${parseFloat(interes).toFixed(2)}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {total && total !== '0' && total !== 'N' && (
+                                      <div>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          TOTAL
+                                        </div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>
+                                          ${parseFloat(total).toFixed(2)}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
+                                    {autoridad && autoridad !== 'N/A' && (
+                                      <div style={{ marginBottom: '8px' }}>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          ENTIDAD
+                                        </div>
+                                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#374151' }}>
+                                          {autoridad}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {placa && placa !== '-' && placa !== 'N/A' && (
+                                      <div style={{ marginBottom: '8px' }}>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          PLACA
+                                        </div>
+                                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#374151' }}>
+                                          {placa}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {motivo && motivo !== 'Sin motivo' && motivo !== 'N' && (
+                                      <div style={{ marginBottom: '8px' }}>
+                                        <div style={{ fontSize: '8px', fontWeight: '800', color: '#6b7280', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                          ARTÍCULO
+                                        </div>
+                                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#374151', lineHeight: '1.5' }}>
+                                          {motivo}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Resumen de Citaciones - Al final */}
+                      {datosANT.resumenCitaciones && (
+                        <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                          <div style={{ 
+                            fontSize: '9px', 
+                            fontWeight: '800', 
+                            color: '#6b7280', 
+                            letterSpacing: '0.5px', 
+                            textTransform: 'uppercase', 
+                            marginBottom: '12px' 
+                          }}>
+                            RESUMEN DE CITACIONES
+                          </div>
+                          <div className="cc-exp-data-grid">
+                            {datosANT.resumenCitaciones.valorPendiente && (
+                              <div className="cc-exp-data-item">
+                                <div className="cc-exp-data-label">VALOR PENDIENTE</div>
+                                <div className="cc-exp-data-value">${datosANT.resumenCitaciones.valorPendiente}</div>
+                              </div>
+                            )}
+                            {datosANT.resumenCitaciones.valorConvenio && (
+                              <div className="cc-exp-data-item">
+                                <div className="cc-exp-data-label">VALOR CONVENIO</div>
+                                <div className="cc-exp-data-value">${datosANT.resumenCitaciones.valorConvenio}</div>
+                              </div>
+                            )}
+                            {datosANT.resumenCitaciones.valorInteres && (
+                              <div className="cc-exp-data-item">
+                                <div className="cc-exp-data-label">VALOR INTERÉS</div>
+                                <div className="cc-exp-data-value">${datosANT.resumenCitaciones.valorInteres}</div>
+                              </div>
+                            )}
+                            {datosANT.resumenCitaciones.ant && (
+                              <div className="cc-exp-data-item">
+                                <div className="cc-exp-data-label">ANT</div>
+                                <div className="cc-exp-data-value">${datosANT.resumenCitaciones.ant}</div>
+                              </div>
+                            )}
+                            {datosANT.resumenCitaciones.total && (
+                              <div className="cc-exp-data-item">
+                                <div className="cc-exp-data-label">TOTAL</div>
+                                <div className="cc-exp-data-value">${datosANT.resumenCitaciones.total}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mensaje si no hay datos relevantes */}
+                      {(!datosANT.puntos && !datosANT.licencias && !datosANT.detallePuntos && !datosANT.detalleCitacionesPendientes) && (
+                        <div className="cc-exp-data-item full-width">
+                          <div className="cc-exp-data-label">INFORMACIÓN</div>
+                          <div className="cc-exp-data-value">No se encontraron registros de puntos de licencia para esta cédula</div>
                         </div>
                       )}
                     </>
