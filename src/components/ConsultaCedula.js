@@ -83,8 +83,11 @@ export default function ConsultaCedula() {
   const [datosANT, setDatosANT] = useState(null);
   const [antError, setAntError] = useState('');
   const [antCargando, setAntCargando] = useState(false);
+  const [datosSRI, setDatosSRI] = useState(null);
+  const [sriError, setSriError] = useState('');
+  const [sriCargando, setSriCargando] = useState(false);
   const [actuacionesExpandidas, setActuacionesExpandidas] = useState(new Set());
-  const [seccionesExpandidas, setSeccionesExpandidas] = useState(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09']));
+  const [seccionesExpandidas, setSeccionesExpandidas] = useState(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']));
   const [antHistorialExpandido, setAntHistorialExpandido] = useState(true);
   const [antCitacionesExpandido, setAntCitacionesExpandido] = useState(true);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
@@ -142,7 +145,7 @@ export default function ConsultaCedula() {
     try {
       // Expandir todas las secciones temporalmente para capturar todo el contenido
       const seccionesOriginales = new Set(seccionesExpandidas);
-      setSeccionesExpandidas(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09']));
+      setSeccionesExpandidas(new Set(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']));
 
       // Esperar un momento para que las secciones se expandan
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -968,6 +971,12 @@ export default function ConsultaCedula() {
       }
 
       if (!data || !data.success) {
+        // Si hay un mensaje indicando que no hay datos, no es un error
+        if (data?.data?.mensaje && data.data.mensaje.includes('No se encontraron')) {
+          console.log('ℹ️ No hay datos de licencia para esta cédula');
+          setDatosANT(data.data);
+          return;
+        }
         throw new Error(data?.error || 'Error al consultar puntos de licencia');
       }
 
@@ -976,9 +985,82 @@ export default function ConsultaCedula() {
       
     } catch (err) {
       console.error('❌ Error al consultar puntos de ANT:', err);
-      setAntError(err.message || 'No se pudieron obtener los puntos de licencia. Verifica tu conexión e intenta nuevamente.');
+      // Solo mostrar error si no es un caso de "sin datos"
+      if (!err.message || (!err.message.includes('No se encontraron') && !err.message.includes('sin datos'))) {
+        setAntError(err.message || 'No se pudieron obtener los puntos de licencia. Verifica tu conexión e intenta nuevamente.');
+      } else {
+        // Si es un caso de "sin datos", establecer datos vacíos con mensaje
+        setDatosANT({
+          puntos: 0,
+          licencias: [],
+          detallePuntos: { rows: [], records: 0 },
+          detalleCitacionesPendientes: { rows: [], records: 0 },
+          resumenCitaciones: null,
+          mensaje: 'No se encontraron datos de licencia de conducir para esta cédula'
+        });
+      }
     } finally {
       setAntCargando(false);
+    }
+  };
+
+  // Función para consultar RUC del SRI usando Edge Function de Supabase (automática)
+  const consultarRUC = async (cedulaNum) => {
+    if (!cedulaNum || !/^\d{10}$/.test(cedulaNum)) {
+      console.log('⚠️ Cédula inválida para generar RUC');
+      return;
+    }
+
+    // Generar RUC: cédula + "001"
+    const rucNum = cedulaNum + '001';
+    
+    setSriCargando(true);
+    setSriError('');
+    setDatosSRI(null);
+    
+    try {
+      console.log('🔍 Consultando RUC en SRI automáticamente:', rucNum, '(generado desde cédula:', cedulaNum, ')');
+      
+      const { data, error } = await supabase.functions.invoke('consultar-ruc', {
+        body: { ruc: rucNum }
+      });
+
+      if (error) {
+        console.warn('⚠️ Error al invocar función SRI:', error);
+        // No mostrar error si el RUC no existe (es normal que no todos tengan RUC)
+        if (error.message && error.message.includes('404')) {
+          setSriError('');
+          setDatosSRI(null);
+          return;
+        }
+        throw new Error(error.message || 'Error al invocar la función de SRI');
+      }
+
+      if (!data || !data.success) {
+        // Si el RUC no existe, no es un error crítico
+        if (data?.error && (data.error.includes('no encontrado') || data.error.includes('404'))) {
+          console.log('ℹ️ RUC no encontrado (normal si la persona no tiene RUC registrado)');
+          setSriError('');
+          setDatosSRI(null);
+          return;
+        }
+        throw new Error(data?.error || 'Error al consultar RUC');
+      }
+
+      console.log('📄 Datos de SRI recibidos:', data.data);
+      setDatosSRI(data.data);
+      
+    } catch (err) {
+      console.error('❌ Error al consultar RUC:', err);
+      // No mostrar error si es simplemente que no existe el RUC
+      if (err.message && (err.message.includes('no encontrado') || err.message.includes('404'))) {
+        setSriError('');
+        setDatosSRI(null);
+      } else {
+        setSriError(err.message || 'No se pudieron obtener los datos del RUC.');
+      }
+    } finally {
+      setSriCargando(false);
     }
   };
 
@@ -1092,6 +1174,9 @@ export default function ConsultaCedula() {
     setDatosANT(null);
     setAntError('');
     setAntCargando(false);
+    setDatosSRI(null);
+    setSriError('');
+    setSriCargando(false);
     
     const ced = cedula.trim();
     
@@ -1269,6 +1354,11 @@ export default function ConsultaCedula() {
       
       // Consultar puntos de licencia ANT (en paralelo, no bloquea)
       consultarPuntosANT(ced).catch(() => {
+        // Errores ya manejados en la función
+      });
+      
+      // Consultar RUC del SRI automáticamente (en paralelo, no bloquea)
+      consultarRUC(ced).catch(() => {
         // Errores ya manejados en la función
       });
       
@@ -4038,7 +4128,7 @@ export default function ConsultaCedula() {
                       <div style={{ fontSize: '12px' }}>Buscando información en el sistema de ANT</div>
                     </div>
                   )}
-                  {antError && (
+                  {antError && !antCargando && (
                     <div className="cc-exp-data-item full-width" style={{ background: '#fef2f2', borderLeftColor: '#ef4444' }}>
                       <div className="cc-exp-data-label" style={{ color: '#dc2626' }}>ERROR AL CONSULTAR</div>
                       <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{antError}</div>
@@ -4046,6 +4136,13 @@ export default function ConsultaCedula() {
                   )}
                   {datosANT && !antCargando && (
                     <>
+                      {/* Mensaje cuando no hay datos de licencia */}
+                      {datosANT.mensaje && (
+                        <div className="cc-exp-data-item full-width" style={{ background: '#f9fafb', borderLeftColor: '#6b7280', marginBottom: '20px' }}>
+                          <div className="cc-exp-data-label" style={{ color: '#6b7280' }}>INFORMACIÓN</div>
+                          <div className="cc-exp-data-value" style={{ color: '#4b5563' }}>{datosANT.mensaje}</div>
+                        </div>
+                      )}
                       {/* Puntos totales destacados */}
                       {datosANT.puntos !== undefined && datosANT.puntos !== null && (
                         <div style={{ 
@@ -4504,6 +4601,505 @@ export default function ConsultaCedula() {
                 </div>
               </div>
             )}
+
+            {/* Sección 10: Información del Servicio de Rentas Internas (SRI) */}
+            <div className="cc-exp-section">
+              <div 
+                className="cc-exp-section-header"
+                onClick={() => toggleSeccion('10')}
+              >
+                <span className="cc-exp-section-number">10</span>
+                <h3 className="cc-exp-section-title">SERVICIO DE RENTAS INTERNAS - DATOS COMERCIALES</h3>
+                <span className={`cc-exp-section-toggle ${seccionesExpandidas.has('10') ? 'expanded' : ''}`}>
+                  ▼
+                </span>
+              </div>
+              <div className={`cc-exp-section-content ${seccionesExpandidas.has('10') ? '' : 'collapsed'}`}>
+                {sriCargando && (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                    <div style={{ marginBottom: '8px' }}>Consultando datos del SRI...</div>
+                    <div style={{ fontSize: '12px' }}>Buscando información en el sistema del Servicio de Rentas Internas</div>
+                    <div style={{ fontSize: '11px', marginTop: '6px', color: '#9ca3af' }}>
+                      RUC consultado: {(datos?.cedula || datosZamplisoft?.cedula || cedula) + '001'}
+                    </div>
+                  </div>
+                )}
+                {sriError && !sriCargando && (
+                  <div className="cc-exp-data-item full-width" style={{ background: '#fef2f2', borderLeftColor: '#ef4444' }}>
+                    <div className="cc-exp-data-label" style={{ color: '#dc2626' }}>ERROR AL CONSULTAR</div>
+                    <div className="cc-exp-data-value" style={{ color: '#991b1b' }}>{sriError}</div>
+                  </div>
+                )}
+                {!datosSRI && !sriCargando && !sriError && (datos || datosZamplisoft) && (
+                  <div className="cc-exp-data-item full-width" style={{ background: '#f9fafb', borderLeftColor: '#6b7280' }}>
+                    <div className="cc-exp-data-label" style={{ color: '#6b7280' }}>INFORMACIÓN</div>
+                    <div className="cc-exp-data-value" style={{ color: '#4b5563' }}>
+                      No se encontraron datos de RUC registrados en el SRI para esta cédula (RUC consultado: {(datos?.cedula || datosZamplisoft?.cedula || cedula) + '001'})
+                    </div>
+                  </div>
+                )}
+                {datosSRI && !sriCargando && (
+                  <>
+                    {/* Información Principal */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <div style={{ 
+                        fontSize: '9px', 
+                        fontWeight: '800', 
+                        color: '#6b7280', 
+                        letterSpacing: '0.5px', 
+                        textTransform: 'uppercase', 
+                        marginBottom: '12px' 
+                      }}>
+                        INFORMACIÓN PRINCIPAL
+                      </div>
+                      <div className="cc-exp-data-grid">
+                        {datosSRI.numero_ruc && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">RUC</div>
+                            <div className="cc-exp-data-value" style={{ fontWeight: '700', fontFamily: 'monospace' }}>
+                              {datosSRI.numero_ruc}
+                            </div>
+                          </div>
+                        )}
+                        {datosSRI.razon_social && (
+                          <div className="cc-exp-data-item full-width">
+                            <div className="cc-exp-data-label">RAZÓN SOCIAL</div>
+                            <div className="cc-exp-data-value" style={{ fontWeight: '600' }}>
+                              {datosSRI.razon_social}
+                            </div>
+                          </div>
+                        )}
+                        {datosSRI.estado_contribuyente_ruc && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">ESTADO</div>
+                            <div className="cc-exp-data-value" style={{ 
+                              color: datosSRI.estado_contribuyente_ruc === 'ACTIVO' ? '#10b981' : '#dc2626',
+                              fontWeight: '800'
+                            }}>
+                              {datosSRI.estado_contribuyente_ruc}
+                            </div>
+                          </div>
+                        )}
+                        {datosSRI.tipo_contribuyente && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">TIPO CONTRIBUYENTE</div>
+                            <div className="cc-exp-data-value">{datosSRI.tipo_contribuyente}</div>
+                          </div>
+                        )}
+                        {datosSRI.regimen && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">RÉGIMEN</div>
+                            <div className="cc-exp-data-value">{datosSRI.regimen}</div>
+                          </div>
+                        )}
+                        {datosSRI.categoria && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">CATEGORÍA</div>
+                            <div className="cc-exp-data-value">{datosSRI.categoria}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actividad Económica */}
+                    {datosSRI.actividad_economica_principal && (
+                      <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                        <div style={{ 
+                          fontSize: '9px', 
+                          fontWeight: '800', 
+                          color: '#6b7280', 
+                          letterSpacing: '0.5px', 
+                          textTransform: 'uppercase', 
+                          marginBottom: '12px' 
+                        }}>
+                          ACTIVIDAD ECONÓMICA PRINCIPAL
+                        </div>
+                        <div className="cc-exp-data-item full-width">
+                          <div className="cc-exp-data-value" style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                            {datosSRI.actividad_economica_principal}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Información Adicional */}
+                    <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                      <div style={{ 
+                        fontSize: '9px', 
+                        fontWeight: '800', 
+                        color: '#6b7280', 
+                        letterSpacing: '0.5px', 
+                        textTransform: 'uppercase', 
+                        marginBottom: '12px' 
+                      }}>
+                        INFORMACIÓN ADICIONAL
+                      </div>
+                      <div className="cc-exp-data-grid">
+                        {datosSRI.obligado_llevar_contabilidad !== undefined && datosSRI.obligado_llevar_contabilidad !== null && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">OBLIGADO LLEVAR CONTABILIDAD</div>
+                            <div className="cc-exp-data-value">
+                              {String(datosSRI.obligado_llevar_contabilidad).toUpperCase() === 'SÍ' || 
+                               String(datosSRI.obligado_llevar_contabilidad).toUpperCase() === 'SI' || 
+                               datosSRI.obligado_llevar_contabilidad === true ? 'SÍ' : 'NO'}
+                            </div>
+                          </div>
+                        )}
+                        {datosSRI.agente_retencion !== undefined && datosSRI.agente_retencion !== null && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">AGENTE DE RETENCIÓN</div>
+                            <div className="cc-exp-data-value">
+                              {String(datosSRI.agente_retencion).toUpperCase() === 'SÍ' || 
+                               String(datosSRI.agente_retencion).toUpperCase() === 'SI' || 
+                               datosSRI.agente_retencion === true ? 'SÍ' : 'NO'}
+                            </div>
+                          </div>
+                        )}
+                        {datosSRI.contribuyente_especial && datosSRI.contribuyente_especial !== 'NO' && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">CONTRIBUYENTE ESPECIAL</div>
+                            <div className="cc-exp-data-value">{datosSRI.contribuyente_especial}</div>
+                          </div>
+                        )}
+                        {datosSRI.clasificacion_mipyme && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">CLASIFICACIÓN MIPYME</div>
+                            <div className="cc-exp-data-value">{datosSRI.clasificacion_mipyme}</div>
+                          </div>
+                        )}
+                        {datosSRI.contribuyente_fantasma !== undefined && datosSRI.contribuyente_fantasma !== null && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">CONTRIBUYENTE FANTASMA</div>
+                            <div className="cc-exp-data-value" style={{ 
+                              color: (String(datosSRI.contribuyente_fantasma).toUpperCase() === 'SÍ' || 
+                                      String(datosSRI.contribuyente_fantasma).toUpperCase() === 'SI' || 
+                                      datosSRI.contribuyente_fantasma === true) ? '#dc2626' : '#10b981',
+                              fontWeight: '800'
+                            }}>
+                              {String(datosSRI.contribuyente_fantasma).toUpperCase() === 'SÍ' || 
+                               String(datosSRI.contribuyente_fantasma).toUpperCase() === 'SI' || 
+                               datosSRI.contribuyente_fantasma === true ? 'SÍ' : 'NO'}
+                            </div>
+                          </div>
+                        )}
+                        {datosSRI.transacciones_inexistente !== undefined && datosSRI.transacciones_inexistente !== null && (
+                          <div className="cc-exp-data-item">
+                            <div className="cc-exp-data-label">TRANSACCIONES INEXISTENTE</div>
+                            <div className="cc-exp-data-value" style={{ 
+                              color: (String(datosSRI.transacciones_inexistente).toUpperCase() === 'SÍ' || 
+                                      String(datosSRI.transacciones_inexistente).toUpperCase() === 'SI' || 
+                                      datosSRI.transacciones_inexistente === true) ? '#dc2626' : '#10b981',
+                              fontWeight: '800'
+                            }}>
+                              {String(datosSRI.transacciones_inexistente).toUpperCase() === 'SÍ' || 
+                               String(datosSRI.transacciones_inexistente).toUpperCase() === 'SI' || 
+                               datosSRI.transacciones_inexistente === true ? 'SÍ' : 'NO'}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fechas */}
+                    {(datosSRI.fecha_inicio_actividades || datosSRI.fecha_cese || datosSRI.fecha_reinicio_actividades || datosSRI.fecha_actualizacion) && (
+                      <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                        <div style={{ 
+                          fontSize: '9px', 
+                          fontWeight: '800', 
+                          color: '#6b7280', 
+                          letterSpacing: '0.5px', 
+                          textTransform: 'uppercase', 
+                          marginBottom: '12px' 
+                        }}>
+                          FECHAS IMPORTANTES
+                        </div>
+                        <div className="cc-exp-data-grid">
+                          {datosSRI.fecha_inicio_actividades && (
+                            <div className="cc-exp-data-item">
+                              <div className="cc-exp-data-label">FECHA INICIO ACTIVIDADES</div>
+                              <div className="cc-exp-data-value">{datosSRI.fecha_inicio_actividades.split(' ')[0]}</div>
+                            </div>
+                          )}
+                          {datosSRI.fecha_cese && (
+                            <div className="cc-exp-data-item">
+                              <div className="cc-exp-data-label">FECHA DE CESÉ</div>
+                              <div className="cc-exp-data-value" style={{ color: '#dc2626', fontWeight: '800' }}>
+                                {datosSRI.fecha_cese.split(' ')[0]}
+                              </div>
+                            </div>
+                          )}
+                          {datosSRI.fecha_reinicio_actividades && (
+                            <div className="cc-exp-data-item">
+                              <div className="cc-exp-data-label">FECHA REINICIO ACTIVIDADES</div>
+                              <div className="cc-exp-data-value">{datosSRI.fecha_reinicio_actividades.split(' ')[0]}</div>
+                            </div>
+                          )}
+                          {datosSRI.fecha_actualizacion && (
+                            <div className="cc-exp-data-item">
+                              <div className="cc-exp-data-label">FECHA ACTUALIZACIÓN</div>
+                              <div className="cc-exp-data-value">{datosSRI.fecha_actualizacion.split(' ')[0]}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Motivo de Cancelación/Suspensión */}
+                    {datosSRI.motivo_cancelacion_suspension && (
+                      <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                        <div style={{ 
+                          fontSize: '9px', 
+                          fontWeight: '800', 
+                          color: '#6b7280', 
+                          letterSpacing: '0.5px', 
+                          textTransform: 'uppercase', 
+                          marginBottom: '12px' 
+                        }}>
+                          MOTIVO CANCELACIÓN/SUSPENSIÓN
+                        </div>
+                        <div className="cc-exp-data-item full-width" style={{ background: '#fef2f2', borderLeftColor: '#dc2626' }}>
+                          <div className="cc-exp-data-value" style={{ color: '#991b1b', fontSize: '13px', lineHeight: '1.6' }}>
+                            {datosSRI.motivo_cancelacion_suspension}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Representantes Legales */}
+                    {datosSRI.representantes_legales && Array.isArray(datosSRI.representantes_legales) && datosSRI.representantes_legales.length > 0 && (
+                      <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                        <div style={{ 
+                          fontSize: '9px', 
+                          fontWeight: '800', 
+                          color: '#6b7280', 
+                          letterSpacing: '0.5px', 
+                          textTransform: 'uppercase', 
+                          marginBottom: '12px' 
+                        }}>
+                          REPRESENTANTES LEGALES ({datosSRI.representantes_legales.length})
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {datosSRI.representantes_legales.map((representante, index) => (
+                            <div 
+                              key={index}
+                              style={{
+                                padding: '12px 14px',
+                                background: '#f0f9ff',
+                                borderLeft: '3px solid #3b82f6',
+                                borderRadius: '4px',
+                                border: '1px solid #e5e7eb'
+                              }}
+                            >
+                              <div className="cc-exp-data-grid">
+                                {Object.entries(representante).map(([key, value]) => {
+                                  if (value === null || value === undefined || value === '') return null;
+                                  const strValue = String(value).trim();
+                                  if (strValue.length === 0) return null;
+                                  
+                                  return (
+                                    <div className="cc-exp-data-item" key={key}>
+                                      <div className="cc-exp-data-label">{key.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}</div>
+                                      <div className="cc-exp-data-value">{strValue}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Establecimientos Detallados (prioridad) */}
+                    {datosSRI.establecimientos_detalle && Array.isArray(datosSRI.establecimientos_detalle) && datosSRI.establecimientos_detalle.length > 0 && (
+                      <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                        <div style={{ 
+                          fontSize: '9px', 
+                          fontWeight: '800', 
+                          color: '#6b7280', 
+                          letterSpacing: '0.5px', 
+                          textTransform: 'uppercase', 
+                          marginBottom: '12px' 
+                        }}>
+                          ESTABLECIMIENTOS ({datosSRI.establecimientos_detalle.length})
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {datosSRI.establecimientos_detalle.map((establecimiento, index) => {
+                            const esMatriz = establecimiento.matriz === 'SI' || establecimiento.matriz === true;
+                            const estadoColor = establecimiento.estado === 'ABIERTO' ? '#10b981' : '#dc2626';
+                            
+                            return (
+                              <div 
+                                key={index}
+                                style={{
+                                  padding: '12px 14px',
+                                  background: esMatriz ? '#f0fdf4' : '#f9fafb',
+                                  borderLeft: `3px solid ${esMatriz ? '#10b981' : '#6b7280'}`,
+                                  borderRadius: '4px',
+                                  border: '1px solid #e5e7eb',
+                                  position: 'relative'
+                                }}
+                              >
+                                {esMatriz && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '8px',
+                                    right: '8px',
+                                    background: '#10b981',
+                                    color: '#ffffff',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '8px',
+                                    fontWeight: '800',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                  }}>
+                                    MATRIZ
+                                  </div>
+                                )}
+                                
+                                <div className="cc-exp-data-grid">
+                                  {establecimiento.numeroEstablecimiento && (
+                                    <div className="cc-exp-data-item">
+                                      <div className="cc-exp-data-label">NÚMERO ESTABLECIMIENTO</div>
+                                      <div className="cc-exp-data-value" style={{ fontWeight: '700' }}>
+                                        {establecimiento.numeroEstablecimiento}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {establecimiento.tipoEstablecimiento && (
+                                    <div className="cc-exp-data-item">
+                                      <div className="cc-exp-data-label">TIPO</div>
+                                      <div className="cc-exp-data-value">{establecimiento.tipoEstablecimiento}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {establecimiento.estado && (
+                                    <div className="cc-exp-data-item">
+                                      <div className="cc-exp-data-label">ESTADO</div>
+                                      <div className="cc-exp-data-value" style={{ 
+                                        color: estadoColor,
+                                        fontWeight: '700'
+                                      }}>
+                                        {establecimiento.estado}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {establecimiento.direccionCompleta && (
+                                    <div className="cc-exp-data-item full-width" style={{ marginTop: '8px' }}>
+                                      <div className="cc-exp-data-label" style={{ marginBottom: '6px' }}>
+                                        DIRECCIÓN COMPLETA
+                                      </div>
+                                      <div className="cc-exp-data-value" style={{ 
+                                        fontSize: '13px',
+                                        lineHeight: '1.5',
+                                        color: '#111827'
+                                      }}>
+                                        {establecimiento.direccionCompleta}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {establecimiento.nombreFantasiaComercial && (
+                                    <div className="cc-exp-data-item full-width" style={{ marginTop: '8px' }}>
+                                      <div className="cc-exp-data-label" style={{ marginBottom: '6px' }}>
+                                        NOMBRE FANTASÍA COMERCIAL
+                                      </div>
+                                      <div className="cc-exp-data-value" style={{ 
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        color: '#111827'
+                                      }}>
+                                        {establecimiento.nombreFantasiaComercial}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Establecimientos (fallback si no hay detalle) */}
+                    {(!datosSRI.establecimientos_detalle || !Array.isArray(datosSRI.establecimientos_detalle) || datosSRI.establecimientos_detalle.length === 0) && 
+                     datosSRI.establecimientos && Array.isArray(datosSRI.establecimientos) && datosSRI.establecimientos.length > 0 && (
+                      <div style={{ marginBottom: '20px', marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                        <div style={{ 
+                          fontSize: '9px', 
+                          fontWeight: '800', 
+                          color: '#6b7280', 
+                          letterSpacing: '0.5px', 
+                          textTransform: 'uppercase', 
+                          marginBottom: '12px' 
+                        }}>
+                          ESTABLECIMIENTOS ({datosSRI.establecimientos.length})
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {datosSRI.establecimientos.map((establecimiento, index) => (
+                            <div 
+                              key={index}
+                              style={{
+                                padding: '12px 14px',
+                                background: '#f9fafb',
+                                borderLeft: '3px solid #6b7280',
+                                borderRadius: '4px',
+                                border: '1px solid #e5e7eb'
+                              }}
+                            >
+                              <div className="cc-exp-data-grid">
+                                {Object.entries(establecimiento).map(([key, value]) => {
+                                  if (value === null || value === undefined || value === '') return null;
+                                  
+                                  // Si es un objeto anidado, mostrar de forma especial
+                                  if (typeof value === 'object' && !Array.isArray(value)) {
+                                    return (
+                                      <div className="cc-exp-data-item full-width" key={key} style={{ marginBottom: '8px' }}>
+                                        <div className="cc-exp-data-label" style={{ marginBottom: '6px' }}>
+                                          {key.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}
+                                        </div>
+                                        <div style={{ paddingLeft: '12px', borderLeft: '2px solid #e5e7eb' }}>
+                                          {Object.entries(value).map(([subKey, subValue]) => {
+                                            if (subValue === null || subValue === undefined || subValue === '') return null;
+                                            return (
+                                              <div key={subKey} style={{ marginBottom: '4px', fontSize: '12px' }}>
+                                                <span style={{ fontWeight: '700', color: '#6b7280' }}>
+                                                  {subKey.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}: 
+                                                </span>
+                                                <span style={{ marginLeft: '6px', color: '#111827' }}>
+                                                  {String(subValue)}
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  const strValue = String(value).trim();
+                                  if (strValue.length === 0) return null;
+                                  
+                                  return (
+                                    <div className="cc-exp-data-item" key={key}>
+                                      <div className="cc-exp-data-label">{key.toUpperCase().replace(/([A-Z])/g, ' $1').trim()}</div>
+                                      <div className="cc-exp-data-value">{strValue}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* Footer del expediente */}
             <div className="cc-exp-footer">

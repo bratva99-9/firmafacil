@@ -120,9 +120,60 @@ serve(async (req) => {
       const content = await postResponse.text()
       console.log('Contenido recibido (primeros 500 chars):', content.substring(0, 500))
 
+      // Si el contenido está vacío o solo tiene espacios, significa que no hay datos
+      if (!content || content.trim().length === 0) {
+        console.log('Respuesta vacía - No hay datos de licencia para esta cédula')
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: {
+              puntos: 0,
+              licencias: [],
+              detallePuntos: { rows: [], records: 0 },
+              detalleCitacionesPendientes: { rows: [], records: 0 },
+              resumenCitaciones: null,
+              mensaje: 'No se encontraron datos de licencia de conducir para esta cédula'
+            }
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
       try {
         const json = JSON.parse(content)
         console.log('JSON parseado exitosamente')
+        
+        // Verificar si el JSON indica que no hay datos
+        if (json && typeof json === 'object') {
+          // Si el JSON está vacío o no tiene datos relevantes, devolver estructura vacía
+          const hasData = json.puntos !== undefined || 
+                         (json.licencias && Array.isArray(json.licencias) && json.licencias.length > 0) ||
+                         (json.detallePuntos && json.detallePuntos.rows && json.detallePuntos.rows.length > 0)
+          
+          if (!hasData && Object.keys(json).length === 0) {
+            console.log('JSON vacío - No hay datos de licencia')
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                data: {
+                  puntos: 0,
+                  licencias: [],
+                  detallePuntos: { rows: [], records: 0 },
+                  detalleCitacionesPendientes: { rows: [], records: 0 },
+                  resumenCitaciones: null,
+                  mensaje: 'No se encontraron datos de licencia de conducir para esta cédula'
+                }
+              }),
+              { 
+                status: 200, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            )
+          }
+        }
         
         return new Response(
           JSON.stringify({ 
@@ -138,12 +189,39 @@ serve(async (req) => {
         console.error('Error al parsear JSON:', parseError)
         console.error('Contenido completo:', content)
         
-        // Si no es JSON válido, devolver el contenido como texto
+        // Si el contenido parece ser HTML o un mensaje de error, asumir que no hay datos
+        const contentLower = content.toLowerCase().trim()
+        if (contentLower.length === 0 || 
+            contentLower.includes('<html') || 
+            contentLower.includes('no se encontraron') ||
+            contentLower.includes('sin datos') ||
+            contentLower.includes('no existe')) {
+          console.log('Respuesta indica que no hay datos de licencia')
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              data: {
+                puntos: 0,
+                licencias: [],
+                detallePuntos: { rows: [], records: 0 },
+                detalleCitacionesPendientes: { rows: [], records: 0 },
+                resumenCitaciones: null,
+                mensaje: 'No se encontraron datos de licencia de conducir para esta cédula'
+              }
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        }
+        
+        // Si no es JSON válido y no parece ser un caso de "sin datos", devolver error
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: 'La respuesta no es un JSON válido',
-            contenido: content.substring(0, 1000)
+            contenido: content.substring(0, 500)
           }),
           { 
             status: 500, 
