@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import Home from './Home';
 import FormularioSolicitud from './FormularioSolicitud';
 import FormularioRUC from './FormularioRUC';
@@ -7,6 +9,8 @@ import ValidadorFirma from './ValidadorFirma';
 import ConsultaPlacas from './ConsultaPlacas';
 import ConsultaCedula from './ConsultaCedula';
 import CorreosTool from './CorreosTool';
+import InformeSuperCompanias from './InformeSuperCompanias';
+import { supabase } from '../lib/supabase';
 // import CreateUser from './CreateUser';
 
 const MainContent = ({ activeService, onServiceSelect, user }) => {
@@ -1107,6 +1111,16 @@ function HerramientasSection() {
             <div className="tool-title">Correos temporales</div>
             <p className="tool-desc">Genera cuentas y lee mensajes rápidos.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('informe-scvs')}>
+            <div className="tool-icon">📋</div>
+            <div className="tool-title">Informe SCVS</div>
+            <p className="tool-desc">Genera informes listos para firmar para Superintendencia de Compañías.</p>
+          </div>
+          <div className="tool-card" onClick={() => setAbierta('estado-tributario')}>
+            <div className="tool-icon">📑</div>
+            <div className="tool-title">Estado Tributario SRI</div>
+            <p className="tool-desc">Ejecuta el flujo de captcha y token para consultas avanzadas.</p>
+          </div>
         </div>
       )}
 
@@ -1130,6 +1144,455 @@ function HerramientasSection() {
           <CorreosTool />
         </div>
       )}
+      {autenticado && abierta === 'informe-scvs' && (
+        <div className="tool-panel" style={{ padding: 12 }}>
+          <InformeSuperCompanias />
+        </div>
+      )}
+      {autenticado && abierta === 'estado-tributario' && (
+        <EstadoTributarioTool />
+      )}
+    </div>
+  )
+}
+
+function EstadoTributarioTool() {
+  const [ruc, setRuc] = useState('')
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState('')
+  const [resultado, setResultado] = useState(null)
+  const pdfRef = useRef(null)
+
+  const consultar = async (e) => {
+    e.preventDefault()
+    setError('')
+    setResultado(null)
+
+    const r = ruc.trim()
+
+    if (!/^\d{13}$/.test(r)) {
+      setError('Ingresa un RUC válido de 13 dígitos')
+      return
+    }
+
+    setCargando(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('estado-tributario', {
+        body: { ruc: r }
+      })
+
+      if (error) {
+        console.error('Error estado-tributario:', error)
+        setError(error.message || 'Error en la consulta de estado tributario')
+        return
+      }
+
+      if (!data?.success) {
+        setError(data?.error || 'No se pudo obtener el estado tributario')
+        setResultado(data || null)
+        return
+      }
+
+      setResultado(data)
+    } catch (e) {
+      console.error('Error invocando estado-tributario:', e)
+      setError(e.message || 'Error en la consulta de estado tributario')
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  const descargarPDF = async () => {
+    if (!resultado?.estadoTributario || !pdfRef.current) return
+
+    try {
+      const nodo = pdfRef.current
+
+      const canvas = await html2canvas(nodo, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      })
+
+      const imgWidth = 210 // A4 mm
+      const pageHeight = 297
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      let heightLeft = imgHeight
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      let position = 0
+
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
+
+      const nombreArchivo = `Estado_Tributario_${ruc || 'contribuyente'}_${new Date().toISOString().slice(0,10)}.pdf`
+      pdf.save(nombreArchivo)
+    } catch (e) {
+      console.error('Error al generar PDF de estado tributario:', e)
+      alert('No se pudo generar el PDF. Intenta nuevamente.')
+    }
+  }
+
+  return (
+    <div className="tool-panel" style={{ padding: 12 }}>
+      <style>{`
+        .et-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 12px; }
+        .et-input { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+        .et-btn { border: 1px solid #a5b4fc; background: #eef2ff; color: #3730a3; border-radius: 6px; padding: 6px 10px; font-weight: 700; font-size: 12px; }
+        .et-alert { padding: 6px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 6px; }
+        .et-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+        .et-ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+        .et-result { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; font-size: 12px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+        .et-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .et-title-main { font-size: 14px; font-weight: 800; color: #111827; }
+        .et-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+        .et-badge { border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 700; }
+        .et-badge-ok { background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; }
+        .et-badge-warn { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .et-badge-neutral { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .et-section { margin-top: 6px; }
+        .et-section-title { font-size: 12px; font-weight: 700; color: #374151; margin: 0 0 4px; display: flex; align-items: center; gap: 6px; }
+        .et-section-title span { font-size: 11px; font-weight: 500; color: #6b7280; }
+        .et-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .et-table th, .et-table td { border: 1px solid #e5e7eb; padding: 4px 6px; text-align: left; }
+        .et-table th { background: #f9fafb; color: #374151; font-weight: 700; }
+        .et-table tbody tr:nth-child(even) { background: #f9fafb; }
+      `}</style>
+
+      <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 6px' }}>Estado tributario (SRI)</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>
+          Ejecuta el flujo automático (consulta código de persona + captcha + token SRI + estado tributario) usando solo el RUC.
+        </p>
+        {resultado?.estadoTributario && (
+          <button
+            type="button"
+            onClick={descargarPDF}
+            className="et-btn"
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Descargar PDF
+          </button>
+        )}
+      </div>
+
+      <form className="et-form" onSubmit={consultar}>
+        <input
+          className="et-input"
+          value={ruc}
+          onChange={(e) => setRuc(e.target.value)}
+          placeholder="Ingresa RUC (13 dígitos)"
+        />
+        <button className="et-btn" type="submit" disabled={cargando}>
+          {cargando ? 'Procesando…' : 'Ejecutar flujo'}
+        </button>
+      </form>
+
+      {error && (
+        <div className="et-alert et-error">
+          {error}
+        </div>
+      )}
+
+      {resultado?.estadoTributario && (() => {
+        const et = resultado.estadoTributario
+        const fecha = et.fecha ? new Date(et.fecha).toLocaleDateString('es-EC') : null
+        const pendientes = Array.isArray(et.dtObligacionesPendientes) ? et.dtObligacionesPendientes : []
+        const pendientesPresentacion = Array.isArray(et.dtObligacionesPendientesPresentacion) ? et.dtObligacionesPendientesPresentacion : []
+        const pendientesPago = Array.isArray(et.dtObligacionesPendientesPago) ? et.dtObligacionesPendientesPago : []
+
+        // Unificar pendientes y pendientes de presentación, evitando duplicados
+        const mapaUnicos = new Map()
+        const agregarUnico = (item) => {
+          if (!item) return
+          const clave = `${item.motivo}|||${item.periodo}|||${item.codigoObligacion}`
+          if (!mapaUnicos.has(clave)) {
+            mapaUnicos.set(clave, item)
+          }
+        }
+        pendientes.forEach(agregarUnico)
+        pendientesPresentacion.forEach(agregarUnico)
+        const pendientesTotales = Array.from(mapaUnicos.values())
+
+        const tienePendientes = pendientesTotales.length > 0 || pendientesPago.length > 0
+
+        // Detalle de deudas firmes (si viene desde el backend)
+        const detalleDeudas = resultado.detalleDeudas || null
+        const detalleListado = Array.isArray(detalleDeudas?.detalleDeudas)
+          ? detalleDeudas.detalleDeudas
+          : Array.isArray(detalleDeudas)
+          ? detalleDeudas
+          : []
+
+        const primeraDeuda = detalleListado[0] || {}
+        const razonSocial = primeraDeuda.razonSocial || et.razonSocial || ''
+        const numeroRucCliente = primeraDeuda.numeroRuc || ruc || ''
+        const totalObligaciones = pendientesTotales.length + pendientesPago.length
+        const totalHonorariosServicio = totalObligaciones * 5
+
+        // Agrupar obligaciones por periodo para organizarlas visualmente por mes
+        const agruparPorPeriodo = (lista) => {
+          const mapa = new Map()
+          lista.forEach((item) => {
+            if (!item) return
+            const periodo = item.periodo || 'SIN PERIODO'
+            const arr = mapa.get(periodo) || []
+            arr.push(item)
+            mapa.set(periodo, arr)
+          })
+          // Ordenar por periodo (mes y año)
+          return Array.from(mapa.entries())
+            .sort((a, b) => {
+              // Intentar ordenar por fecha si es posible
+              return a[0].localeCompare(b[0])
+            })
+            .map(([periodo, items]) => ({
+              periodo,
+              items,
+            }))
+        }
+
+        const gruposPendientes = agruparPorPeriodo(pendientesTotales)
+        const gruposPendientesPago = agruparPorPeriodo(pendientesPago)
+
+        return (
+          <div className="et-result" ref={pdfRef} style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#ffffff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            {/* Contenedor principal */}
+            <div style={{ position: 'relative', zIndex: 1, maxWidth: 800, margin: '0 auto', padding: '40px 50px', backgroundColor: '#ffffff' }}>
+              
+              {/* Encabezado elegante */}
+              <div style={{ marginBottom: '35px', borderBottom: '2px solid #1a1a1a', paddingBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#1a1a1a', marginBottom: '6px', letterSpacing: '-0.5px' }}>
+                      ECUCONTABLE S.A.S.
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#666666', lineHeight: '1.6' }}>
+                      RUC: 1799999999001<br />
+                      Servicios Contables y Tributarios Integrales<br />
+                      Email: soporte@ecucontable.com · Tel: 099 999 9999
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                      COTIZACIÓN DE SERVICIOS
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#666666', marginBottom: '4px' }}>
+                      Fecha: {new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#666666' }}>
+                      Ref: Estado Tributario SRI
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Referencias y destinatario */}
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ fontSize: '11px', color: '#666666', marginBottom: '8px' }}>
+                  <strong>Señores:</strong> {razonSocial || 'Cliente'}
+                </div>
+                <div style={{ fontSize: '11px', color: '#666666', marginBottom: '4px' }}>
+                  <strong>RUC:</strong> {numeroRucCliente || 'N/D'}
+                </div>
+                {fecha && (
+                  <div style={{ fontSize: '11px', color: '#666666' }}>
+                    <strong>Fecha de Corte SRI:</strong> {fecha}
+                  </div>
+                )}
+              </div>
+
+              {/* Introducción breve */}
+              <div style={{ marginBottom: '30px' }}>
+                <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginBottom: '12px', textAlign: 'justify' }}>
+                  Por medio de la presente, nos complace presentar nuestra cotización de servicios contables y tributarios, 
+                  basada en el análisis del estado tributario obtenido del Servicio de Rentas Internas (SRI). 
+                  Nuestra propuesta incluye la revisión, preparación y presentación de todas las obligaciones pendientes identificadas.
+                </p>
+                <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', textAlign: 'justify' }}>
+                  <strong>Estado Tributario:</strong> {et.textoEstadoTributario || 'Estado tributario'} {fecha && `· Corte al ${fecha}`}
+                </p>
+              </div>
+
+              {/* Listado de obligaciones y costos */}
+              <div style={{ marginBottom: '30px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a1a', marginBottom: '18px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #e5e5e5', paddingBottom: '8px' }}>
+                  Detalle de Servicios y Honorarios
+                </div>
+                
+                {/* Obligaciones pendientes de presentación */}
+                {gruposPendientes.length > 0 && (
+                  <div style={{ marginBottom: '25px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a', marginBottom: '12px' }}>
+                      Obligaciones Pendientes de Presentación ({pendientesTotales.length} registros)
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '12px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e5e5' }}>
+                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '45%' }}>Obligación</th>
+                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '25%' }}>Periodo</th>
+                          <th style={{ textAlign: 'center', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '15%' }}>Código</th>
+                          <th style={{ textAlign: 'right', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '15%' }}>Costo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gruposPendientes.map((grupo, grupoIdx) => (
+                          grupo.items.map((item, idx) => (
+                            <tr key={`${grupoIdx}-${idx}`} style={{ borderBottom: idx < grupo.items.length - 1 || grupoIdx < gruposPendientes.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+                              <td style={{ padding: '8px 0', color: '#1a1a1a', fontWeight: 500 }}>{item.motivo}</td>
+                              <td style={{ padding: '8px 0', color: '#666666' }}>{grupo.periodo}</td>
+                              <td style={{ textAlign: 'center', padding: '8px 0', color: '#666666' }}>{item.codigoObligacion}</td>
+                              <td style={{ textAlign: 'right', padding: '8px 0', color: '#1a1a1a', fontWeight: 600 }}>USD 5,00</td>
+                            </tr>
+                          ))
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ textAlign: 'right', paddingTop: '8px', borderTop: '1px solid #e5e5e5' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#666666', marginRight: '12px' }}>
+                        Subtotal Obligaciones Pendientes:
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a1a' }}>
+                        USD {(pendientesTotales.length * 5).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Obligaciones pendientes de pago */}
+                {gruposPendientesPago.length > 0 && (
+                  <div style={{ marginBottom: '25px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a', marginBottom: '12px' }}>
+                      Obligaciones Pendientes de Pago ({pendientesPago.length} registros)
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '12px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e5e5' }}>
+                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '45%' }}>Obligación</th>
+                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '25%' }}>Periodo</th>
+                          <th style={{ textAlign: 'center', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '15%' }}>Código</th>
+                          <th style={{ textAlign: 'right', padding: '8px 0', fontWeight: 600, color: '#666666', fontSize: '10px', width: '15%' }}>Costo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gruposPendientesPago.map((grupo, grupoIdx) => (
+                          grupo.items.map((item, idx) => (
+                            <tr key={`${grupoIdx}-${idx}`} style={{ borderBottom: idx < grupo.items.length - 1 || grupoIdx < gruposPendientesPago.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+                              <td style={{ padding: '8px 0', color: '#1a1a1a', fontWeight: 500 }}>{item.motivo}</td>
+                              <td style={{ padding: '8px 0', color: '#666666' }}>{grupo.periodo}</td>
+                              <td style={{ textAlign: 'center', padding: '8px 0', color: '#666666' }}>{item.codigoObligacion}</td>
+                              <td style={{ textAlign: 'right', padding: '8px 0', color: '#1a1a1a', fontWeight: 600 }}>USD 5,00</td>
+                            </tr>
+                          ))
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ textAlign: 'right', paddingTop: '8px', borderTop: '1px solid #e5e5e5' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#666666', marginRight: '12px' }}>
+                        Subtotal Obligaciones con Pago Pendiente:
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a1a' }}>
+                        USD {(pendientesPago.length * 5).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resumen de deudas firmes (información) */}
+              {detalleListado.length > 0 && (
+                <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a1a', marginBottom: '10px' }}>
+                    Información Adicional: Deudas Firmes Registradas ({detalleListado.length} registros)
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#666666', lineHeight: '1.6' }}>
+                    Se han identificado deudas firmes registradas ante el SRI por un monto total de USD {(() => {
+                      const totalSaldos = detalleListado.reduce((acc, item) => {
+                        const saldo = item.saldoDeuda ?? item.montoDeuda ?? item.valorTotal ?? item.monto ?? item.saldo
+                        return acc + (typeof saldo === 'number' ? saldo : 0)
+                      }, 0)
+                      return totalSaldos.toFixed(2)
+                    })()}. Esta información es referencial y no está incluida en los honorarios de la presente cotización.
+                  </div>
+                </div>
+              )}
+
+              {/* Total destacado */}
+              <div style={{ marginTop: '30px', marginBottom: '30px', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff', letterSpacing: '0.5px' }}>
+                    TOTAL DE HONORARIOS
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.5px' }}>
+                    USD {totalHonorariosServicio.toLocaleString('es-EC', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: '#cccccc', marginTop: '6px', textAlign: 'right' }}>
+                  + IVA (12%)
+                </div>
+                <div style={{ fontSize: '10px', color: '#999999', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #333333' }}>
+                  Tiempo estimado de ejecución: 3-5 días hábiles
+                </div>
+              </div>
+
+              {/* Métodos de pago */}
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#1a1a1a', marginBottom: '6px' }}>
+                  Métodos de Pago Aceptados:
+                </div>
+                <div style={{ fontSize: '11px', color: '#666666', lineHeight: '1.6' }}>
+                  Aceptamos todas las tarjetas de crédito y débito, así como transferencias bancarias.
+                </div>
+              </div>
+
+              {/* Cierre profesional */}
+              <div style={{ marginTop: '30px', marginBottom: '30px' }}>
+                <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginBottom: '12px', textAlign: 'justify' }}>
+                  La presente cotización tiene una vigencia de 15 días calendario a partir de la fecha de emisión. 
+                  Los valores indicados son referenciales y podrán ajustarse según el volumen de documentación y 
+                  necesidades específicas del contribuyente.
+                </p>
+                <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginBottom: '12px', textAlign: 'justify' }}>
+                  Quedamos a su disposición para cualquier consulta o aclaración que considere necesaria.
+                </p>
+                <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginTop: '20px' }}>
+                  Atentamente,
+                </p>
+                <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginTop: '30px', fontWeight: 600 }}>
+                  ECUCONTABLE S.A.S.
+                </p>
+              </div>
+
+              {/* Mensaje cuando no hay pendientes */}
+              {!tienePendientes && (
+                <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '4px', borderLeft: '3px solid #0ea5e9' }}>
+                  <p style={{ fontSize: '11px', color: '#0369a1', lineHeight: '1.6', margin: 0 }}>
+                    <strong>Nota:</strong> El contribuyente no registra obligaciones pendientes de presentación ni de pago al momento de la consulta.
+                  </p>
+                </div>
+              )}
+
+              {/* Pie de página */}
+              <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e5e5', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', color: '#999999', lineHeight: '1.6' }}>
+                  ECUCONTABLE S.A.S. · RUC: 1799999999001<br />
+                  Email: soporte@ecucontable.com · Tel: 099 999 9999
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
