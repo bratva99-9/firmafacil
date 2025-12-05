@@ -25,6 +25,40 @@ export const fetchWithProxy = async (url, options = {}) => {
   }
 };
 
+/**
+ * Consultar RUC usando la Edge Function "consultar-ruc"
+ * Retorna datos del SRI, incluyendo representantes_legales.
+ */
+export const consultarRUCDesdeEdge = async (ruc) => {
+  if (!ruc || typeof ruc !== 'string' || ruc.trim().length !== 13) {
+    throw new Error('RUC inválido');
+  }
+
+  const url = `${EDGE_URL}/consultar-ruc`;
+  const payload = { ruc: ruc.trim() };
+
+  // Las Edge Functions requieren el header Authorization con el anon key
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
+  };
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Error en consultar-ruc: ${resp.status} ${resp.statusText} - ${text.substring(0, 200)}`);
+  }
+
+  const json = await resp.json();
+  return json; // { success, data, error }
+};
+
 // Validar configuración
 if (supabaseUrl === 'https://your-project.supabase.co' || supabaseKey === 'your-anon-key') {
   console.error('❌ ERROR: Las credenciales de Supabase no están configuradas correctamente.');
@@ -1551,5 +1585,531 @@ export const actualizarEstadoSolicitudAntiguedad = async (id, nuevoEstado, obser
   } catch (error) {
     console.error('❌ Error en actualizarEstadoSolicitudAntiguedad:', error);
     throw error;
+  }
+};
+
+// ============================================
+// FUNCIONES PARA EMPRESAS SCVS
+// ============================================
+
+/**
+ * Buscar empresa por RUC
+ * @param {string} ruc - RUC de la empresa (13 dígitos)
+ * @returns {Promise<Object|null>} - Datos de la empresa o null si no existe
+ */
+export const buscarEmpresaPorRUC = async (ruc) => {
+  try {
+    console.log('🔍 Buscando empresa por RUC:', ruc);
+    
+    const { data, error } = await supabase
+      .from('empresas_scvs')
+      .select('*')
+      .eq('ruc', ruc)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No se encontró la empresa
+        console.log('ℹ️ No se encontró empresa con RUC:', ruc);
+        return null;
+      }
+      console.error('Error al buscar empresa:', error);
+      throw error;
+    }
+
+    console.log('✅ Empresa encontrada:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en buscarEmpresaPorRUC:', error);
+    throw error;
+  }
+};
+
+/**
+ * Buscar empresa por expediente
+ * @param {string} expediente - Número de expediente
+ * @returns {Promise<Object|null>} - Datos de la empresa o null si no existe
+ */
+export const buscarEmpresaPorExpediente = async (expediente) => {
+  try {
+    console.log('🔍 Buscando empresa por expediente:', expediente);
+    
+    const { data, error } = await supabase
+      .from('empresas_scvs')
+      .select('*')
+      .eq('expediente', expediente)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('ℹ️ No se encontró empresa con expediente:', expediente);
+        return null;
+      }
+      console.error('Error al buscar empresa:', error);
+      throw error;
+    }
+
+    console.log('✅ Empresa encontrada:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en buscarEmpresaPorExpediente:', error);
+    throw error;
+  }
+};
+
+/**
+ * Insertar o actualizar empresa (upsert)
+ * @param {Object} empresaData - Datos de la empresa
+ * @returns {Promise<Object>} - Empresa insertada o actualizada
+ */
+export const upsertEmpresa = async (empresaData) => {
+  try {
+    if (!empresaData.ruc) {
+      throw new Error('El RUC es requerido');
+    }
+
+    // Normalizar RUC (solo números, 13 dígitos)
+    const rucNormalizado = empresaData.ruc.replace(/\D/g, '').substring(0, 13);
+    if (rucNormalizado.length !== 13) {
+      throw new Error('El RUC debe tener 13 dígitos');
+    }
+
+    empresaData.ruc = rucNormalizado;
+
+    const { data, error } = await supabase
+      .from('empresas_scvs')
+      .upsert(empresaData, {
+        onConflict: 'ruc',
+        ignoreDuplicates: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error al insertar/actualizar empresa:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('❌ Error en upsertEmpresa:', error);
+    throw error;
+  }
+};
+
+/**
+ * Insertar múltiples empresas (carga masiva)
+ * @param {Array<Object>} empresas - Array de objetos con datos de empresas
+ * @param {Function} onProgress - Callback para reportar progreso (opcional)
+ * @returns {Promise<Object>} - Resumen de la operación
+ */
+export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
+  try {
+    console.log(`📊 Iniciando carga masiva de ${empresas.length} empresas...`);
+    
+    // Validar que haya empresas para procesar
+    if (!empresas || empresas.length === 0) {
+      console.warn('⚠️ No hay empresas para cargar');
+      return {
+        total: 0,
+        insertadas: 0,
+        actualizadas: 0,
+        errores: 0,
+        erroresDetalle: []
+      };
+    }
+
+    // Verificar que la tabla existe (hacer una consulta simple)
+    console.log('🔍 Verificando conexión con la tabla empresas_scvs...');
+    const { error: testError } = await supabase
+      .from('empresas_scvs')
+      .select('ruc')
+      .limit(1);
+
+    if (testError) {
+      console.error('❌ Error al acceder a la tabla empresas_scvs:', testError);
+      console.error('💡 Asegúrate de que:');
+      console.error('   1. La tabla empresas_scvs existe en Supabase');
+      console.error('   2. Has ejecutado el script SQL: supabase_empresas_scvs.sql');
+      console.error('   3. Tienes permisos para insertar datos');
+      throw new Error(`No se puede acceder a la tabla empresas_scvs: ${testError.message}`);
+    }
+    console.log('✅ Conexión con la tabla verificada');
+    
+    const resultados = {
+      total: empresas.length,
+      insertadas: 0,
+      actualizadas: 0,
+      errores: 0,
+      erroresDetalle: []
+    };
+
+    // Procesar en lotes de 1000 para evitar problemas de memoria
+    const tamañoLote = 1000;
+    const lotes = [];
+    
+    for (let i = 0; i < empresas.length; i += tamañoLote) {
+      lotes.push(empresas.slice(i, i + tamañoLote));
+    }
+
+    console.log(`📦 Procesando ${lotes.length} lotes de hasta ${tamañoLote} empresas cada uno`);
+
+    for (let loteIndex = 0; loteIndex < lotes.length; loteIndex++) {
+      const lote = lotes[loteIndex];
+      console.log(`📦 Procesando lote ${loteIndex + 1}/${lotes.length} (${lote.length} empresas)...`);
+
+      // Normalizar y validar datos del lote
+      const loteNormalizado = lote.map(empresa => {
+        // Normalizar RUC
+        if (empresa.ruc) {
+          const rucNormalizado = String(empresa.ruc).replace(/\D/g, '').substring(0, 13);
+          if (rucNormalizado.length === 13) {
+            empresa.ruc = rucNormalizado;
+          } else {
+            return null; // RUC inválido, se omitirá
+          }
+        } else {
+          return null; // Sin RUC, se omitirá
+        }
+
+        // Normalizar otros campos
+        if (empresa.fecha_constitucion !== undefined && empresa.fecha_constitucion !== null && empresa.fecha_constitucion !== '') {
+          // Intentar convertir a formato de fecha
+          let fecha = null;
+          const valorOriginal = empresa.fecha_constitucion;
+          
+          // Si es un número (fecha serial de Excel), convertir
+          if (typeof empresa.fecha_constitucion === 'number') {
+            // Excel almacena fechas como números (días desde 1900-01-01)
+            // Nota: Excel tiene un bug donde considera 1900 como año bisiesto
+            const fechaBase = new Date(1900, 0, 1);
+            fecha = new Date(fechaBase.getTime() + (empresa.fecha_constitucion - 2) * 24 * 60 * 60 * 1000);
+          } else {
+            // Intentar parsear como string
+            const fechaStr = String(empresa.fecha_constitucion).trim();
+            
+            // Intentar diferentes formatos
+            // Formato DD/MM/YYYY o DD-MM-YYYY
+            let fechaMatch = fechaStr.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+            if (fechaMatch) {
+              fecha = new Date(parseInt(fechaMatch[3]), parseInt(fechaMatch[2]) - 1, parseInt(fechaMatch[1]));
+            } else {
+              // Formato YYYY-MM-DD o YYYY/MM/DD
+              fechaMatch = fechaStr.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+              if (fechaMatch) {
+                fecha = new Date(parseInt(fechaMatch[1]), parseInt(fechaMatch[2]) - 1, parseInt(fechaMatch[3]));
+              } else {
+                // Intentar parseo directo
+                fecha = new Date(fechaStr);
+              }
+            }
+          }
+          
+          if (!isNaN(fecha.getTime()) && fecha.getFullYear() > 1900 && fecha.getFullYear() < 2100) {
+            empresa.fecha_constitucion = fecha.toISOString().split('T')[0];
+          } else {
+            // Si no se puede convertir, intentar extraer de formato YYYY-MM-DD
+            const fechaStr = String(valorOriginal).trim();
+            const fechaMatch = fechaStr.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (fechaMatch) {
+              empresa.fecha_constitucion = `${fechaMatch[1]}-${fechaMatch[2].padStart(2, '0')}-${fechaMatch[3].padStart(2, '0')}`;
+            } else {
+              // Último intento: mantener el valor si parece una fecha válida
+              if (fechaStr.length >= 8 && fechaStr.length <= 10) {
+                empresa.fecha_constitucion = fechaStr;
+              } else {
+                empresa.fecha_constitucion = null;
+              }
+            }
+          }
+        } else {
+          empresa.fecha_constitucion = null;
+        }
+
+        if (empresa.fecha_presentacion_balance_inicial) {
+          let fecha = null;
+          
+          // Si es un número (fecha serial de Excel), convertir
+          if (typeof empresa.fecha_presentacion_balance_inicial === 'number') {
+            const fechaBase = new Date(1900, 0, 1);
+            fecha = new Date(fechaBase.getTime() + (empresa.fecha_presentacion_balance_inicial - 2) * 24 * 60 * 60 * 1000);
+          } else {
+            fecha = new Date(empresa.fecha_presentacion_balance_inicial);
+          }
+          
+          if (!isNaN(fecha.getTime()) && fecha.getFullYear() > 1900 && fecha.getFullYear() < 2100) {
+            empresa.fecha_presentacion_balance_inicial = fecha.toISOString().split('T')[0];
+          } else {
+            const fechaStr = String(empresa.fecha_presentacion_balance_inicial).trim();
+            const fechaMatch = fechaStr.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (fechaMatch) {
+              empresa.fecha_presentacion_balance_inicial = `${fechaMatch[1]}-${fechaMatch[2].padStart(2, '0')}-${fechaMatch[3].padStart(2, '0')}`;
+            } else {
+              empresa.fecha_presentacion_balance_inicial = null;
+            }
+          }
+        }
+
+        // Convertir booleanos para presento_balance_inicial
+        if (empresa.presento_balance_inicial !== undefined && empresa.presento_balance_inicial !== null && empresa.presento_balance_inicial !== '') {
+          const valorStr = String(empresa.presento_balance_inicial).toUpperCase().trim();
+          // Convertir diferentes formatos a booleano
+          if (valorStr === 'SI' || valorStr === 'YES' || valorStr === 'TRUE' || valorStr === '1' || valorStr === 'VERDADERO') {
+            empresa.presento_balance_inicial = true;
+          } else if (valorStr === 'NO' || valorStr === 'NO' || valorStr === 'FALSE' || valorStr === '0' || valorStr === 'FALSO') {
+            empresa.presento_balance_inicial = false;
+          } else {
+            // Intentar convertir a booleano directamente
+            empresa.presento_balance_inicial = Boolean(empresa.presento_balance_inicial);
+          }
+        } else {
+          empresa.presento_balance_inicial = null;
+        }
+
+        return empresa;
+      }).filter(empresa => empresa !== null); // Filtrar empresas inválidas
+
+      if (loteNormalizado.length === 0) {
+        console.log(`⚠️ Lote ${loteIndex + 1} no tiene empresas válidas, saltando...`);
+        continue;
+      }
+
+      // Insertar/actualizar el lote
+      if (loteIndex === 0 || (loteIndex + 1) % 10 === 0) {
+        console.log(`💾 Procesando lote ${loteIndex + 1}/${lotes.length} (${loteNormalizado.length} empresas)...`);
+      }
+      
+      // DEBUG: Verificar estructura de datos antes de insertar (solo primer lote)
+      if (loteIndex === 0 && loteNormalizado.length > 0) {
+        const ejemplo = loteNormalizado[0];
+        console.log('📋 Ejemplo de empresa a insertar:', {
+          ruc: ejemplo.ruc,
+          nombre: ejemplo.nombre,
+          fecha_constitucion: ejemplo.fecha_constitucion,
+          tipo_compania: ejemplo.tipo_compania,
+          todasLasPropiedades: Object.keys(ejemplo),
+          valoresCompletos: ejemplo
+        });
+        
+        // Verificar que no tenga propiedades no permitidas
+        const propiedadesPermitidas = [
+          'numero_fila', 'expediente', 'ruc', 'nombre', 'situacion_legal',
+          'fecha_constitucion', 'tipo_compania', 'pais', 'region', 'provincia',
+          'canton', 'ciudad', 'calle', 'numero', 'interseccion', 'barrio',
+          'telefono', 'representante', 'cargo', 'capital_suscrito',
+          'ciiu_nivel_1', 'ciiu_nivel_6', 'ultimo_ano_balance',
+          'presento_balance_inicial', 'fecha_presentacion_balance_inicial'
+        ];
+        
+        const propiedadesNoPermitidas = Object.keys(ejemplo).filter(
+          key => !propiedadesPermitidas.includes(key) && key !== '_logged'
+        );
+        
+        if (propiedadesNoPermitidas.length > 0) {
+          console.warn('⚠️ Propiedades no permitidas encontradas:', propiedadesNoPermitidas);
+        }
+      }
+      
+      // Limpiar propiedades no permitidas antes de insertar
+      const loteLimpio = loteNormalizado.map(empresa => {
+        const empresaLimpia = {};
+        const propiedadesPermitidas = [
+          'numero_fila', 'expediente', 'ruc', 'nombre', 'situacion_legal',
+          'fecha_constitucion', 'tipo_compania', 'pais', 'region', 'provincia',
+          'canton', 'ciudad', 'calle', 'numero', 'interseccion', 'barrio',
+          'telefono', 'representante', 'cargo', 'capital_suscrito',
+          'ciiu_nivel_1', 'ciiu_nivel_6', 'ultimo_ano_balance',
+          'presento_balance_inicial', 'fecha_presentacion_balance_inicial'
+        ];
+        
+        propiedadesPermitidas.forEach(prop => {
+          // Incluir el campo si tiene un valor válido (no undefined, no null, y no string vacío para fechas)
+          if (empresa[prop] !== undefined && empresa[prop] !== null) {
+            // Para fechas, asegurarse de que no sea string vacío
+            if (prop === 'fecha_constitucion' || prop === 'fecha_presentacion_balance_inicial') {
+              const valorStr = String(empresa[prop]).trim();
+              if (valorStr !== '' && valorStr !== 'null' && valorStr !== 'undefined') {
+                empresaLimpia[prop] = empresa[prop];
+              }
+            } else {
+              empresaLimpia[prop] = empresa[prop];
+            }
+          }
+        });
+        
+        // Asegurar que fecha_constitucion se incluya si tiene valor válido
+        if (empresa.fecha_constitucion && empresa.fecha_constitucion !== null && empresa.fecha_constitucion !== '') {
+          const fechaStr = String(empresa.fecha_constitucion).trim();
+          // Validar formato de fecha (YYYY-MM-DD)
+          if (fechaStr.match(/^\d{4}-\d{2}-\d{2}$/) || fechaStr.match(/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/)) {
+            empresaLimpia.fecha_constitucion = empresa.fecha_constitucion;
+          } else {
+            console.warn(`⚠️ Formato de fecha inválido para RUC ${empresa.ruc}: ${fechaStr}`);
+          }
+        }
+        
+        // DEBUG: Verificar fecha_constitucion en el primer lote
+        if (loteIndex === 0 && empresa.ruc === loteNormalizado[0]?.ruc) {
+          console.log('🔍 DEBUG fecha_constitucion:', {
+            original: empresa.fecha_constitucion,
+            tipo: typeof empresa.fecha_constitucion,
+            enLimpia: empresaLimpia.fecha_constitucion,
+            todasLasProps: Object.keys(empresaLimpia),
+            tieneFechaEnLimpia: 'fecha_constitucion' in empresaLimpia
+          });
+        }
+        
+        return empresaLimpia;
+      });
+      
+      // DEBUG: Verificar que fecha_constitucion esté presente antes de insertar
+      if (loteIndex === 0 && loteLimpio.length > 0) {
+        const ejemploLimpio = loteLimpio[0];
+        console.log('🔍 DEBUG antes de upsert:', {
+          ruc: ejemploLimpio.ruc,
+          fecha_constitucion: ejemploLimpio.fecha_constitucion,
+          tipo_fecha: typeof ejemploLimpio.fecha_constitucion,
+          tieneFecha: 'fecha_constitucion' in ejemploLimpio,
+          todasLasProps: Object.keys(ejemploLimpio)
+        });
+      }
+      
+      const { data, error } = await supabase
+        .from('empresas_scvs')
+        .upsert(loteLimpio, {
+          onConflict: 'ruc',
+          ignoreDuplicates: false
+        })
+        .select();
+
+      if (error) {
+        // Mostrar detalles del error en TODOS los primeros lotes para diagnosticar
+        if (loteIndex < 5) {
+          console.error(`❌ Error en lote ${loteIndex + 1}:`, error);
+          console.error(`❌ Detalles del error:`, {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          // Mostrar ejemplo de empresa que causó el error
+          if (loteLimpio.length > 0) {
+            console.error(`❌ Ejemplo de empresa del lote (limpia):`, loteLimpio[0]);
+            console.error(`❌ Todas las propiedades:`, Object.keys(loteLimpio[0]));
+            console.error(`❌ Valores:`, JSON.stringify(loteLimpio[0], null, 2));
+          }
+        }
+        resultados.errores += loteLimpio.length;
+        resultados.erroresDetalle.push({
+          lote: loteIndex + 1,
+          error: error.message,
+          detalles: error.details || error.hint || '',
+          code: error.code
+        });
+      } else {
+        // Contar cuántas fueron insertadas vs actualizadas
+        const cantidadProcesada = data ? data.length : loteLimpio.length;
+        resultados.insertadas += cantidadProcesada;
+        
+        // Solo log cada 10 lotes o al final
+        if ((loteIndex + 1) % 10 === 0 || loteIndex === lotes.length - 1) {
+          console.log(`✅ Lote ${loteIndex + 1}/${lotes.length} completado: ${cantidadProcesada} empresas procesadas`);
+        }
+        
+        // DEBUG: Mostrar ejemplo de empresa insertada en el primer lote
+        if (loteIndex === 0 && data && data.length > 0) {
+          console.log('✅ Ejemplo de empresa insertada exitosamente:', data[0]);
+        }
+      }
+
+      // Reportar progreso
+      if (onProgress) {
+        const progreso = Math.round(((loteIndex + 1) / lotes.length) * 100);
+        onProgress(progreso, loteIndex + 1, lotes.length);
+      }
+
+      // Pequeña pausa para no sobrecargar la base de datos
+      if (loteIndex < lotes.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log('✅ Carga masiva completada:', resultados);
+    return resultados;
+  } catch (error) {
+    console.error('❌ Error en insertarEmpresasMasivo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Buscar empresas por nombre (búsqueda parcial)
+ * @param {string} nombre - Nombre o parte del nombre de la empresa
+ * @param {number} limite - Límite de resultados (default: 50)
+ * @returns {Promise<Array>} - Array de empresas encontradas
+ */
+export const buscarEmpresasPorNombre = async (nombre, limite = 50) => {
+  try {
+    console.log('🔍 Buscando empresas por nombre:', nombre);
+    
+    const { data, error } = await supabase
+      .from('empresas_scvs')
+      .select('*')
+      .ilike('nombre', `%${nombre}%`)
+      .limit(limite);
+
+    if (error) {
+      console.error('Error al buscar empresas:', error);
+      throw error;
+    }
+
+    console.log(`✅ Encontradas ${data.length} empresas`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error en buscarEmpresasPorNombre:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener descripción de actividad CIIU por código.
+ * UNA SOLA CONSULTA: busca directamente el código en la tabla ciiu4_actividades
+ * @param {string} codigo - Código de la actividad CIIU (ej: "M6920.03")
+ * @returns {Promise<string|null>} - Descripción de la actividad o null si no se encuentra
+ */
+export const obtenerDescripcionActividadCIIU = async (codigo) => {
+  try {
+    if (!codigo || !codigo.trim()) {
+      return null;
+    }
+
+    const codigoLimpio = codigo.trim();
+    console.log('🔍 UNA SOLA CONSULTA para código:', codigoLimpio);
+
+    // UNA SOLA CONSULTA: usar columnas en mayúsculas (como están definidas en la tabla)
+    const { data, error } = await supabase
+      .from('ciiu4_actividades')
+      .select('DESCRIPCION')
+      .eq('CODIGO', codigoLimpio)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log(`ℹ️ No se encontró actividad con código: "${codigoLimpio}"`);
+      } else {
+        console.error('❌ Error al buscar actividad CIIU:', error);
+      }
+      return null;
+    }
+
+    if (data && data.DESCRIPCION) {
+      console.log('✅ Descripción encontrada');
+      return data.DESCRIPCION;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Error en obtenerDescripcionActividadCIIU:', error);
+    return null;
   }
 };
