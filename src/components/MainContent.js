@@ -10,6 +10,8 @@ import ConsultaPlacas from './ConsultaPlacas';
 import ConsultaCedula from './ConsultaCedula';
 import CorreosTool from './CorreosTool';
 import InformeSuperCompanias from './InformeSuperCompanias';
+import ConsultaRUCPagada from './ConsultaRUCPagada';
+import HistorialPagos from './HistorialPagos';
 import { supabase } from '../lib/supabase';
 // import CreateUser from './CreateUser';
 
@@ -900,6 +902,10 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
           <HerramientasSection />
         );
       
+      case 'historial-pagos':
+        return (
+          <HistorialPagos />
+        );
       
       default:
         return <Home onNavigate={onServiceSelect} />;
@@ -1126,6 +1132,11 @@ function HerramientasSection() {
             <div className="tool-title">Estado Tributario SRI Pagado</div>
             <p className="tool-desc">Ejecuta el flujo de captcha y token para consultas avanzadas (versión pagada).</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('consulta-ruc-pagada')}>
+            <div className="tool-icon">🏢</div>
+            <div className="tool-title">Consulta RUC Pagada</div>
+            <p className="tool-desc">Consulta completa de RUC con información detallada del SRI (versión pagada con Now Payments).</p>
+          </div>
         </div>
       )}
 
@@ -1159,6 +1170,9 @@ function HerramientasSection() {
       )}
       {autenticado && abierta === 'estado-tributario-pagado' && (
         <EstadoTributarioPagadoTool />
+      )}
+      {autenticado && abierta === 'consulta-ruc-pagada' && (
+        <ConsultaRUCPagada />
       )}
     </div>
   )
