@@ -554,12 +554,6 @@ const TopNav = ({ user, onLogout, activeService, onServiceSelect }) => {
       titulo: 'Herramientas',
       icono: '🧰',
       descripcion: 'Búsquedas y utilidades'
-    },
-    {
-      id: 'historial-pagos',
-      titulo: 'Historial de Pagos',
-      icono: '💳',
-      descripcion: 'Ver mis pagos realizados'
     }
   ];
 

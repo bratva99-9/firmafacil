@@ -7,7 +7,6 @@ import DataDeletionConfirmation from './components/DataDeletionConfirmation';
 import AuthCallback from './components/AuthCallback';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
-import TopNav from './components/TopNav';
 import './App.css';
 
 function App() {
@@ -242,8 +241,7 @@ function App() {
 
   return (
     <div className="App">
-      <TopNav user={user} onLogout={handleLogout} activeService={activeService} onServiceSelect={handleServiceSelect} />
-      <Sidebar activeService={activeService} onServiceSelect={handleServiceSelect} onLogout={handleLogout} />
+      <Sidebar activeService={activeService} onServiceSelect={handleServiceSelect} onLogout={handleLogout} user={user} />
       <MainContent activeService={activeService} onServiceSelect={handleServiceSelect} user={user} />
     </div>
   );

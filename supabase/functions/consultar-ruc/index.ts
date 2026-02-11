@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -11,21 +12,74 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Log para debugging
+  const inicioTiempo = Date.now()
+  console.log('=== Consultar RUC - Nueva petición ===')
+  console.log('Method:', req.method)
+  console.log('URL:', req.url)
+  console.log('Headers:', Object.fromEntries(req.headers.entries()))
+
   try {
-    const { ruc } = await req.json()
+    // Obtener RUC desde query params (GET) o body (POST) - Compatible con ManyChat
+    let ruc: string | undefined
+
+    if (req.method === "GET") {
+      const url = new URL(req.url)
+      ruc = url.searchParams.get("ruc") || undefined
+    } else if (req.method === "POST") {
+      try {
+        const text = await req.text()
+        if (text) {
+          try {
+            const body = JSON.parse(text)
+            ruc = body.ruc || body.RUC || body.numero_ruc || undefined
+          } catch {
+            // Si no es JSON válido, asumir que el texto es el RUC directamente
+            ruc = text.trim() || undefined
+          }
+        }
+      } catch (error) {
+        console.error("Error leyendo body:", error)
+        ruc = undefined
+      }
+    }
     
     if (!ruc) {
       return new Response(
-        JSON.stringify({ success: false, error: 'RUC es requerido' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'RUC es requerido. Envía "ruc" en el body (POST) o como query param (GET)',
+          timestamp: new Date().toISOString()
+        }),
         { 
-          status: 400, 
+          status: 200, // ManyChat necesita 200 para procesar JSON
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Limpiar RUC (solo números)
+    const rucLimpio = ruc.trim().replace(/\D/g, '')
+    
+    console.log('RUC recibido:', ruc)
+    console.log('RUC limpio:', rucLimpio)
+    
+    if (rucLimpio.length !== 13) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'RUC debe tener 13 dígitos',
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 200, // ManyChat necesita 200 para procesar JSON
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
     }
 
     // Consultar API del SRI
-    const sriUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?&ruc=${ruc}`
+    const sriUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?&ruc=${rucLimpio}`
     const sriBaseUrl = 'https://srienlinea.sri.gob.ec'
     
     console.log(`Consultando SRI: ${sriUrl}`)
@@ -100,7 +154,7 @@ serve(async (req) => {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 segundos timeout
         
-        const response = await fetch(sriUrl, {
+        const fetchResponse = await fetch(sriUrl, {
           method: 'GET',
           headers: headers,
           signal: controller.signal,
@@ -109,21 +163,19 @@ serve(async (req) => {
         
         clearTimeout(timeoutId)
         
-        if (response.ok) {
+        if (fetchResponse.ok) {
           // Si la respuesta es exitosa, procesar
           let dataArray = null
-          const responseText = await response.text()
+          const responseText = await fetchResponse.text()
           
           // Si la respuesta está vacía, significa que no hay RUC
           if (!responseText || responseText.trim().length === 0) {
             console.log('Respuesta vacía - No hay RUC registrado para esta cédula')
+            const respuestaNoEncontrado = {
+              respuesta_final: `No se encontraron coincidencias para el RUC: ${rucLimpio}\n\nEl número de RUC ingresado no está registrado en el SRI o no existe.`
+            }
             return new Response(
-              JSON.stringify({ 
-                success: true, 
-                data: {
-                  mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
-                }
-              }),
+              JSON.stringify(respuestaNoEncontrado),
               { 
                 status: 200, 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -141,13 +193,11 @@ serve(async (req) => {
                 responseText.toLowerCase().includes('no se encontr') ||
                 responseText.toLowerCase().includes('sin datos')) {
               console.log('Respuesta indica que no hay RUC')
+              const respuestaNoEncontrado = {
+                respuesta_final: `No se encontraron coincidencias para el RUC: ${rucLimpio}\n\nEl número de RUC ingresado no está registrado en el SRI o no existe.`
+              }
               return new Response(
-                JSON.stringify({ 
-                  success: true, 
-                  data: {
-                    mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
-                  }
-                }),
+                JSON.stringify(respuestaNoEncontrado),
                 { 
                   status: 200, 
                   headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -163,13 +213,11 @@ serve(async (req) => {
           // Si el array está vacío o no hay datos, significa que no hay RUC
           if (!data || !data.numeroRuc) {
             console.log('No se encontró RUC en la respuesta del SRI')
+            const respuestaNoEncontrado = {
+              respuesta_final: `No se encontraron coincidencias para el RUC: ${rucLimpio}\n\nEl número de RUC ingresado no está registrado en el SRI o no existe.`
+            }
             return new Response(
-              JSON.stringify({ 
-                success: true, 
-                data: {
-                  mensaje: 'No se encontró RUC registrado en el SRI para esta cédula'
-                }
-              }),
+              JSON.stringify(respuestaNoEncontrado),
               { 
                 status: 200, 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -181,7 +229,7 @@ serve(async (req) => {
           let establecimientosDetalle: any[] = []
           try {
             console.log('Consultando datos de establecimientos...')
-            const establecimientosUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/Establecimiento/consultarPorNumeroRuc?numeroRuc=${ruc}`
+            const establecimientosUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/Establecimiento/consultarPorNumeroRuc?numeroRuc=${rucLimpio}`
             
             const establecimientosController = new AbortController()
             const establecimientosTimeoutId = setTimeout(() => establecimientosController.abort(), 20000)
@@ -216,45 +264,89 @@ serve(async (req) => {
             // No fallar si no se pueden obtener los establecimientos
           }
           
-          return new Response(
-            JSON.stringify({
-              success: true,
-              data: {
-                numero_ruc: data.numeroRuc,
-                razon_social: data.razonSocial,
-                estado_contribuyente_ruc: data.estadoContribuyenteRuc,
-                actividad_economica_principal: data.actividadEconomicaPrincipal,
-                tipo_contribuyente: data.tipoContribuyente,
-                regimen: data.regimen,
-                categoria: data.categoria,
-                obligado_llevar_contabilidad: data.obligadoLlevarContabilidad,
-                agente_retencion: data.agenteRetencion,
-                contribuyente_especial: data.contribuyenteEspecial,
-                fecha_inicio_actividades: data.informacionFechasContribuyente?.fechaInicioActividades,
-                fecha_cese: data.informacionFechasContribuyente?.fechaCese,
-                fecha_reinicio_actividades: data.informacionFechasContribuyente?.fechaReinicioActividades,
-                fecha_actualizacion: data.informacionFechasContribuyente?.fechaActualizacion,
-                contribuyente_fantasma: data.contribuyenteFantasma,
-                transacciones_inexistente: data.transaccionesInexistente,
-                clasificacion_mipyme: data.clasificacionMiPyme,
-                motivo_cancelacion_suspension: data.motivoCancelacionSuspension,
-                representantes_legales: data.representantesLegales || [],
-                establecimientos: data.establecimientos || [],
-                establecimientos_detalle: establecimientosDetalle // Datos adicionales de establecimientos
-              }
-            }),
+          // Formatear respuesta SIMPLE y LIMPIA para ManyChat
+          // Limpiar fechas (remover hora si existe)
+          const fechaInicio = data.informacionFechasContribuyente?.fechaInicioActividades 
+            ? data.informacionFechasContribuyente.fechaInicioActividades.split(' ')[0] 
+            : null
+          const fechaCese = data.informacionFechasContribuyente?.fechaCese 
+            ? (data.informacionFechasContribuyente.fechaCese.trim() || null)
+            : null
+          const fechaActualizacion = data.informacionFechasContribuyente?.fechaActualizacion 
+            ? data.informacionFechasContribuyente.fechaActualizacion.split(' ')[0]
+            : null
+          
+          // Datos principales
+          const datosRuc = {
+            success: true,
+            ruc: rucLimpio,
+            numero_ruc: data.numeroRuc || '',
+            razon_social: data.razonSocial || '',
+            estado: data.estadoContribuyenteRuc || '',
+            actividad: data.actividadEconomicaPrincipal || '',
+            tipo: data.tipoContribuyente || '',
+            regimen: data.regimen || '',
+            categoria: data.categoria || '',
+            obligado_contabilidad: data.obligadoLlevarContabilidad || 'NO',
+            agente_retencion: data.agenteRetencion || 'NO',
+            contribuyente_especial: data.contribuyenteEspecial || 'NO',
+            fecha_inicio: fechaInicio || '',
+            fecha_cese: fechaCese || '',
+            fecha_actualizacion: fechaActualizacion || '',
+            contribuyente_fantasma: data.contribuyenteFantasma || 'NO',
+            transacciones_inexistente: data.transaccionesInexistente || 'NO',
+            clasificacion_mipyme: data.clasificacionMiPyme || '',
+            motivo_cancelacion: data.motivoCancelacionSuspension || ''
+          }
+          
+          // Respuesta ULTRA SIMPLE para ManyChat - solo un campo string
+          // ManyChat tiene problemas con objetos complejos, mejor enviar solo texto plano
+          const tiempoTranscurrido = Date.now() - inicioTiempo
+          console.log('⏱️ Tiempo de procesamiento:', tiempoTranscurrido, 'ms')
+          
+          if (tiempoTranscurrido > 10000) {
+            console.warn('⚠️ ADVERTENCIA: La respuesta tardó más de 10 segundos. ManyChat puede no procesarla.')
+          }
+          
+          // Respuesta SIMPLE - campos individuales para mapeo fácil en ManyChat
+          const respuestaSimple = {
+            respuesta_final: `RUC: ${data.numeroRuc || ''}\nRazón Social: ${data.razonSocial || ''}\nEstado: ${data.estadoContribuyenteRuc || ''}\nActividad: ${data.actividadEconomicaPrincipal || ''}\nTipo: ${data.tipoContribuyente || ''}\nRégimen: ${data.regimen || ''}\nCategoría: ${data.categoria || ''}`,
+            razon_social: data.razonSocial || '',
+            numero_ruc: data.numeroRuc || '',
+            estado: data.estadoContribuyenteRuc || '',
+            actividad: data.actividadEconomicaPrincipal || '',
+            tipo: data.tipoContribuyente || '',
+            regimen: data.regimen || '',
+            categoria: data.categoria || ''
+          }
+          
+          const respuestaJSON = JSON.stringify(respuestaSimple)
+          console.log('✅ Respuesta SIMPLE preparada para ManyChat')
+          console.log('📦 Tamaño respuesta:', respuestaJSON.length, 'caracteres')
+          console.log('📄 Respuesta JSON:', respuestaJSON)
+          
+          // Crear respuesta con headers mínimos para ManyChat
+          const response = new Response(
+            respuestaJSON,
             { 
               status: 200, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json'
+              } 
             }
           )
+          
+          console.log('📤 Enviando respuesta a ManyChat, status:', response.status)
+          
+          return response
         } else {
           // Si no es 200, intentar parsear el error
           try {
-            const errorText = await response.text()
-            console.error(`Error del SRI (${response.status}):`, errorText)
+            const errorText = await fetchResponse.text()
+            console.error(`Error del SRI (${fetchResponse.status}):`, errorText)
           } catch (e) {
-            console.error(`Error del SRI (${response.status})`)
+            console.error(`Error del SRI (${fetchResponse.status})`)
           }
           
           if (attempt < maxRetries) {
@@ -265,11 +357,13 @@ serve(async (req) => {
           
           return new Response(
             JSON.stringify({ 
-              success: false, 
-              error: `Error del SRI: ${response.status} ${response.statusText}` 
+              success: false,
+              ruc: rucLimpio,
+              error: `Error del SRI: ${fetchResponse.status} ${fetchResponse.statusText}`,
+              timestamp: new Date().toISOString()
             }),
             { 
-              status: response.status, 
+              status: 200, // ManyChat necesita 200 para procesar JSON
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
           )
@@ -319,10 +413,11 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         error: errorMessage,
-        detalles: error.message || 'Error desconocido'
+        detalles: error.message || 'Error desconocido',
+        timestamp: new Date().toISOString()
       }),
       { 
-        status: statusCode, 
+        status: 200, // ManyChat necesita 200 para procesar JSON
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )

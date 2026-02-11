@@ -2,1013 +2,474 @@ import React from 'react';
 
 const Home = ({ onNavigate }) => {
 
-  // Datos de noticias
-  const noticias = [
-    {
-      id: 1,
-      titulo: "Nuevo sistema de firma electrónica disponible",
-      contenido: "Ya puedes solicitar tu certificado digital de forma completamente online. Proceso simplificado y más rápido.",
-      fecha: "15 Dic 2024",
-      tipo: "nuevo",
-      icono: "🆕"
-    },
-    {
-      id: 2,
-      titulo: "Mantenimiento programado del sistema",
-      contenido: "El próximo domingo realizaremos mantenimiento preventivo. El servicio estará disponible el lunes.",
-      fecha: "12 Dic 2024",
-      tipo: "importante",
-      icono: "⚠️"
-    },
-    {
-      id: 3,
-      titulo: "Actualización de políticas de seguridad",
-      contenido: "Hemos mejorado nuestros protocolos de seguridad para proteger mejor tu información personal.",
-      fecha: "10 Dic 2024",
-      tipo: "normal",
-      icono: "🔒"
-    }
-  ];
-
-  // Datos de servicios
   const servicios = [
     {
       id: 1,
       titulo: "Firma Electrónica",
-      descripcion: "Certificado digital para firmar documentos electrónicamente con validez legal completa.",
+      descripcion: "Certificado digital válido legalmente",
       precio: "$25.00",
-      estado: "disponible",
+      tiempo: "30 min",
       icono: "✍️"
     },
     {
       id: 2,
       titulo: "RUC con Antigüedad",
-      descripcion: "Obtención de RUC con historial completo y certificación de antigüedad empresarial.",
-      precio: "45.00",
-      estado: "disponible",
+      descripcion: "Historial completo y certificación",
+      precio: "$45.00",
+      tiempo: "3 horas",
       icono: "📜"
     },
     {
       id: 3,
-      titulo: "Certificado de Ingresos",
-      descripcion: "Certificación oficial de ingresos para trámites bancarios y crediticios.",
-      precio: "$20.00",
-      estado: "proximamente",
-      icono: "💰"
-    },
-    {
-      id: 4,
-      titulo: "Constancia Laboral Digital",
-      descripcion: "Constancia de trabajo con firma digital y validación automática.",
-      precio: "$15.00",
-      estado: "desarrollo",
-      icono: "💼"
+      titulo: "Reporte Equifax",
+      descripcion: "Reporte crediticio completo",
+      precio: "$8.00",
+      tiempo: "30 min",
+      icono: "📈"
     }
   ];
 
   const localStyles = `
+    * {
+      box-sizing: border-box;
+    }
+
     .home-container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 40px 24px;
     }
 
-    .hero-section {
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-      border-radius: 20px;
-      padding: 40px 30px;
+    /* Hero Section - Minimalista */
+    .hero-wrapper {
+      margin-bottom: 64px;
+    }
+
+    .hero-main {
+      max-width: 800px;
+      margin: 0 auto;
       text-align: center;
-      color: white;
-      margin-bottom: 30px;
-      position: relative;
-      overflow: hidden;
     }
 
-    .hero-title {
-      font-size: 42px;
+    .hero-greeting {
+      font-size: 14px;
+      font-weight: 600;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+
+    .hero-headline {
+      font-size: 64px;
       font-weight: 900;
-      margin-bottom: 15px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      line-height: 1.1;
+      margin: 0 0 24px 0;
+      color: #0a0e27;
+      letter-spacing: -2px;
     }
 
-    .hero-subtitle {
-      font-size: 18px;
-      opacity: 0.95;
-      font-weight: 300;
-      max-width: 600px;
-      margin: 0 auto 25px;
-      line-height: 1.5;
+    .hero-description {
+      font-size: 20px;
+      color: #64748b;
+      line-height: 1.6;
+      margin: 0 0 40px 0;
+      font-weight: 400;
     }
 
-    .hero-cta {
+    .hero-actions {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-top: 25px;
     }
 
-    .cta-button {
-      background: rgba(255,255,255,0.25);
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255,255,255,0.4);
+    .btn-primary {
+      padding: 14px 32px;
+      background: #0a0e27;
       color: white;
-      padding: 14px 28px;
-      border-radius: 12px;
+      border: none;
+      border-radius: 8px;
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 200px;
-      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background: #1a1f3a;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(10, 14, 39, 0.2);
+    }
+
+    .btn-secondary {
+      padding: 14px 32px;
+      background: transparent;
+      color: #0a0e27;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: #0a0e27;
+      background: #f8fafc;
+    }
+
+    /* Servicios Grid - Moderno */
+    .services-section {
+      margin-bottom: 80px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
       text-align: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
-    .cta-button:hover {
-      background: rgba(255,255,255,0.35);
-      border-color: rgba(255,255,255,0.6);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    }
-
-    .cta-button.primary {
-      background: linear-gradient(45deg, #10b981, #059669);
-      border-color: #10b981;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-    }
-
-    .cta-button.primary:hover {
-      background: linear-gradient(45deg, #059669, #047857);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-    }
-
-    .cta-button.ruc-button {
-      background: linear-gradient(45deg, #3b82f6, #2563eb);
-      border-color: #3b82f6;
-      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-    }
-
-    .cta-button.ruc-button:hover {
-      background: linear-gradient(45deg, #2563eb, #1d4ed8);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
-    }
-
-    .stats-section {
-      background: white;
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-
-    .stats-title {
-      font-size: 28px;
+    .section-heading {
+      font-size: 42px;
       font-weight: 800;
+      color: #0a0e27;
       text-align: center;
-      margin-bottom: 25px;
-      color: #1f2937;
+      margin: 0 0 48px 0;
+      letter-spacing: -1.5px;
     }
 
-    .stats-grid {
+    .services-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 28px;
     }
 
-    .stat-card {
-      text-align: center;
-      padding: 20px 15px;
-      border-radius: 12px;
-      transition: all 0.3s ease;
+    .service-item {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
-    .stat-card::before {
+    .service-item::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 3px;
+      height: 4px;
       background: linear-gradient(90deg, #667eea, #764ba2);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
     }
 
-    .stat-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    .service-item:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+      border-color: #cbd5e1;
     }
 
-    .stat-icon {
-      font-size: 36px;
-      margin-bottom: 12px;
-      display: block;
+    .service-item:hover::before {
+      transform: scaleX(1);
     }
 
-    .stat-number {
-      font-size: 28px;
-      font-weight: 900;
-      margin-bottom: 6px;
-      color: #1f2937;
+    .service-header {
+      padding: 32px 32px 24px;
     }
 
-    .stat-description {
-      font-size: 14px;
-      color: #6b7280;
-      font-weight: 500;
+    .service-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
     }
 
-    .servicios-section {
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    .service-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
       border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 30px;
-    }
-
-    .section-title {
-      font-size: 28px;
-      font-weight: 800;
-      text-align: center;
-      margin-bottom: 25px;
-      color: #1f2937;
-    }
-
-    .servicios-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .servicio-card {
-      background: white;
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      position: relative;
-      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      border: 1px solid #e2e8f0;
       transition: all 0.3s ease;
     }
 
-    .servicio-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    .service-item:hover .service-icon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transform: scale(1.05);
+      border-color: transparent;
     }
 
-    .servicio-header {
+    .service-name {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0a0e27;
+      margin-bottom: 12px;
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+    }
+
+    .service-text {
+      font-size: 15px;
+      color: #64748b;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .service-footer {
+      margin-top: auto;
+      padding: 24px 32px 32px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 15px;
+      justify-content: space-between;
     }
 
-    .servicio-icon {
-      font-size: 28px;
+    .service-price-wrapper {
+      display: flex;
+      flex-direction: column;
     }
 
-    .servicio-titulo {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 5px;
-      color: #1f2937;
-    }
-
-    .servicio-descripcion {
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 15px;
-      color: #4b5563;
-    }
-
-    .servicio-estado {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
+    .service-price-label {
+      font-size: 11px;
       font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .service-price {
+      font-size: 36px;
+      font-weight: 900;
+      color: #0a0e27;
+      line-height: 1;
+      letter-spacing: -1.5px;
+    }
+
+    .service-meta-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .service-time {
+      font-size: 13px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    .service-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .servicio-estado.disponible {
-      background: #dcfce7;
-      color: #166534;
+    /* Stats Section - Elegante */
+    .stats-section {
+      background: #0a0e27;
+      border-radius: 24px;
+      padding: 64px 48px;
+      margin-bottom: 80px;
+      color: white;
     }
 
-    .servicio-estado.proximamente {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .servicio-estado.desarrollo {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .comunicados-section {
-      background: white;
-      border-radius: 16px;
-      padding: 30px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-
-    .comunicados-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .comunicado-card {
-      background: #f8fafc;
-      border-radius: 12px;
-      padding: 20px;
-      border-left: 4px solid #667eea;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .comunicado-card:hover {
-      transform: translateX(3px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-    }
-
-    .comunicado-card.nuevo {
-      border-left-color: #10b981;
-      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    }
-
-    .comunicado-card.informacion {
-      border-left-color: #3b82f6;
-      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    }
-
-    .comunicado-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .comunicado-icon {
-      font-size: 20px;
-    }
-
-    .comunicado-titulo {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1f2937;
-      flex: 1;
-    }
-
-    .comunicado-fecha {
-      font-size: 12px;
-      color: #6b7280;
-      font-weight: 500;
-    }
-
-    .comunicado-contenido {
-      color: #4b5563;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    /* Nuevas secciones elegantes */
-    .features-section {
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      border-radius: 20px;
-      padding: 40px 30px;
-      margin-bottom: 30px;
-    }
-
-    .features-title {
-      font-size: 32px;
-      font-weight: 800;
-      text-align: center;
-      margin-bottom: 30px;
-      color: #1f2937;
-    }
-
-    .features-grid {
+    .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 48px;
     }
 
-    .feature-card {
-      background: white;
-      border-radius: 16px;
-      padding: 30px 24px;
+    .stat-item {
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-      border: 1px solid rgba(0,0,0,0.05);
     }
 
-    .feature-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    .stat-value {
+      font-size: 56px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      letter-spacing: -2px;
     }
 
-    .feature-icon {
-      font-size: 48px;
+    .stat-label {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Benefits - Minimalista */
+    .benefits-section {
+      margin-bottom: 80px;
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+    }
+
+    .benefit-card {
+      text-align: center;
+      padding: 24px;
+    }
+
+    .benefit-emoji {
+      font-size: 40px;
       margin-bottom: 16px;
       display: block;
     }
 
-    .feature-title {
-      font-size: 20px;
+    .benefit-title {
+      font-size: 16px;
       font-weight: 700;
-      margin-bottom: 12px;
-      color: #1f2937;
+      color: #0a0e27;
+      margin-bottom: 8px;
     }
 
-    .feature-description {
-      color: #6b7280;
-      font-size: 15px;
-      line-height: 1.6;
+    .benefit-text {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.5;
     }
 
-
-    .final-cta-section {
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-      border-radius: 20px;
-      padding: 50px 30px;
+    /* CTA Section */
+    .cta-section {
+      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+      border-radius: 24px;
+      padding: 64px 48px;
       text-align: center;
-      color: white;
+      border: 1px solid #f1f5f9;
     }
 
-    .final-cta-title {
-      font-size: 36px;
-      font-weight: 800;
-      margin-bottom: 16px;
+    .cta-heading {
+      font-size: 48px;
+      font-weight: 900;
+      color: #0a0e27;
+      margin: 0 0 16px 0;
+      letter-spacing: -2px;
     }
 
-    .final-cta-description {
+    .cta-text {
       font-size: 18px;
-      opacity: 0.9;
-      margin-bottom: 30px;
+      color: #64748b;
+      margin: 0 0 32px 0;
       max-width: 500px;
       margin-left: auto;
       margin-right: auto;
     }
 
-    .final-cta-buttons {
+    .cta-buttons {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
     }
 
-    .final-cta-button {
-      padding: 16px 32px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      border: none;
-      min-width: 180px;
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 32px;
     }
 
-    .final-cta-button.primary {
-      background: linear-gradient(45deg, #10b981, #059669);
-      color: white;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-    }
-
-    .final-cta-button.primary:hover {
-      background: linear-gradient(45deg, #059669, #047857);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-    }
-
-    .final-cta-button.secondary {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: 2px solid rgba(255,255,255,0.3);
-      backdrop-filter: blur(10px);
-    }
-
-    .final-cta-button.secondary:hover {
-      background: rgba(255,255,255,0.3);
-      border-color: rgba(255,255,255,0.5);
-      transform: translateY(-3px);
-    }
-
-    /* Sección de Noticias - Moderna */
-    .noticias-section {
-      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-      border-radius: 24px;
-      padding: 32px 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .noticias-title {
-      font-size: 28px;
-      font-weight: 800;
-      text-align: center;
-      margin-bottom: 24px;
-      color: #1f2937;
-      background: linear-gradient(135deg, #1f2937, #374151);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .noticias-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-    }
-
-    .noticia-card {
-      background: white;
-      border-radius: 20px;
-      padding: 20px;
-      border: 1px solid rgba(0,0,0,0.08);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
-
-    .noticia-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
-      border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    .noticia-card.importante {
-      border-left: 4px solid #ef4444;
-      background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-    }
-
-    .noticia-card.nuevo {
-      border-left: 4px solid #10b981;
-      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-    }
-
-    .noticia-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .noticia-icon {
-      font-size: 20px;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .noticia-titulo {
-      font-size: 16px;
-      font-weight: 700;
-      color: #1f2937;
-      line-height: 1.4;
-      flex: 1;
-    }
-
-    .noticia-fecha {
-      font-size: 11px;
-      color: #6b7280;
-      font-weight: 500;
-      background: rgba(0,0,0,0.05);
-      padding: 4px 8px;
-      border-radius: 8px;
-      white-space: nowrap;
-    }
-
-    .noticia-contenido {
-      color: #4b5563;
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
-
-    .noticia-leer-mas {
-      color: #3b82f6;
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      transition: color 0.3s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .noticia-leer-mas:hover {
-      color: #1d4ed8;
-    }
-
-    /* Sección de Servicios - Moderna */
-    .servicios-section {
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      border-radius: 24px;
-      padding: 32px 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .servicios-title {
-      font-size: 28px;
-      font-weight: 800;
-      text-align: center;
-      margin-bottom: 24px;
-      color: #1f2937;
-      background: linear-gradient(135deg, #1f2937, #374151);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .servicios-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .servicio-card {
-      background: white;
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid rgba(0,0,0,0.08);
-    }
-
-    .servicio-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
-      border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    .servicio-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .servicio-icon {
-      font-size: 24px;
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      border-radius: 16px;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .servicio-titulo {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      color: #1f2937;
-    }
-
-    .servicio-descripcion {
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 16px;
-      color: #4b5563;
-    }
-
-    .servicio-precio {
-      font-size: 20px;
-      font-weight: 800;
-      color: #059669;
-      margin-bottom: 12px;
-    }
-
-    .servicio-estado {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .servicio-estado.disponible {
-      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-      color: #166534;
-    }
-
-    .servicio-estado.proximamente {
-      background: linear-gradient(135deg, #fef3c7, #fde68a);
-      color: #92400e;
-    }
-
-    .servicio-estado.desarrollo {
-      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-      color: #1e40af;
+      .benefits-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
 
     @media (max-width: 768px) {
       .home-container {
-        padding: 0 4px;
+        padding: 24px 16px;
       }
       
-      .hero-section {
-        padding: 20px 12px;
-        margin-bottom: 16px;
-        border-radius: 12px;
+      .hero-headline {
+        font-size: 40px;
       }
       
-      .hero-title {
-        font-size: 28px;
-        margin-bottom: 10px;
+      .hero-description {
+        font-size: 18px;
       }
       
-      .hero-subtitle {
-        font-size: 14px;
-        margin-bottom: 20px;
+      .section-heading {
+        font-size: 32px;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr;
       }
       
-      .hero-cta {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        margin-top: 20px;
+      .service-item {
+        padding: 24px;
       }
       
-      .cta-button {
-        padding: 12px 20px;
-        font-size: 14px;
-        width: 100%;
-        max-width: 300px;
-        min-width: auto;
-        border-radius: 10px;
-      }
-      
-      .stats-section, .servicios-section, .comunicados-section {
-        padding: 16px 12px;
-        margin-bottom: 16px;
-        border-radius: 12px;
-      }
-      
-      .stats-title, .section-title {
-        font-size: 22px;
-        margin-bottom: 16px;
+      .stats-section {
+        padding: 48px 32px;
       }
       
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 32px;
       }
       
-      .stat-card {
-        padding: 16px 12px;
+      .stat-value {
+        font-size: 40px;
       }
       
-      .stat-icon {
-        font-size: 28px;
-        margin-bottom: 8px;
-      }
-      
-      .stat-number {
-        font-size: 22px;
-        margin-bottom: 4px;
-      }
-      
-      .stat-description {
-        font-size: 12px;
-      }
-      
-      .servicios-grid {
+      .benefits-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 24px;
       }
       
-      .servicio-card {
-        padding: 16px;
-        border-radius: 12px;
+      .cta-section {
+        padding: 48px 32px;
       }
       
-      .servicio-header {
-        margin-bottom: 12px;
+      .cta-heading {
+        font-size: 32px;
       }
       
-      .servicio-icon {
-        font-size: 24px;
-      }
-      
-      .servicio-titulo {
+      .cta-text {
         font-size: 16px;
       }
       
-      .servicio-descripcion {
-        font-size: 13px;
-        margin-bottom: 12px;
-      }
-      
-      .comunicados-grid {
-        gap: 12px;
-      }
-      
-      .comunicado-card {
-        padding: 16px;
-        border-radius: 10px;
-      }
-      
-      .comunicado-header {
-        margin-bottom: 8px;
-      }
-      
-      .comunicado-icon {
-        font-size: 18px;
-      }
-      
-      .comunicado-titulo {
-        font-size: 16px;
-      }
-      
-      .comunicado-fecha {
-        font-size: 11px;
-      }
-      
-      .comunicado-contenido {
-        font-size: 13px;
-      }
-
-      /* Nuevas secciones móviles */
-      .features-section {
-        padding: 20px 12px;
-        margin-bottom: 16px;
-        border-radius: 12px;
-      }
-
-      .features-title {
-        font-size: 24px;
-        margin-bottom: 20px;
-      }
-
-      .features-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .feature-card {
-        padding: 20px 16px;
-        border-radius: 12px;
-      }
-
-      .feature-icon {
-        font-size: 36px;
-        margin-bottom: 12px;
-      }
-
-      .feature-title {
-        font-size: 16px;
-        margin-bottom: 8px;
-      }
-
-      .feature-description {
-        font-size: 13px;
-      }
-
-
-      .final-cta-section {
-        padding: 30px 16px;
-        border-radius: 12px;
-      }
-
-      .final-cta-title {
-        font-size: 28px;
-        margin-bottom: 12px;
-      }
-
-      .final-cta-description {
-        font-size: 16px;
-        margin-bottom: 24px;
-      }
-
-      .final-cta-buttons {
+      .hero-actions,
+      .cta-buttons {
         flex-direction: column;
-        align-items: center;
-        gap: 12px;
+        align-items: stretch;
       }
 
-      .final-cta-button {
-        padding: 14px 24px;
-        font-size: 14px;
+      .btn-primary,
+      .btn-secondary {
         width: 100%;
-        max-width: 280px;
-        min-width: auto;
-      }
-
-      /* Secciones modernas móviles */
-      .noticias-section {
-        padding: 20px 16px;
-        margin-bottom: 16px;
-        border-radius: 16px;
-      }
-
-      .noticias-title {
-        font-size: 22px;
-        margin-bottom: 16px;
-      }
-
-      .noticias-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .noticia-card {
-        padding: 16px;
-        border-radius: 16px;
-      }
-
-      .noticia-header {
-        margin-bottom: 8px;
-        gap: 8px;
-      }
-
-      .noticia-icon {
-        font-size: 18px;
-      }
-
-      .noticia-titulo {
-        font-size: 14px;
-      }
-
-      .noticia-fecha {
-        font-size: 10px;
-        padding: 3px 6px;
-      }
-
-      .noticia-contenido {
-        font-size: 13px;
-        margin-bottom: 8px;
-      }
-
-      .noticia-leer-mas {
-        font-size: 12px;
-      }
-
-      .servicios-section {
-        padding: 20px 16px;
-        margin-bottom: 16px;
-        border-radius: 16px;
-      }
-
-      .servicios-title {
-        font-size: 22px;
-        margin-bottom: 16px;
-      }
-
-      .servicios-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .servicio-card {
-        padding: 20px;
-        border-radius: 16px;
-      }
-
-      .servicio-header {
-        margin-bottom: 12px;
-        gap: 12px;
-      }
-
-      .servicio-icon {
-        font-size: 20px;
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-      }
-
-      .servicio-titulo {
-        font-size: 16px;
-      }
-
-      .servicio-descripcion {
-        font-size: 13px;
-        margin-bottom: 12px;
-      }
-
-      .servicio-precio {
-        font-size: 18px;
-        margin-bottom: 8px;
       }
     }
   `;
@@ -1017,119 +478,145 @@ const Home = ({ onNavigate }) => {
     <div className="home-container">
       <style>{localStyles}</style>
       
-      {/* Hero Section */}
-      <div className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">ECUCONTABLE SAS</h1>
-          <p className="hero-subtitle">
-            Soluciones Digitales de Confianza - Certificados digitales seguros y válidos legalmente
+      {/* Hero Minimalista */}
+      <div className="hero-wrapper">
+        <div className="hero-main">
+          <div className="hero-greeting">Bienvenido</div>
+          <h1 className="hero-headline">
+            Soluciones Tributarias<br />
+            para tu Negocio
+          </h1>
+          <p className="hero-description">
+            Simplificamos tus trámites tributarios con tecnología avanzada. 
+            Rápido, seguro y completamente digital.
           </p>
-          <div className="hero-cta">
+          <div className="hero-actions">
             <button 
-              className="cta-button primary"
-              onClick={() => onNavigate('firma-electronica')}
+              className="btn-primary"
+              onClick={() => onNavigate('enviar-tramites')}
             >
-              ✍️ Solicitar Firma Electrónica
+              Ver Servicios
             </button>
             <button 
-              className="cta-button ruc-button"
-              onClick={() => onNavigate('ruc-antiguedad')}
-            >
-              📜 Solicitar RUC con Antiguedad
-            </button>
-            <button 
-              className="cta-button"
+              className="btn-secondary"
               onClick={() => onNavigate('consultar-estado')}
             >
-              🔍 Consultar mis tramites
+              Mis Trámites
             </button>
           </div>
         </div>
       </div>
 
-      {/* Características Principales */}
-      <div className="features-section">
-        <h2 className="features-title">✨ ¿Por qué elegirnos?</h2>
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon">🔒</div>
-            <h3 className="feature-title">Seguridad Garantizada</h3>
-            <p className="feature-description">Certificados digitales con máxima seguridad y validación legal</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">⚡</div>
-            <h3 className="feature-title">Proceso Rápido</h3>
-            <p className="feature-description">Tramites completados en minutos, no días</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">📱</div>
-            <h3 className="feature-title">100% Digital</h3>
-            <p className="feature-description">Todo desde tu dispositivo, sin filas ni papeleo</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Sección de Noticias */}
-      <div className="noticias-section">
-        <h2 className="noticias-title">📰 Últimas Noticias</h2>
-        <div className="noticias-grid">
-          {noticias.map(noticia => (
-            <div key={noticia.id} className={`noticia-card ${noticia.tipo}`}>
-              <div className="noticia-header">
-                <div className="noticia-icon">{noticia.icono}</div>
-                <h3 className="noticia-titulo">{noticia.titulo}</h3>
-                <div className="noticia-fecha">{noticia.fecha}</div>
-              </div>
-              <p className="noticia-contenido">{noticia.contenido}</p>
-              <div className="noticia-leer-mas">Leer más →</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sección de Servicios */}
-      <div className="servicios-section">
-        <h2 className="servicios-title">🛠️ Nuestros Servicios</h2>
-        <div className="servicios-grid">
+      {/* Servicios */}
+      <div className="services-section">
+        <div className="section-label">Servicios</div>
+        <h2 className="section-heading">Lo que ofrecemos</h2>
+        <div className="services-grid">
           {servicios.map(servicio => (
-            <div key={servicio.id} className="servicio-card">
-              <div className="servicio-header">
-                <div className="servicio-icon">{servicio.icono}</div>
-                <div>
-                  <h3 className="servicio-titulo">{servicio.titulo}</h3>
-                  <div className="servicio-precio">{servicio.precio}</div>
+            <div 
+              key={servicio.id}
+              className="service-item"
+              onClick={() => {
+                if (servicio.titulo === "Firma Electrónica") {
+                  onNavigate('firma-electronica');
+                } else if (servicio.titulo === "RUC con Antigüedad") {
+                  onNavigate('ruc-antiguedad');
+                } else if (servicio.titulo === "Reporte Equifax") {
+                  onNavigate('reporte-equifax');
+                }
+              }}
+            >
+              <div className="service-header">
+                <div className="service-icon-wrapper">
+                  <div className="service-icon">{servicio.icono}</div>
+          </div>
+                <h3 className="service-name">{servicio.titulo}</h3>
+                <p className="service-text">{servicio.descripcion}</p>
+          </div>
+              <div className="service-footer">
+                <div className="service-price-wrapper">
+                  <div className="service-price-label">Desde</div>
+                  <div className="service-price">{servicio.precio}</div>
+          </div>
+                <div className="service-meta-right">
+                  <span className="service-time">⏱️ {servicio.tiempo}</span>
+                  <span className="service-badge">Disponible</span>
                 </div>
               </div>
-              <p className="servicio-descripcion">{servicio.descripcion}</p>
-              <div className={`servicio-estado ${servicio.estado}`}>
-                {servicio.estado === 'disponible' && 'Disponible'}
-                {servicio.estado === 'proximamente' && 'Próximamente'}
-                {servicio.estado === 'desarrollo' && 'En Desarrollo'}
-              </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Estadísticas */}
+      <div className="stats-section">
+        <div className="stats-grid">
+          <div className="stat-item">
+            <div className="stat-value">10K+</div>
+            <div className="stat-label">Trámites</div>
+              </div>
+          <div className="stat-item">
+            <div className="stat-value">98%</div>
+            <div className="stat-label">Satisfacción</div>
+            </div>
+          <div className="stat-item">
+            <div className="stat-value">24/7</div>
+            <div className="stat-label">Soporte</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">100%</div>
+            <div className="stat-label">Seguro</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Beneficios */}
+      <div className="benefits-section">
+        <div className="section-label">Ventajas</div>
+        <h2 className="section-heading">¿Por qué elegirnos?</h2>
+        <div className="benefits-grid">
+          <div className="benefit-card">
+            <span className="benefit-emoji">🔒</span>
+            <h3 className="benefit-title">Seguridad</h3>
+            <p className="benefit-text">Encriptación de nivel empresarial</p>
+                </div>
+          <div className="benefit-card">
+            <span className="benefit-emoji">⚡</span>
+            <h3 className="benefit-title">Rapidez</h3>
+            <p className="benefit-text">Trámites en minutos</p>
+              </div>
+          <div className="benefit-card">
+            <span className="benefit-emoji">📱</span>
+            <h3 className="benefit-title">Digital</h3>
+            <p className="benefit-text">100% online</p>
+              </div>
+          <div className="benefit-card">
+            <span className="benefit-emoji">🎯</span>
+            <h3 className="benefit-title">Legal</h3>
+            <p className="benefit-text">Validez completa</p>
+            </div>
         </div>
       </div>
 
       {/* CTA Final */}
-      <div className="final-cta-section">
-        <div className="final-cta-content">
-          <h2 className="final-cta-title">🚀 ¿Listo para empezar?</h2>
-          <p className="final-cta-description">Únete a miles de ecuatorianos que ya confían en nosotros</p>
-          <div className="final-cta-buttons">
+      <div className="cta-section">
+        <h2 className="cta-heading">¿Listo para comenzar?</h2>
+        <p className="cta-text">
+          Únete a miles de empresas que confían en nosotros para sus trámites tributarios
+        </p>
+        <div className="cta-buttons">
             <button 
-              className="final-cta-button primary"
+            className="btn-primary"
               onClick={() => onNavigate('firma-electronica')}
             >
-              ✍️ Comenzar Ahora
+            Comenzar Ahora
             </button>
             <button 
-              className="final-cta-button secondary"
+            className="btn-secondary"
               onClick={() => onNavigate('consultar-estado')}
             >
-              🔍 Ver Estado
+            Consultar Estado
             </button>
-          </div>
         </div>
       </div>
     </div>
@@ -1137,4 +624,3 @@ const Home = ({ onNavigate }) => {
 };
 
 export default Home;
-

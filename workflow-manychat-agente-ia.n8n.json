@@ -1,0 +1,299 @@
+{
+  "name": "Agente IA ManyChat - Consultorio Contabilidad",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "manychat-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-manychat",
+      "name": "Webhook ManyChat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "manychat-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer datos del webhook de ManyChat\nconst body = $input.item.json.body || $input.item.json;\n\nconst identificacion = body.identificacion || body.wa_id || '';\nconst mensajeUsuario = body.mesaje_usuario || body.mensaje_usuario || body.message || '';\n\n// Retornar datos estructurados\nreturn {\n  json: {\n    identificacion: identificacion,\n    mensajeUsuario: mensajeUsuario.trim(),\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "extraer-datos",
+      "name": "Extraer Datos ManyChat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 500
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres un asistente virtual de un consultorio de contabilidad en Ecuador. Tu tarea es analizar los mensajes de los usuarios y determinar su intención.\n\nDebes clasificar el mensaje en una de estas categorías:\n1. SALUDO - Si el usuario está saludando (hola, buenos días, buenas tardes, etc.)\n2. INFO - Si el usuario requiere información general sobre servicios\n3. CONSULTAR_RUC - Si el usuario quiere consultar su RUC o el RUC de una empresa\n\nIMPORTANTE:\n- Si el mensaje contiene un número de 13 dígitos, es muy probable que sea una consulta de RUC\n- Si menciona palabras como 'RUC', 'ruc', 'consultar ruc', 'mi ruc', 'verificar ruc', etc., es CONSULTAR_RUC\n- Responde SOLO con un JSON válido en este formato exacto:\n{\n  \"intencion\": \"SALUDO\" | \"INFO\" | \"CONSULTAR_RUC\",\n  \"ruc\": \"número de 13 dígitos si se encuentra en el mensaje, o null\",\n  \"razon\": \"breve explicación de por qué clasificaste así\"\n}"
+            },
+            {
+              "role": "user",
+              "content": "=Analiza este mensaje del usuario: {{ $json.mensajeUsuario }}\n\nIdentificación del usuario: {{ $json.identificacion }}"
+            }
+          ]
+        }
+      },
+      "id": "agente-ia",
+      "name": "Agente IA - Analizar Intención",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parsear la respuesta del agente IA\nconst respuestaIA = $input.item.json;\n\nlet intencion = 'INFO';\nlet ruc = null;\nlet razon = 'No se pudo determinar la intención';\n\n// Intentar extraer JSON de la respuesta\nconst contenido = respuestaIA.content || respuestaIA.message || JSON.stringify(respuestaIA);\n\ntry {\n  // Buscar JSON en la respuesta (puede estar en markdown code blocks)\n  const jsonMatch = contenido.match(/\\{[^}]+\\}/s);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    intencion = parsed.intencion || intencion;\n    ruc = parsed.ruc || null;\n    razon = parsed.razon || razon;\n  } else {\n    // Si no hay JSON, intentar inferir de la respuesta\n    const contenidoLower = contenido.toLowerCase();\n    if (contenidoLower.includes('saludo') || contenidoLower.includes('hola')) {\n      intencion = 'SALUDO';\n    } else if (contenidoLower.includes('ruc') || contenidoLower.includes('consultar')) {\n      intencion = 'CONSULTAR_RUC';\n      // Intentar extraer RUC del mensaje original\n      const mensajeOriginal = $('Extraer Datos ManyChat').item.json.mensajeUsuario;\n      const rucMatch = mensajeOriginal.match(/\\d{13}/);\n      if (rucMatch) {\n        ruc = rucMatch[0];\n      }\n    }\n  }\n} catch (error) {\n  console.error('Error parseando respuesta IA:', error);\n  // Fallback: buscar RUC directamente en el mensaje original\n  const mensajeOriginal = $('Extraer Datos ManyChat').item.json.mensajeUsuario;\n  const rucMatch = mensajeOriginal.match(/\\d{13}/);\n  if (rucMatch) {\n    intencion = 'CONSULTAR_RUC';\n    ruc = rucMatch[0];\n    razon = 'RUC encontrado directamente en el mensaje';\n  }\n}\n\n// Si no se encontró RUC pero la intención es CONSULTAR_RUC, buscar en mensaje original\nif (intencion === 'CONSULTAR_RUC' && !ruc) {\n  const mensajeOriginal = $('Extraer Datos ManyChat').item.json.mensajeUsuario;\n  const rucMatch = mensajeOriginal.match(/\\d{13}/);\n  if (rucMatch) {\n    ruc = rucMatch[0];\n  }\n}\n\nreturn {\n  json: {\n    identificacion: $('Extraer Datos ManyChat').item.json.identificacion,\n    mensajeUsuario: $('Extraer Datos ManyChat').item.json.mensajeUsuario,\n    intencion: intencion,\n    ruc: ruc,\n    razon: razon,\n    respuestaIA: contenido\n  }\n};"
+      },
+      "id": "parsear-respuesta",
+      "name": "Parsear Respuesta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condicion-consultar-ruc",
+              "leftValue": "={{ $json.intencion }}",
+              "rightValue": "CONSULTAR_RUC",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-consultar-ruc",
+      "name": "¿Consultar RUC?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://eapcqcuzfkpqngbvjtmv.supabase.co/functions/v1/consultar-ruc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "TU_SUPABASE_ANON_KEY_AQUI"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer TU_SUPABASE_ANON_KEY_AQUI"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ruc",
+              "value": "={{ $json.ruc }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "consultar-ruc-api",
+      "name": "Consultar RUC API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear respuesta de consulta RUC\nconst datosRUC = $input.item.json;\nconst datosOriginales = $('Parsear Respuesta IA').item.json;\n\nlet mensajeRespuesta = '';\n\nif (datosRUC.success && datosRUC.data) {\n  const data = datosRUC.data;\n  mensajeRespuesta = `✅ *Consulta de RUC:* ${datosOriginales.ruc}\\n\\n`;\n  \n  if (data.razonSocial) {\n    mensajeRespuesta += `📋 *Razón Social:* ${data.razonSocial}\\n`;\n  }\n  if (data.nombreComercial) {\n    mensajeRespuesta += `🏢 *Nombre Comercial:* ${data.nombreComercial}\\n`;\n  }\n  if (data.estadoContribuyente) {\n    mensajeRespuesta += `📊 *Estado:* ${data.estadoContribuyente}\\n`;\n  }\n  if (data.actividadEconomica) {\n    mensajeRespuesta += `💼 *Actividad Económica:* ${data.actividadEconomica}\\n`;\n  }\n  if (data.fechaInicioActividades) {\n    mensajeRespuesta += `📅 *Fecha Inicio:* ${data.fechaInicioActividades}\\n`;\n  }\n  \n  if (data.representantes_legales && data.representantes_legales.length > 0) {\n    mensajeRespuesta += `\\n👤 *Representantes Legales:*\\n`;\n    data.representantes_legales.forEach((rep, idx) => {\n      mensajeRespuesta += `${idx + 1}. ${rep.nombre || 'N/A'}\\n`;\n    });\n  }\n} else {\n  mensajeRespuesta = `❌ No se pudo consultar el RUC ${datosOriginales.ruc}. `;\n  if (datosRUC.error) {\n    mensajeRespuesta += `Error: ${datosRUC.error}`;\n  } else {\n    mensajeRespuesta += `El RUC no fue encontrado en el sistema del SRI.`;\n  }\n}\n\nreturn {\n  json: {\n    identificacion: datosOriginales.identificacion,\n    mensajeRespuesta: mensajeRespuesta,\n    intencion: datosOriginales.intencion\n  }\n};"
+      },
+      "id": "formatear-respuesta-ruc",
+      "name": "Formatear Respuesta RUC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generar respuestas según la intención\nconst datos = $input.item.json;\nconst intencion = datos.intencion;\n\nlet mensajeRespuesta = '';\n\nif (intencion === 'SALUDO') {\n  mensajeRespuesta = `¡Hola! 👋\\n\\nBienvenido a nuestro consultorio de contabilidad. Estoy aquí para ayudarte.\\n\\nPuedo ayudarte con:\\n• Consultar información de RUC\\n• Información sobre nuestros servicios\\n• Resolver tus dudas contables\\n\\n¿En qué puedo asistirte hoy?`;\n} else if (intencion === 'INFO') {\n  mensajeRespuesta = `📋 *Información de Nuestros Servicios*\\n\\nOfrecemos:\\n\\n✅ Consultoría contable\\n✅ Asesoría fiscal\\n✅ Consulta de RUC y estados tributarios\\n✅ Elaboración de estados financieros\\n✅ Representación ante el SRI\\n\\nPara más información, puedes escribirnos o visitarnos.\\n\\n¿Te gustaría consultar tu RUC o necesitas otra información?`;\n} else if (intencion === 'CONSULTAR_RUC') {\n  // Si no se consultó RUC (no pasó por el if), pedir el RUC\n  if (!datos.ruc) {\n    mensajeRespuesta = `Para consultar un RUC, por favor proporciona el número de RUC de 13 dígitos.\\n\\nEjemplo: 1234567890001`;\n  } else {\n    // La respuesta ya viene formateada desde el nodo anterior\n    mensajeRespuesta = datos.mensajeRespuesta || `Consultando RUC: ${datos.ruc}...`;\n  }\n} else {\n  mensajeRespuesta = `No entendí tu mensaje. Por favor, puedes:\\n• Saludar para comenzar\\n• Pedir información sobre nuestros servicios\\n• Consultar un RUC proporcionando el número de 13 dígitos`;\n}\n\nreturn {\n  json: {\n    identificacion: datos.identificacion,\n    mensajeRespuesta: mensajeRespuesta,\n    intencion: intencion\n  }\n};"
+      },
+      "id": "generar-respuesta",
+      "name": "Generar Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge-respuestas",
+      "name": "Unir Respuestas",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"mensaje\": $json.mensajeRespuesta, \"identificacion\": $json.identificacion } }}",
+        "options": {}
+      },
+      "id": "responder-manychat",
+      "name": "Responder a ManyChat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook ManyChat": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos ManyChat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos ManyChat": {
+      "main": [
+        [
+          {
+            "node": "Agente IA - Analizar Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente IA - Analizar Intención": {
+      "main": [
+        [
+          {
+            "node": "Parsear Respuesta IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Respuesta IA": {
+      "main": [
+        [
+          {
+            "node": "¿Consultar RUC?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Consultar RUC?": {
+      "main": [
+        [
+          {
+            "node": "Consultar RUC API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar RUC API": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta RUC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta RUC": {
+      "main": [
+        [
+          {
+            "node": "Unir Respuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Unir Respuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir Respuestas": {
+      "main": [
+        [
+          {
+            "node": "Responder a ManyChat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
