@@ -1,0 +1,194 @@
+.gi-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.gi-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.gi-header h1 {
+  font-size: 32px;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.gi-header p {
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.gi-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gi-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.gi-panel {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.gi-panel h2 {
+  font-size: 20px;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+.gi-upload-area {
+  margin-bottom: 20px;
+}
+
+.gi-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #3b82f6;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.gi-upload-btn:hover {
+  background: #2563eb;
+}
+
+.gi-preview {
+  margin-top: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.gi-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gi-prompt-area {
+  margin-bottom: 20px;
+}
+
+.gi-prompt-area label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.gi-prompt-area textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.gi-prompt-area textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.gi-generate-btn {
+  width: 100%;
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
+
+.gi-generate-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.gi-generate-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.gi-spinner {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.gi-result {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.gi-result img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gi-download-btn {
+  width: 100%;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+
+.gi-download-btn:hover {
+  background: #2563eb;
+}
+
+@media (max-width: 768px) {
+  .gi-content {
+    grid-template-columns: 1fr;
+  }
+}

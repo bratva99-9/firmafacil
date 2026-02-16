@@ -10,6 +10,7 @@ import ConsultaPlacas from './ConsultaPlacas';
 import ConsultaCedula from './ConsultaCedula';
 import CorreosTool from './CorreosTool';
 import InformeSuperCompanias from './InformeSuperCompanias';
+import GeneracionImagenes from './GeneracionImagenes';
 import { supabase } from '../lib/supabase';
 // import CreateUser from './CreateUser';
 
@@ -588,7 +589,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
     switch (activeService) {
       case 'home':
         return <Home onNavigate={onServiceSelect} />;
-      
+
       case 'enviar-tramites':
         return (
           <div>
@@ -600,9 +601,9 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
               <div className="security-banner">
                 <span className="icon">🔒</span>
                 <div className="text">
-                Tus datos y documentos están protegidos bajo estándares internacionales de seguridad. Utilizamos cifrado TLS de 256 bits para garantizar la confidencialidad de la información transmitida.
-                    Cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador y aplicamos estrictas medidas para evitar accesos no autorizados.
-                    👉 La información proporcionada será utilizada únicamente para fines de verificación de identidad.
+                  Tus datos y documentos están protegidos bajo estándares internacionales de seguridad. Utilizamos cifrado TLS de 256 bits para garantizar la confidencialidad de la información transmitida.
+                  Cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador y aplicamos estrictas medidas para evitar accesos no autorizados.
+                  👉 La información proporcionada será utilizada únicamente para fines de verificación de identidad.
                 </div>
               </div>
             </div>
@@ -667,28 +668,28 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
             </div>
           </div>
         );
-      
+
       case 'firma-electronica':
         return (
           <div>
             <FormularioSolicitud user={user} onServiceSelect={onServiceSelect} onBack={() => onServiceSelect('home')} />
           </div>
         );
-      
+
       case 'ruc-antiguedad':
         return (
           <div>
             <FormularioRUC user={user} />
           </div>
         );
-      
+
       case 'consultar-estado':
         return (
           <div>
             <ConsultarEstado user={user} />
           </div>
         );
-      
+
       case 'trabajar-nosotros':
         return (
           <div>
@@ -703,10 +704,10 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
               <span className="coming-soon-icon">🤝</span>
               <h2 className="coming-soon-title">Próximamente</h2>
               <p className="coming-soon-description">
-                Portal de oportunidades laborales en desarrollo. 
+                Portal de oportunidades laborales en desarrollo.
                 Pronto podrás ver las vacantes disponibles y aplicar directamente.
               </p>
-              <button 
+              <button
                 className="back-button"
                 onClick={() => onServiceSelect('home')}
               >
@@ -715,7 +716,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
             </div>
           </div>
         );
-      
+
       case 'ayuda':
         return (
           <div>
@@ -733,46 +734,46 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                 <div className="faq-item">
                   <h3 className="faq-question">¿Qué es una Firma Electrónica?</h3>
                   <p className="faq-answer">
-                    Es un certificado digital que te permite firmar documentos electrónicamente con la misma validez legal que una firma manuscrita. 
+                    Es un certificado digital que te permite firmar documentos electrónicamente con la misma validez legal que una firma manuscrita.
                     Es válido para facturación electrónica y trámites gubernamentales.
                   </p>
                 </div>
-                
+
                 <div className="faq-item">
                   <h3 className="faq-question">¿Cuánto tiempo toma obtener mi RUC con Antigüedad?</h3>
                   <p className="faq-answer">
                     El proceso completo toma aproximadamente 3 horas hábiles. Te notificaremos por email cuando esté listo para descargar.
                   </p>
                 </div>
-                
+
                 <div className="faq-item">
                   <h3 className="faq-question">¿Es seguro subir mis documentos?</h3>
                   <p className="faq-answer">
-                    Sí, utilizamos cifrado TLS de 256 bits y cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador. 
+                    Sí, utilizamos cifrado TLS de 256 bits y cumplimos con la Ley Orgánica de Protección de Datos Personales del Ecuador.
                     Tus documentos se almacenan de forma segura y solo son utilizados para los trámites solicitados.
                   </p>
                 </div>
-                
+
                 <div className="faq-item">
                   <h3 className="faq-question">¿Qué documentos necesito para cada servicio?</h3>
                   <p className="faq-answer">
-                    <strong>Firma Electrónica:</strong> Solo tu Cédula de identidad.<br/>
-                    <strong>RUC con Antigüedad:</strong> Cédula de identidad y planilla de luz.<br/>
+                    <strong>Firma Electrónica:</strong> Solo tu Cédula de identidad.<br />
+                    <strong>RUC con Antigüedad:</strong> Cédula de identidad y planilla de luz.<br />
                     <strong>Reporte Equifax:</strong> Numero de Cédula de identidad.
                   </p>
                 </div>
-                
+
                 <div className="faq-item">
                   <h3 className="faq-question">¿Cómo puedo consultar el estado de mi trámite?</h3>
                   <p className="faq-answer">
                     Ve a la sección "Consultar mis trámites" en el menú lateral. Ingresa tu número de cédula y podrás ver el estado actual de todos tus trámites.
                   </p>
                 </div>
-                
+
                 <div className="faq-item">
                   <h3 className="faq-question">¿Qué métodos de pago aceptan?</h3>
                   <p className="faq-answer">
-                    Aceptamos transferencias bancarias, tarjetas de crédito/débito, PayPal y pagos en efectivo en nuestras oficinas. 
+                    Aceptamos transferencias bancarias, tarjetas de crédito/débito, PayPal y pagos en efectivo en nuestras oficinas.
                     Todos los precios incluyen IVA.
                   </p>
                 </div>
@@ -794,7 +795,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                     <li>Recibe tu certificado por email en 30 minutos</li>
                   </ol>
                 </div>
-                
+
                 <div className="guide-card">
                   <div className="guide-icon">📊</div>
                   <h3 className="guide-title">Proceso para RUC con Antigüedad</h3>
@@ -806,7 +807,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                     <li>Recibe tu reporte en 3 horas hábiles</li>
                   </ol>
                 </div>
-                
+
                 <div className="guide-card">
                   <div className="guide-icon">📈</div>
                   <h3 className="guide-title">Solicitar Reporte Equifax</h3>
@@ -831,21 +832,21 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                   <p className="contact-info">soporte@ecucontable.com</p>
                   <p className="contact-description">Respuesta en 24 horas</p>
                 </div>
-                
+
                 <div className="contact-card">
                   <div className="contact-icon">📱</div>
                   <h3 className="contact-title">WhatsApp</h3>
                   <p className="contact-info">+593 99 123 4567</p>
                   <p className="contact-description">Atención inmediata</p>
                 </div>
-                
+
                 <div className="contact-card">
                   <div className="contact-icon">🏢</div>
                   <h3 className="contact-title">Oficina</h3>
                   <p className="contact-info">Av. Amazonas N12-34, Quito</p>
                   <p className="contact-description">Lunes a Viernes 8:00-18:00</p>
                 </div>
-                
+
                 <div className="contact-card">
                   <div className="contact-icon">💬</div>
                   <h3 className="contact-title">Chat en Vivo</h3>
@@ -862,31 +863,31 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
                 <div className="troubleshooting-item">
                   <h3 className="troubleshooting-title">❌ Error al subir documentos</h3>
                   <p className="troubleshooting-solution">
-                    <strong>Solución:</strong> Verifica que el archivo sea PDF, JPG o PNG y no exceda 5MB. 
+                    <strong>Solución:</strong> Verifica que el archivo sea PDF, JPG o PNG y no exceda 5MB.
                     Asegúrate de que la imagen esté clara y legible.
                   </p>
                 </div>
-                
+
                 <div className="troubleshooting-item">
                   <h3 className="troubleshooting-title">⏳ Mi trámite está demorado</h3>
                   <p className="troubleshooting-solution">
-                    <strong>Solución:</strong> Los tiempos pueden variar según la carga del SRI. 
+                    <strong>Solución:</strong> Los tiempos pueden variar según la carga del SRI.
                     Si excede el tiempo estimado, contacta a soporte con tu número de trámite.
                   </p>
                 </div>
-                
+
                 <div className="troubleshooting-item">
                   <h3 className="troubleshooting-title">💳 Problema con el pago</h3>
                   <p className="troubleshooting-solution">
-                    <strong>Solución:</strong> Verifica que tu tarjeta tenga fondos suficientes. 
+                    <strong>Solución:</strong> Verifica que tu tarjeta tenga fondos suficientes.
                     Si el problema persiste, intenta con otro método de pago o contacta a tu banco.
                   </p>
                 </div>
-                
+
                 <div className="troubleshooting-item">
                   <h3 className="troubleshooting-title">📧 No recibo emails</h3>
                   <p className="troubleshooting-solution">
-                    <strong>Solución:</strong> Revisa tu carpeta de spam. 
+                    <strong>Solución:</strong> Revisa tu carpeta de spam.
                     Si no encuentras los emails, verifica que el correo esté correcto en tu perfil o en tu soliciutd de tramite.
                   </p>
                 </div>
@@ -894,12 +895,12 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
             </div>
           </div>
         );
-      
+
       case 'herramientas':
         return (
           <HerramientasSection />
         );
-      
+
       default:
         return <Home onNavigate={onServiceSelect} />;
     }
@@ -1120,6 +1121,11 @@ function HerramientasSection() {
             <div className="tool-title">Estado Tributario SRI</div>
             <p className="tool-desc">Ejecuta el flujo de captcha y token para consultas avanzadas.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('generacion-imagenes')}>
+            <div className="tool-icon">📸</div>
+            <div className="tool-title">Generar Cédula y Selfie</div>
+            <p className="tool-desc">Genera cédula digital y selfie de verificación con IA.</p>
+          </div>
         </div>
       )}
 
@@ -1150,6 +1156,11 @@ function HerramientasSection() {
       )}
       {autenticado && abierta === 'estado-tributario' && (
         <EstadoTributarioTool />
+      )}
+      {autenticado && abierta === 'generacion-imagenes' && (
+        <div className="tool-panel" style={{ padding: 0 }}>
+          <GeneracionImagenes />
+        </div>
       )}
     </div>
   )
@@ -1231,7 +1242,7 @@ function EstadoTributarioTool() {
         heightLeft -= pageHeight
       }
 
-      const nombreArchivo = `Estado_Tributario_${ruc || 'contribuyente'}_${new Date().toISOString().slice(0,10)}.pdf`
+      const nombreArchivo = `Estado_Tributario_${ruc || 'contribuyente'}_${new Date().toISOString().slice(0, 10)}.pdf`
       pdf.save(nombreArchivo)
     } catch (e) {
       console.error('Error al generar PDF de estado tributario:', e)
@@ -1327,8 +1338,8 @@ function EstadoTributarioTool() {
         const detalleListado = Array.isArray(detalleDeudas?.detalleDeudas)
           ? detalleDeudas.detalleDeudas
           : Array.isArray(detalleDeudas)
-          ? detalleDeudas
-          : []
+            ? detalleDeudas
+            : []
 
         const primeraDeuda = detalleListado[0] || {}
         const razonSocial = primeraDeuda.razonSocial || et.razonSocial || ''
@@ -1365,7 +1376,7 @@ function EstadoTributarioTool() {
           <div className="et-result" ref={pdfRef} style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#ffffff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
             {/* Contenedor principal */}
             <div style={{ position: 'relative', zIndex: 1, maxWidth: 800, margin: '0 auto', padding: '40px 50px', backgroundColor: '#ffffff' }}>
-              
+
               {/* Encabezado elegante */}
               <div style={{ marginBottom: '35px', borderBottom: '2px solid #1a1a1a', paddingBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
@@ -1411,8 +1422,8 @@ function EstadoTributarioTool() {
               {/* Introducción breve */}
               <div style={{ marginBottom: '30px' }}>
                 <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginBottom: '12px', textAlign: 'justify' }}>
-                  Por medio de la presente, nos complace presentar nuestra cotización de servicios contables y tributarios, 
-                  basada en el análisis del estado tributario obtenido del Servicio de Rentas Internas (SRI). 
+                  Por medio de la presente, nos complace presentar nuestra cotización de servicios contables y tributarios,
+                  basada en el análisis del estado tributario obtenido del Servicio de Rentas Internas (SRI).
                   Nuestra propuesta incluye la revisión, preparación y presentación de todas las obligaciones pendientes identificadas.
                 </p>
                 <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', textAlign: 'justify' }}>
@@ -1425,7 +1436,7 @@ function EstadoTributarioTool() {
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a1a', marginBottom: '18px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #e5e5e5', paddingBottom: '8px' }}>
                   Detalle de Servicios y Honorarios
                 </div>
-                
+
                 {/* Obligaciones pendientes de presentación */}
                 {gruposPendientes.length > 0 && (
                   <div style={{ marginBottom: '25px' }}>
@@ -1557,8 +1568,8 @@ function EstadoTributarioTool() {
               {/* Cierre profesional */}
               <div style={{ marginTop: '30px', marginBottom: '30px' }}>
                 <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginBottom: '12px', textAlign: 'justify' }}>
-                  La presente cotización tiene una vigencia de 15 días calendario a partir de la fecha de emisión. 
-                  Los valores indicados son referenciales y podrán ajustarse según el volumen de documentación y 
+                  La presente cotización tiene una vigencia de 15 días calendario a partir de la fecha de emisión.
+                  Los valores indicados son referenciales y podrán ajustarse según el volumen de documentación y
                   necesidades específicas del contribuyente.
                 </p>
                 <p style={{ fontSize: '12px', color: '#1a1a1a', lineHeight: '1.8', marginBottom: '12px', textAlign: 'justify' }}>
