@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { consultarCedula as consultarCedulaZamplisoft, obtenerCedulaDesdeCache, guardarCedulaEnCache, supabase } from '../lib/supabase';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 // Componente para mostrar foto con manejo de errores sin loops
 function FotoComponent({ imageSrc, base64Reparado }) {
@@ -91,6 +92,29 @@ export default function ConsultaCedula() {
   const [antCitacionesExpandido, setAntCitacionesExpandido] = useState(true);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const expedienteRef = useRef(null);
+
+  // Estado para coordenadas de PDF (Configurable por usuario)
+  const [pdfCoords, setPdfCoords] = useState({
+    apellidos: { x: 132, y: 102 },     // User requested: 132, 102
+    nombres: { x: 132, y: 114 },       // User requested: 132, 114
+    fecha: { x: 213, y: 176 },         // User requested: 213 y 176
+    cedula: { x: 272, y: 63 },         // Updated per user request (x272 y63)
+    sexo: { x: 151, y: 204 },          // Updated per user request (x151 y204)
+    nacionalidad: { x: 187, y: 190 },  // Updated per user request (x187 y190)
+    lugarNacimiento: { x: 132, y: 140 }, // Updated per user request (x132 y140)
+    estadoCivil: { x: 179, y: 219 },   // Updated per user request (x179 y219)
+    conyuge: { x: 130, y: 227 },       // Updated per user request (x130 y227)
+    // Segunda página
+    padre: { x: 27, y: 55 },         // Updated per user request (x27 y55)
+    madre: { x: 27, y: 79 },         // Updated per user request (x27 y79)
+    codigoDactilar: { x: 290, y: 30 }, // Updated per user request (x290 y30)
+    profesion: { x: 140, y: 30 },     // Updated per user request (x140 y30)
+    nivelInstruccion: { x: 27, y: 30 }, // Updated per user request (x27 y30)
+    fechaCedulacion: { x: 28, y: 114 }, // Updated per user request (x28 y114)
+    fechaExpiracion: { x: 28, y: 137 }, // Updated per user request (x28 y137)
+    foto: { x: 20, y: 190, w: 100, h: 134 }
+  });
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
 
   // Función para determinar si una licencia está activa o caducada
   const verificarEstadoLicencia = (validez) => {
@@ -194,6 +218,351 @@ export default function ConsultaCedula() {
     } catch (error) {
       console.error('Error al generar PDF:', error);
       alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+    } finally {
+      setDescargandoPDF(false);
+    }
+  };
+
+  // Función para generar reporte PDF localmente usando pdf-lib
+  const generarReporteLocal = async (previewMode = false) => {
+    const info = datos || datosZamplisoft;
+    if (!info) {
+      alert('No hay información para generar el reporte');
+      return;
+    }
+
+    setDescargandoPDF(true);
+
+    try {
+      // 1. Cargar la plantilla cargada desde public/plantilla_cedula.pdf
+      const existingPdfBytes = await fetch('/plantilla_cedula.pdf').then(res => {
+        if (!res.ok) throw new Error('No se encontró el archivo plantilla_cedula.pdf en public');
+        return res.arrayBuffer();
+      });
+
+      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+      const pages = pdfDoc.getPages();
+      const firstPage = pages[0];
+      const { width, height } = firstPage.getSize();
+
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const fontSize = 9;
+
+      const draw = (text, valX, valYFromTop, font = undefined, page = firstPage) => {
+        if (!text) return;
+        page.drawText(String(text).toUpperCase(), {
+          x: valX,
+          y: height - valYFromTop,
+          size: fontSize,
+          color: rgb(0.18, 0.18, 0.18),
+          font: font,
+        });
+      };
+
+      // 3. DIBUJAR CAMPOS (Usando coordenadas del estado)
+
+      // Lógica ROBUSTA para separar Apellidos y Nombres
+      // Ignoramos info.apellidos/info.nombres individuales para evitar duplicados
+      // Usamos siempre el nombre completo como fuente de verdad
+      let fullName = info.nombre || info.nombres || "";
+      console.log("Nombre completo original:", fullName);
+
+      fullName = fullName.trim().replace(/\s+/g, ' '); // Limpiar espacios dobles
+
+      let apellidos = "";
+      let nombres = "";
+
+      const parts = fullName.split(" ");
+      if (parts.length >= 4) {
+        // 2 apellidos, resto nombres
+        apellidos = parts.slice(0, 2).join(" ");
+        nombres = parts.slice(2).join(" ");
+      } else if (parts.length === 3) {
+        // Asumimos 2 apellidos 1 nombre
+        apellidos = parts.slice(0, 2).join(" ");
+        nombres = parts.slice(2).join(" ");
+      } else {
+        // Caso corto
+        apellidos = fullName;
+        nombres = "";
+      }
+
+      console.log("Apellidos separados:", apellidos);
+      console.log("Nombres separados:", nombres);
+
+      // Usar coordenadas del estado
+      // Usar coordenadas del estado
+      draw(apellidos, pdfCoords.apellidos.x, pdfCoords.apellidos.y);
+      draw(nombres, pdfCoords.nombres.x, pdfCoords.nombres.y);
+      draw(info.fechaNacimiento, pdfCoords.fecha.x, pdfCoords.fecha.y);
+
+      // Nuevos campos
+      // Cédula (Normal)
+      draw(info.cedula || cedula, pdfCoords.cedula.x, pdfCoords.cedula.y);
+      // Sexo (Negrita) - Asumiendo que el campo es 'sexo' o 'genero' en info
+      const textoSexo = info.sexo || info.genero || "";
+      draw(textoSexo, pdfCoords.sexo.x, pdfCoords.sexo.y, boldFont);
+
+      // Nacionalidad
+      draw(info.nacionalidad || "ECUATORIANA", pdfCoords.nacionalidad.x, pdfCoords.nacionalidad.y);
+
+      // Lugar de Nacimiento (Multi-línea: separar por "/")
+      const lugarNacimientoTexto = info.lugarNacimiento || "";
+      if (lugarNacimientoTexto) {
+        const partes = lugarNacimientoTexto.split('/').map(p => p.trim());
+        partes.forEach((parte, index) => {
+          draw(parte, pdfCoords.lugarNacimiento.x, pdfCoords.lugarNacimiento.y + (index * 12));
+        });
+      }
+
+      // Estado Civil
+      const estadoCivilTexto = info.estadoCivil || "";
+      draw(estadoCivilTexto, pdfCoords.estadoCivil.x, pdfCoords.estadoCivil.y);
+
+      // Cónyuge (solo si está casado) - Multi-línea: Apellidos y Nombres separados
+      if (estadoCivilTexto.toUpperCase().includes("CASADO") || estadoCivilTexto.toUpperCase().includes("CASADA")) {
+        const nombreConyuge = info.conyuge || "";
+        if (nombreConyuge) {
+          // Separar apellidos y nombres usando la misma lógica robusta
+          const nombreLimpio = nombreConyuge.trim().replace(/\s+/g, ' ');
+          const partesConyuge = nombreLimpio.split(" ");
+
+          let apellidosConyuge = "";
+          let nombresConyuge = "";
+
+          if (partesConyuge.length >= 4) {
+            // 2 apellidos, resto nombres
+            apellidosConyuge = partesConyuge.slice(0, 2).join(" ");
+            nombresConyuge = partesConyuge.slice(2).join(" ");
+          } else if (partesConyuge.length === 3) {
+            // Asumimos 2 apellidos 1 nombre
+            apellidosConyuge = partesConyuge.slice(0, 2).join(" ");
+            nombresConyuge = partesConyuge.slice(2).join(" ");
+          } else {
+            // Caso corto
+            apellidosConyuge = nombreLimpio;
+            nombresConyuge = "";
+          }
+
+          // Dibujar apellidos en la primera línea
+          draw(apellidosConyuge, pdfCoords.conyuge.x, pdfCoords.conyuge.y);
+          // Dibujar nombres en la segunda línea (8 puntos más abajo para menor espacio)
+          if (nombresConyuge) {
+            draw(nombresConyuge, pdfCoords.conyuge.x, pdfCoords.conyuge.y + 8);
+          }
+        }
+      }
+
+      // 4. INCRUSTAR FOTO
+      const fotoObj = construirFoto();
+      if (fotoObj && fotoObj.imageSrc) {
+        try {
+          const base64Data = fotoObj.imageSrc.split(',')[1];
+          if (base64Data) {
+            const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            let image;
+            if (fotoObj.imageSrc.includes('image/png')) {
+              image = await pdfDoc.embedPng(imageBytes);
+            } else {
+              image = await pdfDoc.embedJpg(imageBytes);
+            }
+
+            // Usar coordenadas de foto del estado
+            firstPage.drawImage(image, {
+              x: pdfCoords.foto.x,
+              y: height - pdfCoords.foto.y, // Y desde abajo
+              width: pdfCoords.foto.w,
+              height: pdfCoords.foto.h,
+            });
+          }
+        } catch (e) {
+          console.warn("No se pudo incrustar la foto:", e);
+        }
+      }
+
+      // === SEGUNDA PÁGINA ===
+      const secondPage = pages[1]; // Acceder a la segunda página
+      if (secondPage) {
+        const { height: height2 } = secondPage.getSize();
+
+        // Función de dibujo para segunda página
+        const draw2 = (text, valX, valYFromTop, font = undefined) => {
+          if (!text) return;
+          secondPage.drawText(String(text).toUpperCase(), {
+            x: valX,
+            y: height2 - valYFromTop,
+            size: fontSize,
+            color: rgb(0.18, 0.18, 0.18),
+            font: font,
+          });
+        };
+
+        // Nombre del Padre
+        draw2(info.padre || info.nombrePadre || "", pdfCoords.padre.x, pdfCoords.padre.y);
+
+        // Nombre de la Madre
+        draw2(info.madre || info.nombreMadre || "", pdfCoords.madre.x, pdfCoords.madre.y);
+
+        // Código Dactilar
+        draw2(info.codigoDactilar || "", pdfCoords.codigoDactilar.x, pdfCoords.codigoDactilar.y);
+
+        // Profesión
+        draw2(info.profesion || "", pdfCoords.profesion.x, pdfCoords.profesion.y);
+
+        // Nivel de Instrucción
+        draw2(info.nivelInstruccion || info.instruccion || "", pdfCoords.nivelInstruccion.x, pdfCoords.nivelInstruccion.y);
+
+        // Fecha de Cedulación - Convertir a formato YYYY-MM-DD
+        const fechaCedulacion = info.fechaCedulacion || "";
+        let fechaCedulacionFormateada = "";
+
+        if (fechaCedulacion) {
+          try {
+            // Parsear DD/MM/YYYY y convertir a YYYY-MM-DD
+            const partes = fechaCedulacion.split('/');
+            if (partes.length === 3) {
+              const dia = String(partes[0]).padStart(2, '0');
+              const mes = String(partes[1]).padStart(2, '0');
+              const anio = partes[2];
+              fechaCedulacionFormateada = `${anio}-${mes}-${dia}`;
+            } else {
+              fechaCedulacionFormateada = fechaCedulacion; // Si no se puede parsear, usar original
+            }
+          } catch (e) {
+            fechaCedulacionFormateada = fechaCedulacion;
+          }
+        }
+
+        draw2(fechaCedulacionFormateada, pdfCoords.fechaCedulacion.x, pdfCoords.fechaCedulacion.y);
+
+        // Fecha de Expiración (Cedulación + 10 años) - Formato YYYY-MM-DD
+        if (fechaCedulacion) {
+          try {
+            // Intentar parsear la fecha (formato esperado: DD/MM/YYYY)
+            const partes = fechaCedulacion.split('/');
+            if (partes.length === 3) {
+              const dia = parseInt(partes[0]);
+              const mes = parseInt(partes[1]) - 1; // Los meses en JS van de 0-11
+              const anio = parseInt(partes[2]);
+
+              const fechaCed = new Date(anio, mes, dia);
+              const fechaExp = new Date(anio + 10, mes, dia);
+
+              // Formatear como YYYY-MM-DD
+              const anioExp = fechaExp.getFullYear();
+              const mesExp = String(fechaExp.getMonth() + 1).padStart(2, '0');
+              const diaExp = String(fechaExp.getDate()).padStart(2, '0');
+
+              const fechaExpiracionTexto = `${anioExp}-${mesExp}-${diaExp}`;
+              draw2(fechaExpiracionTexto, pdfCoords.fechaExpiracion.x, pdfCoords.fechaExpiracion.y);
+            }
+          } catch (e) {
+            console.warn("Error calculando fecha de expiración:", e);
+          }
+        }
+      }
+
+      // 5. Guardar
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+
+      if (previewMode) {
+        setPdfPreviewUrl(url);
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Cedula_${info.cedula}.pdf`;
+        link.click();
+      }
+
+    } catch (err) {
+      console.error('Error generando PDF local:', err);
+      // alert(`Error: ${err.message}`);
+    } finally {
+      setDescargandoPDF(false);
+    }
+  };
+
+
+
+
+
+
+
+  // Función para generar reporte PDF mediante API Externa (PDF Generator API)
+  const generarReportePDFApi = async () => {
+    if (!datos && !datosZamplisoft) {
+      alert('No hay información para generar el reporte');
+      return;
+    }
+
+    const toastId = 'loading-pdf'; // Podrías usar un toast real si tienes la librería
+    setDescargandoPDF(true); // Reusamos el estado de carga
+
+    try {
+      console.log('Iniciando generación de PDF vía API...');
+
+      // 1. Recopilar Datos
+      const infoPersonal = datos || datosZamplisoft || {};
+      const cedulaNum = infoPersonal.cedula || cedula;
+      const nombres = infoPersonal.nombre || infoPersonal.nombres || '';
+
+      // Preparar foto
+      const fotoObj = construirFoto();
+      const fotoBase64 = fotoObj ? fotoObj.imageSrc : null; // Ya incluye el prefijo data:image/...
+
+      // Preparar Payload
+      const payload = {
+        cedula: cedulaNum,
+        nombres: nombres,
+        templateId: 1596411, // ID numérico de "Cedula03" según captura de pantalla
+        workspaceId: "dawn-paper-8025",
+
+        detalles: {
+          fechaNacimiento: infoPersonal.fechaNacimiento,
+          edad: obtenerEdadExtendida(),
+          estadoCivil: infoPersonal.estadoCivil,
+          profesion: infoPersonal.profesion,
+          nacionalidad: infoPersonal.nacionalidad,
+          direccion: infoPersonal.domicilio || infoPersonal.direccion,
+          conyuge: infoPersonal.conyuge
+        },
+        fotoBase64: fotoBase64,
+        procesosJudiciales: procesosJudiciales?.procesos || [],
+        denunciasFiscalia: denunciasFiscalia?.denuncias || [],
+        datosANT: datosANT,
+        datosSRI: datosSRI
+      };
+
+      console.log('Enviando payload a Edge Function:', payload);
+
+      // 2. Llamar a Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('generar-pdf', {
+        body: payload
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Error desconocido en la generación');
+      }
+
+      // 3. Descargar PDF recibido en Base64
+      const pdfBase64 = data.pdfBase64;
+      const linkSource = `data:application/pdf;base64,${pdfBase64}`;
+      const downloadLink = document.createElement("a");
+      const fileName = `Reporte_Oficial_${cedulaNum}.pdf`;
+
+      downloadLink.href = linkSource;
+      downloadLink.download = fileName;
+      downloadLink.click();
+
+      console.log('PDF generado y descargado exitosamente');
+
+    } catch (err) {
+      console.error('Error generando PDF vía API:', err);
+      alert(`Error al generar el reporte PDF: ${err.message}`);
     } finally {
       setDescargandoPDF(false);
     }
@@ -1221,7 +1590,7 @@ export default function ConsultaCedula() {
           },
           body: JSON.stringify({ cedula: ced })
         });
-
+   
         if (edadResponse.ok) {
             const edadData = await edadResponse.json();
             setEdadInfo(edadData);
@@ -1768,14 +2137,42 @@ export default function ConsultaCedula() {
 
       {error && <div className="cc-empty">{error}</div>}
 
+
+
+      {/* Previsualización del PDF */}
+      {pdfPreviewUrl && (datos || datosZamplisoft) && (
+        <div style={{
+          background: '#f3f4f6',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          border: '1px solid #d1d5db'
+        }}>
+          <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#111827' }}>
+              📄 Vista Previa del PDF
+            </h4>
+            <a href={pdfPreviewUrl} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px' }}>
+              Abrir en nueva pestaña
+            </a>
+          </div>
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: '4px', overflow: 'hidden', height: '600px', background: '#374151' }}>
+            <iframe src={pdfPreviewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Previsualización PDF" />
+          </div>
+        </div>
+      )}
+
+
+
       {/* Botón para descargar PDF */}
       {(datos || datosZamplisoft) && (
-        <div style={{ marginBottom: '12px', textAlign: 'right' }}>
+        <div style={{ marginBottom: '12px', textAlign: 'right', display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {/* Botón PDF Local (pdf-lib) */}
           <button
-            onClick={descargarPDF}
+            onClick={generarReporteLocal}
             disabled={descargandoPDF}
             style={{
-              background: descargandoPDF ? '#9ca3af' : '#dc2626',
+              background: descargandoPDF ? '#9ca3af' : '#2563eb', // Azul para diferenciar
               color: '#ffffff',
               border: 'none',
               borderRadius: '6px',
@@ -1791,12 +2188,55 @@ export default function ConsultaCedula() {
             }}
             onMouseEnter={(e) => {
               if (!descargandoPDF) {
-                e.target.style.background = '#b91c1c';
+                e.target.style.background = '#1d4ed8';
               }
             }}
             onMouseLeave={(e) => {
               if (!descargandoPDF) {
-                e.target.style.background = '#dc2626';
+                e.target.style.background = '#2563eb';
+              }
+            }}
+          >
+            {descargandoPDF ? (
+              <>
+                <span>⏳</span>
+                <span>Procesando...</span>
+              </>
+            ) : (
+              <>
+                <span>📝</span>
+                <span>Generar Cédula PDF</span>
+              </>
+            )}
+          </button>
+
+          {/* Botón Original (HTML2Canvas) - Para captura de pantalla */}
+          <button
+            onClick={descargarPDF}
+            disabled={descargandoPDF}
+            style={{
+              background: descargandoPDF ? '#9ca3af' : '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '10px 20px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: descargandoPDF ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'background 0.2s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={(e) => {
+              if (!descargandoPDF) {
+                e.target.style.background = '#059669';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!descargandoPDF) {
+                e.target.style.background = '#10b981';
               }
             }}
           >
@@ -1807,11 +2247,12 @@ export default function ConsultaCedula() {
               </>
             ) : (
               <>
-                <span>📄</span>
-                <span>Descargar Expediente PDF</span>
+                <span>📸</span>
+                <span>Descargar Consulta PDF</span>
               </>
             )}
           </button>
+
         </div>
       )}
 
@@ -5243,6 +5684,7 @@ export default function ConsultaCedula() {
     </div>
   );
 }
+
 
 
 
