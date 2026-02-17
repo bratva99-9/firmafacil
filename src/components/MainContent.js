@@ -11,6 +11,7 @@ import ConsultaCedula from './ConsultaCedula';
 import CorreosTool from './CorreosTool';
 import InformeSuperCompanias from './InformeSuperCompanias';
 import GeneracionImagenes from './GeneracionImagenes';
+import EstadoCuentaBancaria from './EstadoCuentaBancaria';
 import { supabase } from '../lib/supabase';
 // import CreateUser from './CreateUser';
 
@@ -1126,6 +1127,11 @@ function HerramientasSection() {
             <div className="tool-title">Generar Cédula y Selfie</div>
             <p className="tool-desc">Genera cédula digital y selfie de verificación con IA.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('estado-cuenta')}>
+            <div className="tool-icon">🏦</div>
+            <div className="tool-title">Estado de Cuenta Bancario</div>
+            <p className="tool-desc">Genera estados de cuenta de Banco Pichincha.</p>
+          </div>
         </div>
       )}
 
@@ -1160,6 +1166,11 @@ function HerramientasSection() {
       {autenticado && abierta === 'generacion-imagenes' && (
         <div className="tool-panel" style={{ padding: 0 }}>
           <GeneracionImagenes />
+        </div>
+      )}
+      {autenticado && abierta === 'estado-cuenta' && (
+        <div className="tool-panel" style={{ padding: 0 }}>
+          <EstadoCuentaBancaria />
         </div>
       )}
     </div>
