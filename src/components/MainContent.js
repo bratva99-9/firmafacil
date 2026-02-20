@@ -929,7 +929,7 @@ function HerramientasSection() {
 
   const validarPin = (e) => {
     e.preventDefault();
-    if (pin.trim() === '112677') {
+    if (pin.trim() === '1199') {
       setAutenticado(true);
       setPinError('');
     } else {

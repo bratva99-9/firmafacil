@@ -32,15 +32,23 @@ function EstadoCuentaBancaria() {
         cicloPagina1FontSize: 10,
 
         // Fechas de Corte (Página 1)
-        fechaCorteInicioX: 450,
-        fechaCorteInicioY: 100,
-        fechaCorteInicioFontSize: 11,
+        fechaCorteInicioX: 523, fechaCorteInicioY: 139, fechaCorteInicioFontSize: 10,
+        fechaCorteFinX: 523, fechaCorteFinY: 155, fechaCorteFinFontSize: 10,
+        // Posición 2 para Fechas de Corte
+        fechaCorteInicio2X: 522, fechaCorteInicio2Y: 396, fechaCorteInicio2FontSize: 9,
+        fechaCorteFin2X: 522, fechaCorteFin2Y: 413, fechaCorteFin2FontSize: 9,
 
-        fechaCorteFinX: 450,
-        fechaCorteFinY: 115,
-        fechaCorteFinFontSize: 11,
+        // Resumen de Cuenta (Página 1)
+        saldoAnteriorX: 568, saldoAnteriorY: 431, saldoAnteriorFontSize: 9,
+        cantDepositosX: 479, cantDepositosY: 448, cantDepositosFontSize: 9,
+        depositosX: 568, depositosY: 448, depositosFontSize: 9,
+        cantChequesX: 479, cantChequesY: 466, cantChequesFontSize: 9,
+        chequesX: 568, chequesY: 466, chequesFontSize: 9,
+        interesX: 568, interesY: 484, interesFontSize: 9,
+        saldoActualX: 568, saldoActualY: 501, saldoActualFontSize: 9,
+        saldoPromedioX: 568, saldoPromedioY: 519, saldoPromedioFontSize: 9,
 
-        // Página 2 - Transacciones
+        // Encabezado (Páginas intermedias)
         transaccionesInicioY: 242,
         transaccionesColumna1X: 23,
         transaccionesColumna2X: 320,
@@ -91,6 +99,14 @@ function EstadoCuentaBancaria() {
         tipoCuenta: 'AHORROS',
         periodo: '',
         saldoInicial: 0,
+        saldoAnterior: '4.62',
+        cantDepositos: '(86)',
+        depositos: '2222.18',
+        cantCheques: '(200)',
+        cheques: '2224.36',
+        interes: '0.00',
+        saldoActual: '2.44',
+        saldoPromedio: '56.43',
         cedula: '0958398984', // Cédula del cliente
         ciclo: '1', // Ciclo 1-5
         anio: new Date().getFullYear(),
@@ -167,6 +183,15 @@ function EstadoCuentaBancaria() {
             tipoCuenta: 'AHORROS',
             periodo: 'Noviembre 2024',
             saldoInicial: 500.00,
+            // Valores de prueba
+            saldoAnterior: '4.62',
+            cantDepositos: '(86)',
+            depositos: '2222.18',
+            cantCheques: '(200)',
+            cheques: '2224.36',
+            interes: '0.00',
+            saldoActual: '2.44',
+            saldoPromedio: '56.43',
             cedula: '0958398984',
             ciclo: '1'
         });
@@ -396,7 +421,47 @@ function EstadoCuentaBancaria() {
                 font: font
             });
 
+            // 5.1 Fechas de Corte (Posición 2)
+            // Fecha Último Corte (2)
+            draw(fechaInicio, coordenadas.fechaCorteInicio2X, coordenadas.fechaCorteInicio2Y, primeraPage, {
+                size: coordenadas.fechaCorteInicio2FontSize,
+                font: font
+            });
 
+            // Fecha Este Corte (2)
+            draw(fechaFin, coordenadas.fechaCorteFin2X, coordenadas.fechaCorteFin2Y, primeraPage, {
+                size: coordenadas.fechaCorteFin2FontSize,
+                font: font
+            });
+
+            // 6. Resumen de Cuenta (Alineado a la Derecha)
+            // 6. Resumen de Cuenta (Alineado a la Derecha por defecto, Conteos a la Izquierda)
+            const valoresResumen = [
+                { valor: cliente.saldoAnterior, x: coordenadas.saldoAnteriorX, y: coordenadas.saldoAnteriorY, size: coordenadas.saldoAnteriorFontSize, align: 'right' },
+                { valor: cliente.cantDepositos, x: coordenadas.cantDepositosX, y: coordenadas.cantDepositosY, size: coordenadas.cantDepositosFontSize, align: 'left' },
+                { valor: cliente.depositos, x: coordenadas.depositosX, y: coordenadas.depositosY, size: coordenadas.depositosFontSize, align: 'right' },
+                { valor: cliente.cantCheques, x: coordenadas.cantChequesX, y: coordenadas.cantChequesY, size: coordenadas.cantChequesFontSize, align: 'left' },
+                { valor: cliente.cheques, x: coordenadas.chequesX, y: coordenadas.chequesY, size: coordenadas.chequesFontSize, align: 'right' },
+                { valor: cliente.interes, x: coordenadas.interesX, y: coordenadas.interesY, size: coordenadas.interesFontSize, align: 'right' },
+                { valor: cliente.saldoActual, x: coordenadas.saldoActualX, y: coordenadas.saldoActualY, size: coordenadas.saldoActualFontSize, align: 'right' },
+                { valor: cliente.saldoPromedio, x: coordenadas.saldoPromedioX, y: coordenadas.saldoPromedioY, size: coordenadas.saldoPromedioFontSize, align: 'right' }
+            ];
+
+            valoresResumen.forEach(item => {
+                if (item.valor) {
+                    if (item.align === 'left') {
+                        draw(item.valor, item.x, item.y, primeraPage, {
+                            size: item.size,
+                            font: font
+                        });
+                    } else {
+                        drawRight(item.valor, item.x, item.y, primeraPage, {
+                            size: item.size,
+                            font: font
+                        });
+                    }
+                }
+            });
 
             // 4. Calcular distribución de transacciones
             const { transaccionesPorPaginaIntermedia, transaccionesEnCierre } = configuracionPaginas;
@@ -516,6 +581,38 @@ function EstadoCuentaBancaria() {
                 const textoPaginaCierre = `Página ${paginaCierre} de ${totalPaginasFinales}`;
                 drawRight(textoPaginaCierre, coordenadas.numeroPaginaX, coordenadas.numeroPaginaY, cierrePage, {
                     size: coordenadas.numeroPaginaFontSize
+                });
+
+                // Escribir encabezado en página de cierre
+                // Nombre en negritas
+                const nombreCompleto = cliente.nombre || 'CENTENO HOLGUIN KEVIN JULIAN';
+                draw(nombreCompleto, coordenadas.encabezadoNombreX, coordenadas.encabezadoNombreY, cierrePage, {
+                    size: coordenadas.encabezadoNombreFontSize,
+                    font: fontBold
+                });
+
+                // Número de cuenta
+                const textoCuenta = `CUENTA: ${cliente.numeroCuenta || ''}`;
+                draw(textoCuenta, coordenadas.encabezadoCuentaX, coordenadas.encabezadoCuentaY, cierrePage, {
+                    size: coordenadas.encabezadoCuentaFontSize
+                });
+
+                // C.I./RUC (etiqueta en negritas, número normal)
+                const cedulaCliente = cliente.cedula || '0958398984';
+                draw('C.I./RUC: ', coordenadas.encabezadoCiRucX, coordenadas.encabezadoCiRucY, cierrePage, {
+                    size: coordenadas.encabezadoCiRucFontSize,
+                    font: fontBold
+                });
+                // Calcular posición del número después de la etiqueta
+                const labelWidth = fontBold.widthOfTextAtSize('C.I./RUC: ', coordenadas.encabezadoCiRucFontSize);
+                draw(cedulaCliente, coordenadas.encabezadoCiRucX + labelWidth, coordenadas.encabezadoCiRucY, cierrePage, {
+                    size: coordenadas.encabezadoCiRucFontSize
+                });
+
+                // CICLO
+                const textoCiclo = `CICLO ${cliente.ciclo || '1'}`;
+                draw(textoCiclo, coordenadas.encabezadoCicloX, coordenadas.encabezadoCicloY, cierrePage, {
+                    size: coordenadas.encabezadoCicloFontSize
                 });
 
                 let yPos = startY;
@@ -1167,7 +1264,157 @@ function EstadoCuentaBancaria() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Fechas de Corte (Posición 2) */}
+                                <div style={{ marginTop: '8px', paddingTop: '4px', borderTop: '1px dashed #fcd34d' }}>
+                                    <div style={{ fontSize: '10px', color: '#92400e', marginBottom: '4px', fontWeight: 'bold' }}>Posición 2</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                        {/* Config Inicio 2 */}
+                                        <div style={{ display: 'grid', gap: '2px' }}>
+                                            <div style={{ fontSize: '9px', color: '#92400e' }}>Inicio 2</div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                <span style={{ fontSize: '9px' }}>X:</span>
+                                                <input type="number" value={coordenadas.fechaCorteInicio2X} onChange={(e) => actualizarCoordenada('fechaCorteInicio2X', null, e.target.value)} style={{ width: '100%', padding: '1px', fontSize: '10px' }} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                <span style={{ fontSize: '9px' }}>Y:</span>
+                                                <input type="number" value={coordenadas.fechaCorteInicio2Y} onChange={(e) => actualizarCoordenada('fechaCorteInicio2Y', null, e.target.value)} style={{ width: '100%', padding: '1px', fontSize: '10px' }} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                <span style={{ fontSize: '9px' }}>T:</span>
+                                                <input type="number" value={coordenadas.fechaCorteInicio2FontSize} onChange={(e) => actualizarCoordenada('fechaCorteInicio2FontSize', null, e.target.value)} style={{ width: '100%', padding: '1px', fontSize: '10px' }} />
+                                            </div>
+                                        </div>
+                                        {/* Config Fin 2 */}
+                                        <div style={{ display: 'grid', gap: '2px' }}>
+                                            <div style={{ fontSize: '9px', color: '#92400e' }}>Fin 2</div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                <span style={{ fontSize: '9px' }}>X:</span>
+                                                <input type="number" value={coordenadas.fechaCorteFin2X} onChange={(e) => actualizarCoordenada('fechaCorteFin2X', null, e.target.value)} style={{ width: '100%', padding: '1px', fontSize: '10px' }} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                <span style={{ fontSize: '9px' }}>Y:</span>
+                                                <input type="number" value={coordenadas.fechaCorteFin2Y} onChange={(e) => actualizarCoordenada('fechaCorteFin2Y', null, e.target.value)} style={{ width: '100%', padding: '1px', fontSize: '10px' }} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                <span style={{ fontSize: '9px' }}>T:</span>
+                                                <input type="number" value={coordenadas.fechaCorteFin2FontSize} onChange={(e) => actualizarCoordenada('fechaCorteFin2FontSize', null, e.target.value)} style={{ width: '100%', padding: '1px', fontSize: '10px' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Resumen de Cuenta (Página 1) */}
+                    <div style={{ padding: '8px', background: '#fff', borderRadius: '4px', border: '1px solid #e2e8f0', marginTop: '16px' }}>
+                        <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '4px', marginBottom: '8px' }}>
+                            <h4 style={{ fontSize: '12px', margin: 0, color: '#1e293b' }}>📊 Resumen de Cuenta</h4>
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                            {[
+                                { label: 'Saldo Anterior', keyVal: 'saldoAnterior', keyCoord: 'saldoAnterior' },
+                                { label: 'Cant. Depósitos', keyVal: 'cantDepositos', keyCoord: 'cantDepositos' },
+                                { label: 'Depósitos', keyVal: 'depositos', keyCoord: 'depositos' },
+                                { label: 'Cant. Cheques', keyVal: 'cantCheques', keyCoord: 'cantCheques' },
+                                { label: 'Cheques', keyVal: 'cheques', keyCoord: 'cheques' },
+                                { label: 'Interés', keyVal: 'interes', keyCoord: 'interes' },
+                                { label: 'Saldo Actual', keyVal: 'saldoActual', keyCoord: 'saldoActual' },
+                                { label: 'Saldo Promedio', keyVal: 'saldoPromedio', keyCoord: 'saldoPromedio' }
+                            ].map((field) => (
+                                <div key={field.keyCoord} style={{ borderBottom: '1px dashed #e2e8f0', paddingBottom: '4px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                        <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#334155' }}>{field.label}</label>
+                                        <input
+                                            type="text"
+                                            value={cliente[field.keyVal]}
+                                            onChange={(e) => setCliente({ ...cliente, [field.keyVal]: e.target.value })}
+                                            style={{ width: '80px', fontSize: '10px', padding: '2px', textAlign: 'right' }}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontSize: '9px', color: '#64748b' }}>X:</span>
+                                            <input
+                                                type="number"
+                                                value={coordenadas[`${field.keyCoord}X`]}
+                                                onChange={(e) => actualizarCoordenada(`${field.keyCoord}X`, null, e.target.value)}
+                                                style={{ width: '40px', fontSize: '9px', padding: '1px' }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontSize: '9px', color: '#64748b' }}>Y:</span>
+                                            <input
+                                                type="number"
+                                                value={coordenadas[`${field.keyCoord}Y`]}
+                                                onChange={(e) => actualizarCoordenada(`${field.keyCoord}Y`, null, e.target.value)}
+                                                style={{ width: '40px', fontSize: '9px', padding: '1px' }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontSize: '9px', color: '#64748b' }}>T:</span>
+                                            <input
+                                                type="number"
+                                                value={coordenadas[`${field.keyCoord}FontSize`]}
+                                                onChange={(e) => actualizarCoordenada(`${field.keyCoord}FontSize`, null, e.target.value)}
+                                                style={{ width: '30px', fontSize: '9px', padding: '1px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Encabezado Páginas Intermedias */}
+                    <div style={{ padding: '8px', background: '#eef2ff', borderRadius: '4px', border: '1px solid #c7d2fe', marginTop: '16px' }}>
+                        <div style={{ borderBottom: '1px solid #a5b4fc', paddingBottom: '4px', marginBottom: '8px' }}>
+                            <h4 style={{ fontSize: '12px', margin: 0, color: '#1e3a8a' }}>📄 Encabezado Pág. Intermedias ({configuracionPaginas.totalPaginas > 2 ? '2+' : 'N/A'})</h4>
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                            {[
+                                { label: 'Nombre', keyVal: 'encabezadoNombre' },
+                                { label: 'Cuenta', keyVal: 'encabezadoCuenta' },
+                                { label: 'C.I./RUC', keyVal: 'encabezadoCiRuc' },
+                                { label: 'Ciclo', keyVal: 'encabezadoCiclo' }
+                            ].map((field) => (
+                                <div key={field.keyVal} style={{ borderBottom: '1px dashed #c7d2fe', paddingBottom: '4px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                        <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#1e3a8a' }}>{field.label}</label>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontSize: '9px', color: '#4338ca' }}>X:</span>
+                                            <input
+                                                type="number"
+                                                value={coordenadas[`${field.keyVal}X`]}
+                                                onChange={(e) => actualizarCoordenada(`${field.keyVal}X`, null, e.target.value)}
+                                                style={{ width: '40px', fontSize: '9px', padding: '1px' }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontSize: '9px', color: '#4338ca' }}>Y:</span>
+                                            <input
+                                                type="number"
+                                                value={coordenadas[`${field.keyVal}Y`]}
+                                                onChange={(e) => actualizarCoordenada(`${field.keyVal}Y`, null, e.target.value)}
+                                                style={{ width: '40px', fontSize: '9px', padding: '1px' }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontSize: '9px', color: '#4338ca' }}>T:</span>
+                                            <input
+                                                type="number"
+                                                value={coordenadas[`${field.keyVal}FontSize`]}
+                                                onChange={(e) => actualizarCoordenada(`${field.keyVal}FontSize`, null, e.target.value)}
+                                                style={{ width: '30px', fontSize: '9px', padding: '1px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -1523,7 +1770,8 @@ function EstadoCuentaBancaria() {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Datos del Cliente */}
             <div className="gi-panel" style={{ marginBottom: '16px' }}>
@@ -1764,161 +2012,165 @@ function EstadoCuentaBancaria() {
             </div>
 
             {/* Tabla de Transacciones */}
-            {transacciones.length > 0 && (
-                <div className="gi-panel" style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h3 style={{ fontSize: '16px', margin: 0, color: '#1e293b' }}>
-                            📊 Transacciones ({transacciones.length})
-                        </h3>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                                onClick={() => generarPDF(true)}
-                                disabled={generandoPDF}
-                                style={{
-                                    padding: '6px 12px',
-                                    background: '#059669',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    cursor: generandoPDF ? 'wait' : 'pointer',
-                                    fontWeight: '600'
-                                }}
-                            >
-                                👁️ Vista Previa
-                            </button>
-                            <button
-                                onClick={() => generarPDF(false)}
-                                disabled={generandoPDF}
-                                style={{
-                                    padding: '6px 12px',
-                                    background: '#ef4444',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    cursor: generandoPDF ? 'wait' : 'pointer',
-                                    fontWeight: '600'
-                                }}
-                            >
-                                📥 Descargar PDF
-                            </button>
+            {
+                transacciones.length > 0 && (
+                    <div className="gi-panel" style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <h3 style={{ fontSize: '16px', margin: 0, color: '#1e293b' }}>
+                                📊 Transacciones ({transacciones.length})
+                            </h3>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    onClick={() => generarPDF(true)}
+                                    disabled={generandoPDF}
+                                    style={{
+                                        padding: '6px 12px',
+                                        background: '#059669',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        cursor: generandoPDF ? 'wait' : 'pointer',
+                                        fontWeight: '600'
+                                    }}
+                                >
+                                    👁️ Vista Previa
+                                </button>
+                                <button
+                                    onClick={() => generarPDF(false)}
+                                    disabled={generandoPDF}
+                                    style={{
+                                        padding: '6px 12px',
+                                        background: '#ef4444',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        cursor: generandoPDF ? 'wait' : 'pointer',
+                                        fontWeight: '600'
+                                    }}
+                                >
+                                    📥 Descargar PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontSize: '13px'
+                            }}>
+                                <thead>
+                                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                        <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Fecha</th>
+                                        <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>OFIC.</th>
+                                        <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>N.DOC.</th>
+                                        <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Descripción</th>
+                                        <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#475569' }}>Débito</th>
+                                        <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#475569' }}>Crédito</th>
+                                        <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#475569' }}>Saldo</th>
+                                        <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#475569' }}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transacciones.map((t) => (
+                                        <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '10px' }}>{t.fecha}</td>
+                                            <td style={{ padding: '10px' }}>{t.ofic}</td>
+                                            <td style={{ padding: '10px' }}>{t.ndoc}</td>
+                                            <td style={{ padding: '10px' }}>{t.descripcion}</td>
+                                            <td style={{ padding: '10px', textAlign: 'right', color: '#dc2626' }}>
+                                                {t.debito > 0 ? `$${t.debito.toFixed(2)}` : '-'}
+                                            </td>
+                                            <td style={{ padding: '10px', textAlign: 'right', color: '#059669' }}>
+                                                {t.credito > 0 ? `$${t.credito.toFixed(2)}` : '-'}
+                                            </td>
+                                            <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>
+                                                ${t.saldo.toFixed(2)}
+                                            </td>
+                                            <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                <button
+                                                    onClick={() => eliminarTransaccion(t.id)}
+                                                    style={{
+                                                        padding: '4px 8px',
+                                                        background: '#fef2f2',
+                                                        color: '#dc2626',
+                                                        border: '1px solid #fecaca',
+                                                        borderRadius: '4px',
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    <tr style={{ background: '#f8fafc', fontWeight: '600' }}>
+                                        <td colSpan="6" style={{ padding: '10px', textAlign: 'right' }}>Saldo Final:</td>
+                                        <td style={{ padding: '10px', textAlign: 'right', fontSize: '14px', color: '#1e293b' }}>
+                                            ${transacciones[transacciones.length - 1].saldo.toFixed(2)}
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{
-                            width: '100%',
-                            borderCollapse: 'collapse',
-                            fontSize: '13px'
-                        }}>
-                            <thead>
-                                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                                    <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Fecha</th>
-                                    <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>OFIC.</th>
-                                    <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>N.DOC.</th>
-                                    <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#475569' }}>Descripción</th>
-                                    <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#475569' }}>Débito</th>
-                                    <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#475569' }}>Crédito</th>
-                                    <th style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#475569' }}>Saldo</th>
-                                    <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#475569' }}>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {transacciones.map((t) => (
-                                    <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '10px' }}>{t.fecha}</td>
-                                        <td style={{ padding: '10px' }}>{t.ofic}</td>
-                                        <td style={{ padding: '10px' }}>{t.ndoc}</td>
-                                        <td style={{ padding: '10px' }}>{t.descripcion}</td>
-                                        <td style={{ padding: '10px', textAlign: 'right', color: '#dc2626' }}>
-                                            {t.debito > 0 ? `$${t.debito.toFixed(2)}` : '-'}
-                                        </td>
-                                        <td style={{ padding: '10px', textAlign: 'right', color: '#059669' }}>
-                                            {t.credito > 0 ? `$${t.credito.toFixed(2)}` : '-'}
-                                        </td>
-                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>
-                                            ${t.saldo.toFixed(2)}
-                                        </td>
-                                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                                            <button
-                                                onClick={() => eliminarTransaccion(t.id)}
-                                                style={{
-                                                    padding: '4px 8px',
-                                                    background: '#fef2f2',
-                                                    color: '#dc2626',
-                                                    border: '1px solid #fecaca',
-                                                    borderRadius: '4px',
-                                                    fontSize: '12px',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                🗑️
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                <tr style={{ background: '#f8fafc', fontWeight: '600' }}>
-                                    <td colSpan="6" style={{ padding: '10px', textAlign: 'right' }}>Saldo Final:</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '14px', color: '#1e293b' }}>
-                                        ${transacciones[transacciones.length - 1].saldo.toFixed(2)}
-                                    </td>
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Vista Previa del PDF */}
-            {pdfPreviewUrl && (
-                <div style={{
-                    marginTop: '16px',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    background: '#f8fafc',
-                    position: 'relative'
-                }}>
+            {
+                pdfPreviewUrl && (
                     <div style={{
-                        padding: '8px',
-                        background: '#fff',
-                        borderBottom: '1px solid #e2e8f0',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
+                        marginTop: '16px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        background: '#f8fafc',
+                        position: 'relative'
                     }}>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>
-                            📄 Vista Previa del Estado de Cuenta
-                        </span>
-                        <button
-                            onClick={() => setPdfPreviewUrl(null)}
-                            style={{
-                                border: 'none',
-                                background: '#fff',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                            }}
-                        >
-                            ✖️
-                        </button>
+                        <div style={{
+                            padding: '8px',
+                            background: '#fff',
+                            borderBottom: '1px solid #e2e8f0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>
+                                📄 Vista Previa del Estado de Cuenta
+                            </span>
+                            <button
+                                onClick={() => setPdfPreviewUrl(null)}
+                                style={{
+                                    border: 'none',
+                                    background: '#fff',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    borderRadius: '50%',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }}
+                            >
+                                ✖️
+                            </button>
+                        </div>
+                        <iframe
+                            src={`${pdfPreviewUrl}#toolbar=0&navpanes=0`}
+                            title="Vista Previa PDF"
+                            style={{ width: '100%', height: '600px', border: 'none' }}
+                        />
                     </div>
-                    <iframe
-                        src={`${pdfPreviewUrl}#toolbar=0&navpanes=0`}
-                        title="Vista Previa PDF"
-                        style={{ width: '100%', height: '600px', border: 'none' }}
-                    />
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 
