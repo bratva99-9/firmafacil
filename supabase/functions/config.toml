@@ -1,0 +1,3 @@
+[functions.sri-generar-clave]
+verify_jwt = false
+timeout = 60

@@ -11,12 +11,14 @@ export const EDGE_URL = 'https://eapcqcuzfkpqngbvjtmv.functions.supabase.co'
 export const fetchWithProxy = async (url, options = {}) => {
   try {
     // Si es una URL de Zamplisoft, usar el proxy
-    if (url.includes('api.zamplisoft.com')) {
-      const proxyUrl = `${EDGE_URL}/api-proxy/${url.replace('https://api.zamplisoft.com/', '')}`;
+    if (url.includes('zamplisoft.com')) {
+      const urlParts = url.split('zamplisoft.com/');
+      const endpoint = urlParts.length > 1 ? urlParts[1] : '';
+      const proxyUrl = `${EDGE_URL}/api-proxy/${endpoint}`;
       console.log(`🔄 Usando proxy para: ${proxyUrl}`);
       return await fetch(proxyUrl, options);
     }
-    
+
     // Para otras URLs, usar directamente
     return await fetch(url, options);
   } catch (error) {
@@ -73,7 +75,7 @@ if (supabaseUrl === 'https://your-project.supabase.co' || supabaseKey === 'your-
 export const consultarCedula = async (numeroCedula) => {
   try {
     console.log('🔍 Consultando cédula:', numeroCedula);
-    
+
     // PASO 1: Buscar primero en caché local
     const datosCache = await obtenerCedulaDesdeCache(numeroCedula);
     if (datosCache) {
@@ -83,61 +85,61 @@ export const consultarCedula = async (numeroCedula) => {
 
     // PASO 2: Si no está en caché, consultar API Zamplisoft
     console.log('🌐 Consultando API Zamplisoft (con costo)...');
-    
+
     try {
       // URL correcta de la API de Zamplisoft
       const apiUrl = `https://apiconsult.zampisoft.com/api/consultar?identificacion=${numeroCedula}&token=cvZ1-zcMv-OKKh-AR29`;
-      
+
       console.log(`🔄 Consultando: ${apiUrl}`);
-      
+
       const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         redirect: 'follow'
       });
 
       console.log(`📊 Respuesta del servidor: ${response.status} ${response.statusText}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('📄 Datos recibidos de API:', data);
-        
+
         if (data.cedula && data.nombre) {
           console.log('✅ Datos de cédula obtenidos de API exitosamente');
-          
+
           // Función para separar nombres y apellidos
           const separarNombresApellidos = (nombreCompleto) => {
             if (!nombreCompleto) return { nombres: '', apellidos: '' };
-            
+
             const partes = nombreCompleto.trim().split(' ');
             if (partes.length <= 2) {
               return { nombres: nombreCompleto, apellidos: '' };
             }
-            
+
             // Los primeros 2 elementos son apellidos, el resto son nombres
             const apellidos = partes.slice(0, 2).join(' ');
             const nombres = partes.slice(2).join(' ');
-            
+
             return { nombres, apellidos };
           };
 
           // Función para calcular edad
           const calcularEdad = (fechaNacimiento) => {
             if (!fechaNacimiento) return '';
-            
+
             try {
               // Formato: DD/MM/YYYY
               const [dia, mes, año] = fechaNacimiento.split('/');
               const fechaNac = new Date(año, mes - 1, dia);
               const hoy = new Date();
               let edad = hoy.getFullYear() - fechaNac.getFullYear();
-              
+
               // Ajustar si aún no ha cumplido años este año
               const mesActual = hoy.getMonth();
               const mesNacimiento = fechaNac.getMonth();
               if (mesActual < mesNacimiento || (mesActual === mesNacimiento && hoy.getDate() < fechaNac.getDate())) {
                 edad--;
               }
-              
+
               return edad.toString();
             } catch (error) {
               console.error('Error al calcular edad:', error);
@@ -147,7 +149,7 @@ export const consultarCedula = async (numeroCedula) => {
 
           // Separar nombres y apellidos
           const { nombres, apellidos } = separarNombresApellidos(data.nombre);
-          
+
           // Calcular edad
           const edad = calcularEdad(data.fechaNacimiento);
 
@@ -162,7 +164,7 @@ export const consultarCedula = async (numeroCedula) => {
             estadoCivil: data.estadoCivil || '',
             genero: data.genero || '',
             nacionalidad: data.nacionalidad || 'Ecuatoriana',
-                   provincia: data.lugarDomicilio ? data.lugarDomicilio.split('/')[0] : '',
+            provincia: data.lugarDomicilio ? data.lugarDomicilio.split('/')[0] : '',
             ciudad: data.lugarDomicilio ? data.lugarDomicilio.split('/')[1] : '',
             parroquia: data.lugarDomicilio ? data.lugarDomicilio.split('/')[2] : '',
             direccion: `${data.calleDomicilio || ''} ${data.numeracionDomicilio || ''}`.trim(),
@@ -179,7 +181,7 @@ export const consultarCedula = async (numeroCedula) => {
 
           // PASO 3: Guardar en caché para futuras consultas
           await guardarCedulaEnCache(numeroCedula, datosParaCache);
-          
+
           return {
             success: true,
             data: datosParaCache,
@@ -199,7 +201,7 @@ export const consultarCedula = async (numeroCedula) => {
       console.log(`❌ Error en API Zamplisoft:`, apiError.message);
       throw apiError;
     }
-    
+
   } catch (error) {
     console.error('❌ Error al consultar cédula:', error);
     return {
@@ -215,7 +217,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 export const obtenerCedulaDesdeCache = async (numeroCedula) => {
   try {
     console.log('🔍 Buscando cédula en caché local...');
-    
+
     const { data, error } = await supabase
       .from('cache_cedulas')
       .select('*')
@@ -230,9 +232,9 @@ export const obtenerCedulaDesdeCache = async (numeroCedula) => {
 
     if (data) {
       console.log('✅ Datos encontrados en caché local');
-      
+
       // Mantener provincia en mayúsculas como viene de la API
-      
+
       return {
         success: true,
         data: {
@@ -273,7 +275,7 @@ export const obtenerCedulaDesdeCache = async (numeroCedula) => {
 export const guardarCedulaEnCache = async (numeroCedula, datosCedula) => {
   try {
     console.log('💾 Guardando datos de cédula en caché local...');
-    
+
     const fechaExpiracion = new Date();
     fechaExpiracion.setDate(fechaExpiracion.getDate() + 30); // Expira en 30 días
 
@@ -325,12 +327,12 @@ export const verificarConexion = async () => {
       .from('solicitudes')
       .select('id')
       .limit(1);
-    
+
     if (error) {
       console.error('❌ Error de conexión:', error);
       return { success: false, error };
     }
-    
+
     console.log('✅ Conexión exitosa con Supabase!');
     return { success: true, data };
   } catch (err) {
@@ -462,7 +464,7 @@ export const getSolicitudesByCedula = async (cedula) => {
 export const getSolicitudesByDistribuidor = async (correoDistribuidor) => {
   try {
     console.log('🔍 Consultando solicitudes para distribuidor:', correoDistribuidor);
-    
+
     // Primero obtener las solicitudes
     const { data: solicitudes, error: solicitudesError } = await supabase
       .from('solicitudes')
@@ -499,7 +501,7 @@ export const getSolicitudesByDistribuidor = async (correoDistribuidor) => {
             console.log(`⚠️ No se encontraron datos en caché para cédula ${solicitud.numero_cedula}`);
           }
         }
-        
+
         // Si no hay datos en caché, mantener la solicitud sin nombres/apellidos
         return {
           ...solicitud,
@@ -566,32 +568,32 @@ export const probarAPISRI = async () => {
     '0958398984001', // RUC que estabas probando
     '1790012345001'   // RUC de prueba genérico
   ];
-  
+
   for (const ruc of rucsPrueba) {
     console.log(`\n🧪 Probando RUC: ${ruc}`);
-    
+
     try {
       // Probar directamente sin proxy primero
       const sriUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?&ruc=${ruc}`;
       console.log(`🔗 URL directa: ${sriUrl}`);
-      
+
       // Probar con proxy más confiable
       const proxyUrl = 'https://corsproxy.io/?';
       const apiUrl = proxyUrl + encodeURIComponent(sriUrl);
       console.log(`🔗 URL con proxy: ${apiUrl}`);
-      
+
       const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json'
         }
       });
-      
+
       console.log(`📊 Status: ${response.status} ${response.statusText}`);
-      
+
       const responseText = await response.text();
       console.log(`📄 Respuesta:`, responseText.substring(0, 500) + '...');
-      
+
       if (response.ok) {
         try {
           const data = JSON.parse(responseText);
@@ -607,13 +609,13 @@ export const probarAPISRI = async () => {
       console.log(`❌ Error de red para RUC ${ruc}:`, error);
     }
   }
-  
+
   return { success: false, error: 'No se pudo validar ningún RUC' };
 };
 export const consultarRUC = async (numeroRUC) => {
   try {
     console.log('🔍 Consultando RUC:', numeroRUC);
-    
+
     // PASO 1: Buscar primero en caché local
     const datosCache = await obtenerRUCDesdeCache(numeroRUC);
     if (datosCache) {
@@ -623,16 +625,16 @@ export const consultarRUC = async (numeroRUC) => {
 
     // PASO 2: Si no está en caché, consultar API del SRI usando proxy
     console.log('🌐 Consultando API del SRI usando proxy...');
-    
+
     try {
       // Usar proxy público confiable
       const proxyUrl = 'https://corsproxy.io/?';
       const sriUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?&ruc=${numeroRUC}`;
       const apiUrl = proxyUrl + encodeURIComponent(sriUrl);
-      
+
       console.log(`🔄 Consultando: ${apiUrl}`);
       console.log(`🔍 RUC a consultar: ${numeroRUC}`);
-      
+
       const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         headers: {
@@ -641,20 +643,20 @@ export const consultarRUC = async (numeroRUC) => {
       });
 
       console.log(`📊 Respuesta del servidor: ${response.status} ${response.statusText}`);
-      
+
       // Leer el contenido de la respuesta para debug
       const responseText = await response.text();
       console.log(`📄 Contenido de respuesta:`, responseText);
-      
+
       if (response.ok) {
         // Si la respuesta está vacía (código 204 o respuesta vacía), significa que no hay RUC
         if (response.status === 204 || !responseText.trim()) {
           console.log('📄 RUC no encontrado en SRI (respuesta vacía), buscando datos de cédula...');
-          
+
           // Si no encuentra RUC, buscar datos de cédula
           const cedula = numeroRUC.slice(0, -3); // Remover '001' para obtener cédula
           console.log(`🔍 Buscando cédula: ${cedula}`);
-          
+
           // PASO 1: Buscar en caché de cédulas
           const datosCedulaCache = await obtenerCedulaDesdeCache(cedula);
           if (datosCedulaCache) {
@@ -680,30 +682,30 @@ export const consultarRUC = async (numeroRUC) => {
               }
             };
           }
-          
+
           // PASO 2: Si no está en caché, consultar Zamplisoft por cédula
           console.log('🌐 Consultando Zamplisoft por cédula...');
           try {
             const zamplisoftUrl = `https://apiconsult.zampisoft.com/api/consultar?identificacion=${cedula}&token=cvZ1-zcMv-OKKh-AR29`;
             const proxyUrl = 'https://corsproxy.io/?';
             const apiUrl = proxyUrl + encodeURIComponent(zamplisoftUrl);
-            
+
             const cedulaResponse = await fetch(apiUrl, {
               method: 'GET',
               headers: {
                 'Accept': 'application/json'
               }
             });
-            
+
             if (cedulaResponse.ok) {
               const cedulaData = await cedulaResponse.json();
               console.log('📄 Datos de cédula recibidos:', cedulaData);
-              
+
               if (cedulaData && cedulaData.nombre) {
                 // Separar nombre completo en nombres y apellidos
                 const nombreCompleto = cedulaData.nombre.trim();
                 const partesNombre = nombreCompleto.split(' ');
-                
+
                 // Lógica mejorada para separar nombres y apellidos
                 let nombres, apellidos;
                 if (partesNombre.length <= 2) {
@@ -715,7 +717,7 @@ export const consultarRUC = async (numeroRUC) => {
                   apellidos = partesNombre.slice(-2).join(' ');
                   nombres = partesNombre.slice(0, -2).join(' ');
                 }
-                
+
                 console.log(`📝 Procesando nombre: "${nombreCompleto}" -> Nombres: "${nombres}", Apellidos: "${apellidos}"`);
                 console.log('🔍 Datos completos para retornar:', {
                   nombres,
@@ -723,7 +725,7 @@ export const consultarRUC = async (numeroRUC) => {
                   nombreCompleto,
                   razon_social: `${nombres} ${apellidos}`.trim()
                 });
-                
+
                 // Preparar datos completos para guardar en caché
                 const datosParaCache = {
                   nombres: nombres,
@@ -743,10 +745,10 @@ export const consultarRUC = async (numeroRUC) => {
                   nombrePadre: cedulaData.nombrePadre || '',
                   conyuge: cedulaData.conyuge || ''
                 };
-                
+
                 // Guardar en caché de cédulas
                 await guardarCedulaEnCache(cedula, datosParaCache);
-                
+
                 return {
                   success: true,
                   data: {
@@ -772,26 +774,26 @@ export const consultarRUC = async (numeroRUC) => {
           } catch (cedulaError) {
             console.error('❌ Error al consultar cédula en Zamplisoft:', cedulaError);
           }
-          
+
           // Si no encuentra datos de cédula tampoco
           return {
             success: false,
             error: 'No se encontraron datos. Por favor, revise los datos ingresados.'
           };
         }
-        
+
         // Si hay contenido, intentar parsear JSON
         try {
           const dataArray = JSON.parse(responseText);
           console.log('📄 Datos recibidos de API SRI:', dataArray);
-          
+
           // La API del SRI devuelve un array, tomamos el primer elemento
           const data = Array.isArray(dataArray) && dataArray.length > 0 ? dataArray[0] : null;
-          
+
           if (data && data.numeroRuc && data.razonSocial) {
             // Guardar en caché para futuras consultas
             await guardarRUCEnCache(data);
-            
+
             return {
               success: true,
               data: {
@@ -819,11 +821,11 @@ export const consultarRUC = async (numeroRUC) => {
             };
           } else {
             console.log('📄 RUC no encontrado en SRI, buscando datos de cédula...');
-            
+
             // Si no encuentra RUC, buscar datos de cédula
             const cedula = numeroRUC.slice(0, -3); // Remover '001' para obtener cédula
             console.log(`🔍 Buscando cédula: ${cedula}`);
-            
+
             // PASO 1: Buscar en caché de cédulas
             const datosCedulaCache = await obtenerCedulaDesdeCache(cedula);
             if (datosCedulaCache) {
@@ -842,99 +844,99 @@ export const consultarRUC = async (numeroRUC) => {
                 }
               };
             }
-            
+
             // PASO 2: Si no está en caché, consultar Zamplisoft por cédula
             console.log('🌐 Consultando Zamplisoft por cédula...');
             try {
               const zamplisoftUrl = `https://apiconsult.zampisoft.com/api/consultar?identificacion=${cedula}&token=cvZ1-zcMv-OKKh-AR29`;
               const proxyUrl = 'https://corsproxy.io/?';
               const apiUrl = proxyUrl + encodeURIComponent(zamplisoftUrl);
-              
+
               const cedulaResponse = await fetch(apiUrl, {
                 method: 'GET',
                 headers: {
                   'Accept': 'application/json'
                 }
               });
-              
+
               if (cedulaResponse.ok) {
                 const cedulaData = await cedulaResponse.json();
                 console.log('📄 Datos de cédula recibidos:', cedulaData);
-                
-              if (cedulaData && cedulaData.nombre) {
-                // Separar nombre completo en nombres y apellidos
-                const nombreCompleto = cedulaData.nombre.trim();
-                const partesNombre = nombreCompleto.split(' ');
-                
-                // Lógica mejorada para separar nombres y apellidos
-                let nombres, apellidos;
-                if (partesNombre.length <= 2) {
-                  // Si tiene 1 o 2 palabras, todo es nombre
-                  nombres = nombreCompleto;
-                  apellidos = '';
-                } else {
-                  // Si tiene más de 2 palabras, los últimos 2 son apellidos
-                  apellidos = partesNombre.slice(-2).join(' ');
-                  nombres = partesNombre.slice(0, -2).join(' ');
-                }
-                
-                console.log(`📝 Procesando nombre: "${nombreCompleto}" -> Nombres: "${nombres}", Apellidos: "${apellidos}"`);
-                console.log('🔍 Datos completos para retornar:', {
-                  nombres,
-                  apellidos,
-                  nombreCompleto,
-                  razon_social: `${nombres} ${apellidos}`.trim()
-                });
-                
-                // Preparar datos completos para guardar en caché
-                const datosParaCache = {
-                  nombres: nombres,
-                  apellidos: apellidos,
-                  fechaNacimiento: cedulaData.fechaNacimiento || '',
-                  lugarNacimiento: cedulaData.lugarNacimiento || '',
-                  estadoCivil: cedulaData.estadoCivil || '',
-                  genero: cedulaData.genero || '',
-                  nacionalidad: cedulaData.nacionalidad || 'Ecuatoriana',
-                  provincia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[0] : '',
-                  ciudad: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[1] : '',
-                  parroquia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[2] : '',
-                  direccion: `${cedulaData.calleDomicilio || ''} ${cedulaData.numeracionDomicilio || ''}`.trim(),
-                  estado: 'Activo',
-                  fechaCedulacion: cedulaData.fechaCedulacion || '',
-                  nombreMadre: cedulaData.nombreMadre || '',
-                  nombrePadre: cedulaData.nombrePadre || '',
-                  conyuge: cedulaData.conyuge || ''
-                };
-                
-                // Guardar en caché de cédulas
-                await guardarCedulaEnCache(cedula, datosParaCache);
-                
-                return {
-                  success: true,
-                  data: {
-                    numero_ruc: numeroRUC,
-                    razon_social: nombreCompleto,
-                    estado_contribuyente_ruc: 'SIN RUC',
-                    tipo_contribuyente: 'PERSONA NATURAL',
-                    sin_ruc: true,
+
+                if (cedulaData && cedulaData.nombre) {
+                  // Separar nombre completo en nombres y apellidos
+                  const nombreCompleto = cedulaData.nombre.trim();
+                  const partesNombre = nombreCompleto.split(' ');
+
+                  // Lógica mejorada para separar nombres y apellidos
+                  let nombres, apellidos;
+                  if (partesNombre.length <= 2) {
+                    // Si tiene 1 o 2 palabras, todo es nombre
+                    nombres = nombreCompleto;
+                    apellidos = '';
+                  } else {
+                    // Si tiene más de 2 palabras, los últimos 2 son apellidos
+                    apellidos = partesNombre.slice(-2).join(' ');
+                    nombres = partesNombre.slice(0, -2).join(' ');
+                  }
+
+                  console.log(`📝 Procesando nombre: "${nombreCompleto}" -> Nombres: "${nombres}", Apellidos: "${apellidos}"`);
+                  console.log('🔍 Datos completos para retornar:', {
+                    nombres,
+                    apellidos,
+                    nombreCompleto,
+                    razon_social: `${nombres} ${apellidos}`.trim()
+                  });
+
+                  // Preparar datos completos para guardar en caché
+                  const datosParaCache = {
                     nombres: nombres,
                     apellidos: apellidos,
-                    edad: cedulaData.edad || '',
+                    fechaNacimiento: cedulaData.fechaNacimiento || '',
+                    lugarNacimiento: cedulaData.lugarNacimiento || '',
+                    estadoCivil: cedulaData.estadoCivil || '',
                     genero: cedulaData.genero || '',
                     nacionalidad: cedulaData.nacionalidad || 'Ecuatoriana',
                     provincia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[0] : '',
                     ciudad: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[1] : '',
                     parroquia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[2] : '',
                     direccion: `${cedulaData.calleDomicilio || ''} ${cedulaData.numeracionDomicilio || ''}`.trim(),
-                    mensaje: 'Esta persona no tiene RUC (Registro Único de Contribuyentes)'
-                  }
-                };
-              }
+                    estado: 'Activo',
+                    fechaCedulacion: cedulaData.fechaCedulacion || '',
+                    nombreMadre: cedulaData.nombreMadre || '',
+                    nombrePadre: cedulaData.nombrePadre || '',
+                    conyuge: cedulaData.conyuge || ''
+                  };
+
+                  // Guardar en caché de cédulas
+                  await guardarCedulaEnCache(cedula, datosParaCache);
+
+                  return {
+                    success: true,
+                    data: {
+                      numero_ruc: numeroRUC,
+                      razon_social: nombreCompleto,
+                      estado_contribuyente_ruc: 'SIN RUC',
+                      tipo_contribuyente: 'PERSONA NATURAL',
+                      sin_ruc: true,
+                      nombres: nombres,
+                      apellidos: apellidos,
+                      edad: cedulaData.edad || '',
+                      genero: cedulaData.genero || '',
+                      nacionalidad: cedulaData.nacionalidad || 'Ecuatoriana',
+                      provincia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[0] : '',
+                      ciudad: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[1] : '',
+                      parroquia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[2] : '',
+                      direccion: `${cedulaData.calleDomicilio || ''} ${cedulaData.numeracionDomicilio || ''}`.trim(),
+                      mensaje: 'Esta persona no tiene RUC (Registro Único de Contribuyentes)'
+                    }
+                  };
+                }
               }
             } catch (cedulaError) {
               console.error('❌ Error al consultar cédula en Zamplisoft:', cedulaError);
             }
-            
+
             // Si no encuentra datos de cédula tampoco
             return {
               success: false,
@@ -959,32 +961,32 @@ export const consultarRUC = async (numeroRUC) => {
       }
     } catch (apiError) {
       console.error('❌ Error al consultar API SRI:', apiError);
-      
+
       // Intentar con proxy alternativo
       try {
         console.log('🔄 Intentando con proxy alternativo...');
         const alternativeProxyUrl = 'https://api.allorigins.win/raw?url=';
         const sriUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?&ruc=${numeroRUC}`;
         const alternativeApiUrl = alternativeProxyUrl + encodeURIComponent(sriUrl);
-        
+
         const altResponse = await fetch(alternativeApiUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json'
           }
         });
-        
+
         if (altResponse.ok) {
           const altResponseText = await altResponse.text();
-          
+
           // Si la respuesta está vacía, significa que no hay RUC
           if (!altResponseText.trim()) {
             console.log('📄 RUC no encontrado en SRI (proxy alternativo), buscando datos de cédula...');
-            
+
             // Si no encuentra RUC, buscar datos de cédula
             const cedula = numeroRUC.slice(0, -3); // Remover '001' para obtener cédula
             console.log(`🔍 Buscando cédula: ${cedula}`);
-            
+
             // PASO 1: Buscar en caché de cédulas
             const datosCedulaCache = await obtenerCedulaDesdeCache(cedula);
             if (datosCedulaCache) {
@@ -1003,111 +1005,111 @@ export const consultarRUC = async (numeroRUC) => {
                 }
               };
             }
-            
+
             // PASO 2: Si no está en caché, consultar Zamplisoft por cédula
             console.log('🌐 Consultando Zamplisoft por cédula...');
             try {
               const zamplisoftUrl = `https://apiconsult.zampisoft.com/api/consultar?identificacion=${cedula}&token=cvZ1-zcMv-OKKh-AR29`;
               const proxyUrl = 'https://corsproxy.io/?';
               const apiUrl = proxyUrl + encodeURIComponent(zamplisoftUrl);
-              
+
               const cedulaResponse = await fetch(apiUrl, {
                 method: 'GET',
                 headers: {
                   'Accept': 'application/json'
                 }
               });
-              
+
               if (cedulaResponse.ok) {
                 const cedulaData = await cedulaResponse.json();
                 console.log('📄 Datos de cédula recibidos:', cedulaData);
-                
-              if (cedulaData && cedulaData.nombre) {
-                // Separar nombre completo en nombres y apellidos
-                const nombreCompleto = cedulaData.nombre.trim();
-                const partesNombre = nombreCompleto.split(' ');
-                
-                // Lógica mejorada para separar nombres y apellidos
-                let nombres, apellidos;
-                if (partesNombre.length <= 2) {
-                  // Si tiene 1 o 2 palabras, todo es nombre
-                  nombres = nombreCompleto;
-                  apellidos = '';
-                } else {
-                  // Si tiene más de 2 palabras, los últimos 2 son apellidos
-                  apellidos = partesNombre.slice(-2).join(' ');
-                  nombres = partesNombre.slice(0, -2).join(' ');
-                }
-                
-                console.log(`📝 Procesando nombre: "${nombreCompleto}" -> Nombres: "${nombres}", Apellidos: "${apellidos}"`);
-                console.log('🔍 Datos completos para retornar:', {
-                  nombres,
-                  apellidos,
-                  nombreCompleto,
-                  razon_social: `${nombres} ${apellidos}`.trim()
-                });
-                
-                // Preparar datos completos para guardar en caché
-                const datosParaCache = {
-                  nombres: nombres,
-                  apellidos: apellidos,
-                  fechaNacimiento: cedulaData.fechaNacimiento || '',
-                  lugarNacimiento: cedulaData.lugarNacimiento || '',
-                  estadoCivil: cedulaData.estadoCivil || '',
-                  genero: cedulaData.genero || '',
-                  nacionalidad: cedulaData.nacionalidad || 'Ecuatoriana',
-                  provincia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[0] : '',
-                  ciudad: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[1] : '',
-                  parroquia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[2] : '',
-                  direccion: `${cedulaData.calleDomicilio || ''} ${cedulaData.numeracionDomicilio || ''}`.trim(),
-                  estado: 'Activo',
-                  fechaCedulacion: cedulaData.fechaCedulacion || '',
-                  nombreMadre: cedulaData.nombreMadre || '',
-                  nombrePadre: cedulaData.nombrePadre || '',
-                  conyuge: cedulaData.conyuge || ''
-                };
-                
-                // Guardar en caché de cédulas
-                await guardarCedulaEnCache(cedula, datosParaCache);
-                
-                return {
-                  success: true,
-                  data: {
-                    numero_ruc: numeroRUC,
-                    razon_social: nombreCompleto,
-                    estado_contribuyente_ruc: 'SIN RUC',
-                    tipo_contribuyente: 'PERSONA NATURAL',
-                    sin_ruc: true,
+
+                if (cedulaData && cedulaData.nombre) {
+                  // Separar nombre completo en nombres y apellidos
+                  const nombreCompleto = cedulaData.nombre.trim();
+                  const partesNombre = nombreCompleto.split(' ');
+
+                  // Lógica mejorada para separar nombres y apellidos
+                  let nombres, apellidos;
+                  if (partesNombre.length <= 2) {
+                    // Si tiene 1 o 2 palabras, todo es nombre
+                    nombres = nombreCompleto;
+                    apellidos = '';
+                  } else {
+                    // Si tiene más de 2 palabras, los últimos 2 son apellidos
+                    apellidos = partesNombre.slice(-2).join(' ');
+                    nombres = partesNombre.slice(0, -2).join(' ');
+                  }
+
+                  console.log(`📝 Procesando nombre: "${nombreCompleto}" -> Nombres: "${nombres}", Apellidos: "${apellidos}"`);
+                  console.log('🔍 Datos completos para retornar:', {
+                    nombres,
+                    apellidos,
+                    nombreCompleto,
+                    razon_social: `${nombres} ${apellidos}`.trim()
+                  });
+
+                  // Preparar datos completos para guardar en caché
+                  const datosParaCache = {
                     nombres: nombres,
                     apellidos: apellidos,
-                    edad: cedulaData.edad || '',
+                    fechaNacimiento: cedulaData.fechaNacimiento || '',
+                    lugarNacimiento: cedulaData.lugarNacimiento || '',
+                    estadoCivil: cedulaData.estadoCivil || '',
                     genero: cedulaData.genero || '',
                     nacionalidad: cedulaData.nacionalidad || 'Ecuatoriana',
                     provincia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[0] : '',
                     ciudad: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[1] : '',
                     parroquia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[2] : '',
                     direccion: `${cedulaData.calleDomicilio || ''} ${cedulaData.numeracionDomicilio || ''}`.trim(),
-                    mensaje: 'Esta persona no tiene RUC (Registro Único de Contribuyentes)'
-                  }
-                };
-              }
+                    estado: 'Activo',
+                    fechaCedulacion: cedulaData.fechaCedulacion || '',
+                    nombreMadre: cedulaData.nombreMadre || '',
+                    nombrePadre: cedulaData.nombrePadre || '',
+                    conyuge: cedulaData.conyuge || ''
+                  };
+
+                  // Guardar en caché de cédulas
+                  await guardarCedulaEnCache(cedula, datosParaCache);
+
+                  return {
+                    success: true,
+                    data: {
+                      numero_ruc: numeroRUC,
+                      razon_social: nombreCompleto,
+                      estado_contribuyente_ruc: 'SIN RUC',
+                      tipo_contribuyente: 'PERSONA NATURAL',
+                      sin_ruc: true,
+                      nombres: nombres,
+                      apellidos: apellidos,
+                      edad: cedulaData.edad || '',
+                      genero: cedulaData.genero || '',
+                      nacionalidad: cedulaData.nacionalidad || 'Ecuatoriana',
+                      provincia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[0] : '',
+                      ciudad: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[1] : '',
+                      parroquia: cedulaData.lugarDomicilio ? cedulaData.lugarDomicilio.split('/')[2] : '',
+                      direccion: `${cedulaData.calleDomicilio || ''} ${cedulaData.numeracionDomicilio || ''}`.trim(),
+                      mensaje: 'Esta persona no tiene RUC (Registro Único de Contribuyentes)'
+                    }
+                  };
+                }
               }
             } catch (cedulaError) {
               console.error('❌ Error al consultar cédula en Zamplisoft:', cedulaError);
             }
-            
+
             // Si no encuentra datos de cédula tampoco
             return {
               success: false,
               error: 'No se encontraron datos. Por favor, revise los datos ingresados.'
             };
           }
-          
+
           // Si hay contenido, intentar parsear JSON
           try {
             const dataArray = JSON.parse(altResponseText);
             const data = Array.isArray(dataArray) && dataArray.length > 0 ? dataArray[0] : null;
-            
+
             if (data && data.numeroRuc && data.razonSocial) {
               await guardarRUCEnCache(data);
               return {
@@ -1138,10 +1140,10 @@ export const consultarRUC = async (numeroRUC) => {
             } else {
               // Si no encuentra RUC en el proxy alternativo, buscar datos de cédula
               console.log('📄 RUC no encontrado en SRI (proxy alternativo), buscando datos de cédula...');
-              
+
               const cedula = numeroRUC.slice(0, -3);
               console.log(`🔍 Buscando cédula: ${cedula}`);
-              
+
               const datosCedulaCache = await obtenerCedulaDesdeCache(cedula);
               if (datosCedulaCache) {
                 console.log('✅ Datos de cédula encontrados en caché');
@@ -1159,32 +1161,32 @@ export const consultarRUC = async (numeroRUC) => {
                   }
                 };
               }
-              
+
               // Consultar Zamplisoft por cédula
               console.log('🌐 Consultando Zamplisoft por cédula...');
               try {
                 const zamplisoftUrl = `https://apiconsult.zampisoft.com/api/consultar?identificacion=${cedula}&token=cvZ1-zcMv-OKKh-AR29`;
                 const proxyUrl = 'https://corsproxy.io/?';
                 const apiUrl = proxyUrl + encodeURIComponent(zamplisoftUrl);
-                
+
                 const cedulaResponse = await fetch(apiUrl, {
                   method: 'GET',
                   headers: {
                     'Accept': 'application/json'
                   }
                 });
-                
+
                 if (cedulaResponse.ok) {
                   const cedulaData = await cedulaResponse.json();
                   console.log('📄 Datos de cédula recibidos:', cedulaData);
-                  
+
                   if (cedulaData && cedulaData.nombres && cedulaData.apellidos) {
                     await guardarCedulaEnCache({
                       numero_cedula: cedula,
                       nombres: cedulaData.nombres,
                       apellidos: cedulaData.apellidos
                     });
-                    
+
                     return {
                       success: true,
                       data: {
@@ -1203,7 +1205,7 @@ export const consultarRUC = async (numeroRUC) => {
               } catch (cedulaError) {
                 console.error('❌ Error al consultar cédula en Zamplisoft:', cedulaError);
               }
-              
+
               return {
                 success: false,
                 error: 'No se encontraron datos. Por favor, revise los datos ingresados.'
@@ -1220,7 +1222,7 @@ export const consultarRUC = async (numeroRUC) => {
       } catch (altError) {
         console.error('❌ Error con proxy alternativo:', altError);
       }
-      
+
       return {
         success: false,
         error: 'Error al consultar la API del SRI. Intenta nuevamente.'
@@ -1529,8 +1531,8 @@ export const getEstadisticasSolicitudesAntiguedad = async () => {
         .filter(s => {
           const fechaCreacion = new Date(s.fecha_creacion);
           const mesActual = new Date();
-          return fechaCreacion.getMonth() === mesActual.getMonth() && 
-                 fechaCreacion.getFullYear() === mesActual.getFullYear();
+          return fechaCreacion.getMonth() === mesActual.getMonth() &&
+            fechaCreacion.getFullYear() === mesActual.getFullYear();
         })
         .reduce((sum, s) => sum + (s.precio_total || 0), 0)
     };
@@ -1600,7 +1602,7 @@ export const actualizarEstadoSolicitudAntiguedad = async (id, nuevoEstado, obser
 export const buscarEmpresaPorRUC = async (ruc) => {
   try {
     console.log('🔍 Buscando empresa por RUC:', ruc);
-    
+
     const { data, error } = await supabase
       .from('empresas_scvs')
       .select('*')
@@ -1633,7 +1635,7 @@ export const buscarEmpresaPorRUC = async (ruc) => {
 export const buscarEmpresaPorExpediente = async (expediente) => {
   try {
     console.log('🔍 Buscando empresa por expediente:', expediente);
-    
+
     const { data, error } = await supabase
       .from('empresas_scvs')
       .select('*')
@@ -1706,7 +1708,7 @@ export const upsertEmpresa = async (empresaData) => {
 export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
   try {
     console.log(`📊 Iniciando carga masiva de ${empresas.length} empresas...`);
-    
+
     // Validar que haya empresas para procesar
     if (!empresas || empresas.length === 0) {
       console.warn('⚠️ No hay empresas para cargar');
@@ -1735,7 +1737,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
       throw new Error(`No se puede acceder a la tabla empresas_scvs: ${testError.message}`);
     }
     console.log('✅ Conexión con la tabla verificada');
-    
+
     const resultados = {
       total: empresas.length,
       insertadas: 0,
@@ -1747,7 +1749,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
     // Procesar en lotes de 1000 para evitar problemas de memoria
     const tamañoLote = 1000;
     const lotes = [];
-    
+
     for (let i = 0; i < empresas.length; i += tamañoLote) {
       lotes.push(empresas.slice(i, i + tamañoLote));
     }
@@ -1777,7 +1779,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           // Intentar convertir a formato de fecha
           let fecha = null;
           const valorOriginal = empresa.fecha_constitucion;
-          
+
           // Si es un número (fecha serial de Excel), convertir
           if (typeof empresa.fecha_constitucion === 'number') {
             // Excel almacena fechas como números (días desde 1900-01-01)
@@ -1787,7 +1789,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           } else {
             // Intentar parsear como string
             const fechaStr = String(empresa.fecha_constitucion).trim();
-            
+
             // Intentar diferentes formatos
             // Formato DD/MM/YYYY o DD-MM-YYYY
             let fechaMatch = fechaStr.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
@@ -1804,7 +1806,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
               }
             }
           }
-          
+
           if (!isNaN(fecha.getTime()) && fecha.getFullYear() > 1900 && fecha.getFullYear() < 2100) {
             empresa.fecha_constitucion = fecha.toISOString().split('T')[0];
           } else {
@@ -1828,7 +1830,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
 
         if (empresa.fecha_presentacion_balance_inicial) {
           let fecha = null;
-          
+
           // Si es un número (fecha serial de Excel), convertir
           if (typeof empresa.fecha_presentacion_balance_inicial === 'number') {
             const fechaBase = new Date(1900, 0, 1);
@@ -1836,7 +1838,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           } else {
             fecha = new Date(empresa.fecha_presentacion_balance_inicial);
           }
-          
+
           if (!isNaN(fecha.getTime()) && fecha.getFullYear() > 1900 && fecha.getFullYear() < 2100) {
             empresa.fecha_presentacion_balance_inicial = fecha.toISOString().split('T')[0];
           } else {
@@ -1878,7 +1880,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
       if (loteIndex === 0 || (loteIndex + 1) % 10 === 0) {
         console.log(`💾 Procesando lote ${loteIndex + 1}/${lotes.length} (${loteNormalizado.length} empresas)...`);
       }
-      
+
       // DEBUG: Verificar estructura de datos antes de insertar (solo primer lote)
       if (loteIndex === 0 && loteNormalizado.length > 0) {
         const ejemplo = loteNormalizado[0];
@@ -1890,7 +1892,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           todasLasPropiedades: Object.keys(ejemplo),
           valoresCompletos: ejemplo
         });
-        
+
         // Verificar que no tenga propiedades no permitidas
         const propiedadesPermitidas = [
           'numero_fila', 'expediente', 'ruc', 'nombre', 'situacion_legal',
@@ -1900,16 +1902,16 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           'ciiu_nivel_1', 'ciiu_nivel_6', 'ultimo_ano_balance',
           'presento_balance_inicial', 'fecha_presentacion_balance_inicial'
         ];
-        
+
         const propiedadesNoPermitidas = Object.keys(ejemplo).filter(
           key => !propiedadesPermitidas.includes(key) && key !== '_logged'
         );
-        
+
         if (propiedadesNoPermitidas.length > 0) {
           console.warn('⚠️ Propiedades no permitidas encontradas:', propiedadesNoPermitidas);
         }
       }
-      
+
       // Limpiar propiedades no permitidas antes de insertar
       const loteLimpio = loteNormalizado.map(empresa => {
         const empresaLimpia = {};
@@ -1921,7 +1923,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           'ciiu_nivel_1', 'ciiu_nivel_6', 'ultimo_ano_balance',
           'presento_balance_inicial', 'fecha_presentacion_balance_inicial'
         ];
-        
+
         propiedadesPermitidas.forEach(prop => {
           // Incluir el campo si tiene un valor válido (no undefined, no null, y no string vacío para fechas)
           if (empresa[prop] !== undefined && empresa[prop] !== null) {
@@ -1936,7 +1938,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
             }
           }
         });
-        
+
         // Asegurar que fecha_constitucion se incluya si tiene valor válido
         if (empresa.fecha_constitucion && empresa.fecha_constitucion !== null && empresa.fecha_constitucion !== '') {
           const fechaStr = String(empresa.fecha_constitucion).trim();
@@ -1947,7 +1949,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
             console.warn(`⚠️ Formato de fecha inválido para RUC ${empresa.ruc}: ${fechaStr}`);
           }
         }
-        
+
         // DEBUG: Verificar fecha_constitucion en el primer lote
         if (loteIndex === 0 && empresa.ruc === loteNormalizado[0]?.ruc) {
           console.log('🔍 DEBUG fecha_constitucion:', {
@@ -1958,10 +1960,10 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
             tieneFechaEnLimpia: 'fecha_constitucion' in empresaLimpia
           });
         }
-        
+
         return empresaLimpia;
       });
-      
+
       // DEBUG: Verificar que fecha_constitucion esté presente antes de insertar
       if (loteIndex === 0 && loteLimpio.length > 0) {
         const ejemploLimpio = loteLimpio[0];
@@ -1973,7 +1975,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
           todasLasProps: Object.keys(ejemploLimpio)
         });
       }
-      
+
       const { data, error } = await supabase
         .from('empresas_scvs')
         .upsert(loteLimpio, {
@@ -2010,12 +2012,12 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
         // Contar cuántas fueron insertadas vs actualizadas
         const cantidadProcesada = data ? data.length : loteLimpio.length;
         resultados.insertadas += cantidadProcesada;
-        
+
         // Solo log cada 10 lotes o al final
         if ((loteIndex + 1) % 10 === 0 || loteIndex === lotes.length - 1) {
           console.log(`✅ Lote ${loteIndex + 1}/${lotes.length} completado: ${cantidadProcesada} empresas procesadas`);
         }
-        
+
         // DEBUG: Mostrar ejemplo de empresa insertada en el primer lote
         if (loteIndex === 0 && data && data.length > 0) {
           console.log('✅ Ejemplo de empresa insertada exitosamente:', data[0]);
@@ -2051,7 +2053,7 @@ export const insertarEmpresasMasivo = async (empresas, onProgress = null) => {
 export const buscarEmpresasPorNombre = async (nombre, limite = 50) => {
   try {
     console.log('🔍 Buscando empresas por nombre:', nombre);
-    
+
     const { data, error } = await supabase
       .from('empresas_scvs')
       .select('*')
@@ -2111,5 +2113,100 @@ export const obtenerDescripcionActividadCIIU = async (codigo) => {
   } catch (error) {
     console.error('❌ Error en obtenerDescripcionActividadCIIU:', error);
     return null;
+  }
+};
+
+// ==========================================
+// MÓDULO DE FIRMAS ELECTRÓNICAS P12
+// ==========================================
+
+export const getFirmasGuardadas = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('firmas_electronicas')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error al obtener firmas:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const uploadFirmaP12 = async (file, nombre, password) => {
+  try {
+    // 1. Crear nombre único y ruta para el bucket
+    const fileExt = file.name.split('.').pop();
+    const fileName = `firma_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // 2. Subir archivo al bucket firmas_p12
+    const { error: storageError } = await supabase.storage
+      .from('firmas_p12')
+      .upload(filePath, file);
+
+    if (storageError) throw new Error(`Error subiendo archivo: ${storageError.message}`);
+
+    // 3. Guardar registro en la base de datos
+    const { data, error: dbError } = await supabase
+      .from('firmas_electronicas')
+      .insert([{
+        nombre,
+        storage_path: filePath,
+        password
+      }])
+      .select()
+      .single();
+
+    if (dbError) {
+      // Intentar borrar el archivo si falló el insert
+      await supabase.storage.from('firmas_p12').remove([filePath]);
+      throw new Error(`Error guardando en BD: ${dbError.message}`);
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error en uploadFirmaP12:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteFirma = async (id, storagePath) => {
+  try {
+    // 1. Borrar de Storage
+    const { error: storageError } = await supabase.storage
+      .from('firmas_p12')
+      .remove([storagePath]);
+
+    if (storageError) console.error('Error borrando archivo P12, continuando con BD...', storageError);
+
+    // 2. Borrar de Base de Datos
+    const { error: dbError } = await supabase
+      .from('firmas_electronicas')
+      .delete()
+      .eq('id', id);
+
+    if (dbError) throw dbError;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error en deleteFirma:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const downloadFirmaP12 = async (storagePath) => {
+  try {
+    const { data, error } = await supabase.storage
+      .from('firmas_p12')
+      .download(storagePath);
+
+    if (error) throw error;
+    return { success: true, data }; // data es un Blob
+  } catch (error) {
+    console.error('Error descargando firma:', error);
+    return { success: false, error: error.message };
   }
 };

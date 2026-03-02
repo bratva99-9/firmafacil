@@ -12,7 +12,8 @@ import CorreosTool from './CorreosTool';
 import InformeSuperCompanias from './InformeSuperCompanias';
 import GeneracionImagenes from './GeneracionImagenes';
 import EstadoCuentaBancaria from './EstadoCuentaBancaria';
-import { supabase } from '../lib/supabase';
+import GenerarClaveSRI from './GenerarClaveSRI';
+import { supabase, getFirmasGuardadas, uploadFirmaP12, downloadFirmaP12, deleteFirma } from '../lib/supabase';
 // import CreateUser from './CreateUser';
 
 const MainContent = ({ activeService, onServiceSelect, user }) => {
@@ -929,7 +930,7 @@ function HerramientasSection() {
 
   const validarPin = (e) => {
     e.preventDefault();
-    if (pin.trim() === '1199') {
+    if (pin.trim() === '112677') {
       setAutenticado(true);
       setPinError('');
     } else {
@@ -1132,6 +1133,16 @@ function HerramientasSection() {
             <div className="tool-title">Estado de Cuenta Bancario</div>
             <p className="tool-desc">Genera estados de cuenta de Banco Pichincha.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('depuracion-ruc')}>
+            <div className="tool-icon">🔓</div>
+            <div className="tool-title">Depuración - Activar RUC</div>
+            <p className="tool-desc">Genera formulario SRI para activar RUC suspendido por depuración.</p>
+          </div>
+          <div className="tool-card" onClick={() => setAbierta('generar-clave-sri')}>
+            <div className="tool-icon">🔑</div>
+            <div className="tool-title">Generar Clave SRI</div>
+            <p className="tool-desc">Automatiza la solicitud de claves y firma 100% en la nube sin apps.</p>
+          </div>
         </div>
       )}
 
@@ -1171,6 +1182,862 @@ function HerramientasSection() {
       {autenticado && abierta === 'estado-cuenta' && (
         <div className="tool-panel" style={{ padding: 0 }}>
           <EstadoCuentaBancaria />
+        </div>
+      )}
+      {autenticado && abierta === 'depuracion-ruc' && (
+        <div className="tool-panel" style={{ padding: 0 }}>
+          <DepuracionRUCTool />
+        </div>
+      )}
+      {autenticado && abierta === 'generar-clave-sri' && (
+        <div className="tool-panel" style={{ padding: 0 }}>
+          <GenerarClaveSRI />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DepuracionRUCTool() {
+  const [ruc, setRuc] = useState('')
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState('')
+  const [datos, setDatos] = useState(null)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null)
+  const [generandoPDF, setGenerandoPDF] = useState(false)
+  const [mostrarConfig, setMostrarConfig] = useState(false)
+  const [ciudad, setCiudad] = useState('Guayaquil')
+  // --- Firma digital ---
+  const [filledPdfBytes, setFilledPdfBytes] = useState(null)
+  const [p12File, setP12File] = useState(null)
+  const [p12Password, setP12Password] = useState('')
+  const [firmandoPDF, setFirmandoPDF] = useState(false)
+  const [errorFirma, setErrorFirma] = useState('')
+  const [sigPos, setSigPos] = useState({ x: 400, y: 575, w: 140, h: 45 })
+  const [mostrarConfigFirma, setMostrarConfigFirma] = useState(false)
+
+  // --- Firma digital en la Nube ---
+  const [firmasGuardadas, setFirmasGuardadas] = useState([]);
+  const [idFirmaSeleccionada, setIdFirmaSeleccionada] = useState('');
+  const [cargandoFirmas, setCargandoFirmas] = useState(false);
+  const [cargandoNube, setCargandoNube] = useState(false);
+  const [datosCertificado, setDatosCertificado] = useState(null);
+
+  React.useEffect(() => {
+    cargarFirmas()
+  }, [])
+
+  const cargarFirmas = async (rucConsulta = null) => {
+    setCargandoFirmas(true)
+    const res = await getFirmasGuardadas()
+    if (res.success && res.data && res.data.length > 0) {
+      if (rucConsulta) {
+        // En Ecuador, el RUC es la cédula + 001. rucConsulta aquí es los primeros 10 dígitos (ej: 0958398984)
+        const firmaMatch = res.data.find(f => {
+          const nombreFirma = f.nombre.trim()
+          return rucConsulta.includes(nombreFirma) || nombreFirma.includes(rucConsulta)
+        })
+
+        if (firmaMatch) {
+          setFirmasGuardadas([firmaMatch]) // Sólo mostrar la coincidente en el desplegable
+          await handleSelectFirmaDirecto(firmaMatch.id, firmaMatch, [firmaMatch])
+        } else {
+          setFirmasGuardadas([]) // No hay firma para este contribuyente
+          await handleSelectFirmaDirecto('', null, [])
+        }
+      } else {
+        // Carga inicial o sin RUC: No mostramos firmas de otros
+        setFirmasGuardadas([])
+        await handleSelectFirmaDirecto('', null, [])
+      }
+    } else {
+      setFirmasGuardadas([])
+      await handleSelectFirmaDirecto('', null, [])
+    }
+    setCargandoFirmas(false)
+  }
+
+  const parseP12Info = async (fileBuffer, password) => {
+    try {
+      const forge = await import('node-forge')
+      const p12Asn1 = forge.asn1.fromDer(fileBuffer.toString('binary'))
+      const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, password)
+      let cert = null
+
+      for (let s of p12.safeContents) {
+        for (let b of s.safeBags) {
+          if (b.cert) {
+            cert = b.cert
+            break
+          }
+        }
+        if (cert) break
+      }
+
+      if (!cert) return null
+
+      // Extraer datos clave
+      const cnAttr = cert.subject.attributes.find(a => a.shortName === 'CN')
+      const commonName = cnAttr ? cnAttr.value : 'Desconocido'
+
+      const serialAttr = cert.subject.attributes.find(a => a.shortName === 'serialNumber')
+      const cedulaCert = serialAttr ? serialAttr.value : null
+
+      const vDesde = cert.validity.notBefore
+      const vHasta = cert.validity.notAfter
+      let vigenteFechas = new Date() >= vDesde && new Date() <= vHasta
+      let estadoGlobal = vigenteFechas ? "VIGENTE ✅" : "CADUCADA (Por Fecha) ❌"
+
+      if (vigenteFechas) {
+        // Ejecutar prueba criptográfica en memoria para forzar validación de CRL
+        try {
+          if (typeof window !== 'undefined' && !window.Buffer) {
+            const { Buffer: Buf } = await import('buffer')
+            window.Buffer = Buf
+          }
+
+          const { PDFDocument } = await import('pdf-lib')
+          const { pdflibAddPlaceholder } = await import('@signpdf/placeholder-pdf-lib')
+          const pdfDoc = await PDFDocument.create()
+          const page = pdfDoc.addPage([100, 100])
+          page.drawText('X')
+
+          await pdflibAddPlaceholder({
+            pdfDoc,
+            reason: 'Test',
+            contactInfo: 'Test',
+            name: 'Test',
+            location: 'Test',
+            signatureLength: 16384,
+          })
+
+          const pdfBytes = await pdfDoc.save()
+
+          const { P12Signer } = await import('@signpdf/signer-p12')
+          const signpdfMod = await import('@signpdf/signpdf')
+          const signpdf = signpdfMod.default || signpdfMod.signpdf || signpdfMod
+
+          // Convertir buffer a Uint8Array
+          const signerBuf = new Uint8Array(fileBuffer.buffer || fileBuffer)
+          const signer = new P12Signer(signerBuf, { passphrase: password })
+
+          const signedPdf = await signpdf.sign(new Uint8Array(pdfBytes), signer)
+          if (signedPdf) {
+            // No lanzó error
+          }
+        } catch (signErr) {
+          console.warn('⚠️ Firma no pasó validación criptográfica/CRL:', signErr)
+          vigenteFechas = false
+          const r = signErr.message || ''
+          estadoGlobal = `DEFECTUOSA O REVOCADA ❌ (${r})`
+        }
+      }
+
+      return {
+        commonName,
+        cedula: cedulaCert,
+        validoDesde: vDesde,
+        validoHasta: vHasta,
+        vigente: vigenteFechas,
+        estado: estadoGlobal
+      }
+
+    } catch (e) {
+      console.error('Error parseando P12:', e)
+      return null
+    }
+  }
+
+  const handleSelectFirmaDirecto = async (id, firmaObj, listaFirmas) => {
+    setIdFirmaSeleccionada(id)
+    if (!id || !firmaObj) {
+      setP12File(null)
+      setP12Password('')
+      setDatosCertificado(null)
+      return
+    }
+
+    try {
+      setErrorFirma('')
+      setCargandoNube(true)
+      const res = await downloadFirmaP12(firmaObj.storage_path)
+      if (res.success) {
+        const file = new File([res.data], `firma_cloud_${id}.p12`, { type: 'application/x-pkcs12' })
+        setP12File(file)
+        setP12Password(firmaObj.password)
+
+        // Validar vigencia
+        const p12ArrayBuffer = await res.data.arrayBuffer()
+
+        // Polyfill Buffer rápido
+        if (typeof window !== 'undefined' && !window.Buffer) {
+          const { Buffer: Buf } = await import('buffer')
+          window.Buffer = Buf
+        }
+
+        const nodeBuffer = window.Buffer.from(p12ArrayBuffer)
+        const certInfo = await parseP12Info(nodeBuffer, firmaObj.password)
+        setDatosCertificado(certInfo)
+
+      } else {
+        setErrorFirma('No se pudo descargar la firma desde la base de datos')
+      }
+    } catch (err) {
+      setErrorFirma('Ocurrió un error obteniendo la firma de Supabase')
+    } finally {
+      setCargandoNube(false)
+    }
+  }
+
+  const handleSelectFirma = async (e) => {
+    const id = e.target.value
+    const firma = firmasGuardadas.find(f => f.id === id)
+    await handleSelectFirmaDirecto(id, firma, firmasGuardadas)
+  }
+
+  const handleEliminarFirma = async (id, path) => {
+    if (!window.confirm('¿Seguro quieres borrar esta firma de la base de datos?')) return
+    setCargandoNube(true)
+    try {
+      await deleteFirma(id, path)
+      if (idFirmaSeleccionada === id) {
+        setIdFirmaSeleccionada('')
+        setP12File(null)
+        setP12Password('')
+      }
+      await cargarFirmas()
+    } finally {
+      setCargandoNube(false)
+    }
+  }
+
+  // Fecha actual formateada como texto completo
+  const hoy = new Date()
+  const DIAS_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+  const textoFechaHoy = (c) =>
+    `${c}, ${DIAS_ES[hoy.getDay()]} ${hoy.getDate()} de ${MESES_ES[hoy.getMonth()]} del ${hoy.getFullYear()}`
+
+  const [posiciones, setPosiciones] = useState({
+    ruc: { x: 415, y: 195, size: 14 },
+    razonSocial: { x: 40, y: 195, size: 10 },
+    ceseAnio: { x: 260, y: 448, size: 15 },
+    ceseMes: { x: 170, y: 448, size: 15 },
+    ceseDia: { x: 80, y: 448, size: 15 },
+    fechaTexto: { x: 185, y: 110, size: 11 },
+    marcaX: { x: 563, y: 280, size: 16 },
+  })
+
+  const SUPABASE_URL = 'https://eapcqcuzfkpqngbvjtmv.supabase.co/functions/v1/consultar-ruc'
+  const BEARER = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcGNxY3V6ZmtwcW5nYnZqdG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTEzNzIsImV4cCI6MjA3NDQyNzM3Mn0.-mufqMzFQetktwAL444d1PjdWfdCC5-2ftVs0LnTIL4'
+
+  const consultarRUC = async (e) => {
+    e.preventDefault()
+    setError('')
+    setDatos(null)
+    setPdfPreviewUrl(null)
+    const r = ruc.trim()
+    if (!/^\d{13}$/.test(r)) { setError('Ingresa un RUC válido de 13 dígitos'); return }
+    setCargando(true)
+    try {
+      const resp = await fetch(SUPABASE_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${BEARER}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ruc: r })
+      })
+      if (!resp.ok) throw new Error(`Error HTTP ${resp.status}`)
+      const data = await resp.json()
+      if (!data.numero_ruc) throw new Error('Respuesta inesperada de la API')
+      setDatos(data)
+
+      // Intentar auto-cargar la firma P12 que coincida con el RUC, con y sin 001
+      const cedulaBase = data.numero_ruc.substring(0, 10)
+      console.log('Buscando firma auto para base:', cedulaBase, ' o ', data.numero_ruc)
+      await cargarFirmas(cedulaBase) // Busca el número base ("0912345678")
+
+      setTimeout(() => generarPDF(data, true), 100)
+    } catch (err) {
+      setError(err.message || 'Error en la consulta')
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  // Parsea "2017-12-10 00:00:00.0" o "2017-12-10" → { anio, mes, dia }
+  const parseFechaCese = (fechaCese) => {
+    if (!fechaCese) return { anio: '', mes: '', dia: '' }
+    const str = String(fechaCese).trim()
+    // Busca patrón YYYY-MM-DD sea cual sea el resto
+    const match = str.match(/(\d{4})-(\d{2})-(\d{2})/)
+    if (!match) return { anio: '', mes: '', dia: '' }
+    return { anio: match[1], mes: match[2], dia: match[3] }
+  }
+
+  const generarPDF = async (datosParam, previewMode = false, ciudadParam) => {
+    const d = datosParam || datos
+    if (!d) return
+    const ciudadActual = ciudadParam !== undefined ? ciudadParam : ciudad
+    setGenerandoPDF(true)
+    try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
+      const pdfUrl = `${window.location.origin}/depuracion.pdf`
+      const pdfRaw = await fetch(pdfUrl)
+        .then(r => { if (!r.ok) throw new Error('No se encontró el PDF'); return r.arrayBuffer() })
+      const pdfDoc = await PDFDocument.load(pdfRaw)
+      const pages = pdfDoc.getPages()
+      const page = pages[0]
+      const { height } = page.getSize()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+      const draw = (text, campo) => {
+        if (text === null || text === undefined || text === '') return
+        const p = posiciones[campo]
+        page.drawText(String(text), {
+          x: p.x,
+          y: height - p.y,
+          size: p.size,
+          font,
+          color: rgb(0, 0, 0)
+        })
+      }
+
+      const drawAt = (text, x, y, size) => {
+        if (!text) return
+        page.drawText(String(text), {
+          x, y: height - y, size, font, color: rgb(0, 0, 0)
+        })
+      }
+
+      // Fecha de cese (3 campos separados)
+      const { anio, mes, dia } = parseFechaCese(d.fecha_cese)
+      console.log('Fecha cese raw:', d.fecha_cese, '→', { anio, mes, dia })
+
+      draw(d.numero_ruc, 'ruc')
+      draw(d.razon_social, 'razonSocial')
+
+      // Cese: dibujamos directamente con las posiciones configuradas
+      if (anio) drawAt(anio, posiciones.ceseAnio.x, posiciones.ceseAnio.y, posiciones.ceseAnio.size)
+      if (mes) drawAt(mes, posiciones.ceseMes.x, posiciones.ceseMes.y, posiciones.ceseMes.size)
+      if (dia) drawAt(dia, posiciones.ceseDia.x, posiciones.ceseDia.y, posiciones.ceseDia.size)
+
+      // Fecha actual como texto completo
+      const fechaCompleta = textoFechaHoy(ciudadActual)
+      drawAt(fechaCompleta, posiciones.fechaTexto.x, posiciones.fechaTexto.y, posiciones.fechaTexto.size)
+
+      // Marca X
+      draw('X', 'marcaX')
+
+      const outBytes = await pdfDoc.save()
+      setFilledPdfBytes(outBytes) // guardar bytes para firma posterior
+      const blob = new Blob([outBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      if (previewMode) {
+        setPdfPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url })
+      } else {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Formulario_Depuracion_${d.numero_ruc}.pdf`
+        a.click()
+      }
+    } catch (err) {
+      setError('Error generando PDF: ' + err.message)
+    } finally {
+      setGenerandoPDF(false)
+    }
+  }
+
+  const exportarCoordenadas = () => {
+    const json = JSON.stringify(posiciones, null, 2)
+    navigator.clipboard.writeText(json).then(() => alert('✅ Coordenadas copiadas al portapapeles'))
+  }
+
+  const dibujarFirmaVisual = async (pdfDoc, sigPosConfig, datosObj) => {
+    const pages = pdfDoc.getPages()
+    const page = pages[0]
+    const { height: pH } = page.getSize()
+
+    const rectX1 = sigPosConfig.x
+    const rectY1 = pH - sigPosConfig.y - sigPosConfig.h
+
+    const { StandardFonts, rgb } = await import('pdf-lib')
+    const QRCode = await import('qrcode')
+
+    const fontNormal = await pdfDoc.embedFont(StandardFonts.Courier)
+    const fontBold = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+
+    const urlInfo = `Datos de firma: ${datosObj?.razon_social || 'Contribuyente'}\\nFecha: ${new Date().toISOString()}`
+    const qrDataUrl = await QRCode.toDataURL(urlInfo, { margin: 1, color: { dark: '#000', light: '#FFF' } })
+    const qrImageBytes = await fetch(qrDataUrl).then(res => res.arrayBuffer())
+    const qrImage = await pdfDoc.embedPng(qrImageBytes)
+
+    const scale = Math.max(0.5, sigPosConfig.h / 45)
+    const padding = 2 * scale
+    const qrSize = sigPosConfig.h - padding * 2
+    const qrX = rectX1 + padding
+    const qrY = rectY1 + padding
+
+    page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize })
+
+    const textX = qrX + qrSize + 4 * scale
+    const sizeNormal = 6 * scale
+    const sizeBold = 10 * scale
+    const colorText = rgb(0.1, 0.1, 0.1)
+
+    const topSpaceY = rectY1 + sigPosConfig.h - padding - sizeNormal
+    page.drawText('Firmado electrónicamente por:', {
+      x: textX, y: topSpaceY, size: sizeNormal, font: fontNormal, color: colorText
+    })
+
+    const rs = (datosObj?.razon_social || 'CONTRIBUYENTE').toUpperCase().trim()
+    const parts = rs.split(' ')
+    let primeraLinea = rs
+    let segundaLinea = ''
+
+    if (parts.length >= 4) {
+      primeraLinea = parts.slice(0, 2).join(' ')
+      segundaLinea = parts.slice(2).join(' ')
+    } else if (parts.length === 3) {
+      primeraLinea = parts.slice(0, 2).join(' ')
+      segundaLinea = parts[2]
+    } else if (parts.length === 2 && rs.length > 15) {
+      primeraLinea = parts[0]
+      segundaLinea = parts[1]
+    } else if (rs.length > 22) {
+      const breakAt = rs.lastIndexOf(' ', 22)
+      if (breakAt > 0) {
+        primeraLinea = rs.substring(0, breakAt)
+        segundaLinea = rs.substring(breakAt + 1)
+      } else {
+        primeraLinea = rs.substring(0, 22)
+        segundaLinea = rs.substring(22)
+      }
+    }
+
+    const yRS1 = topSpaceY - sizeBold - 3 * scale
+    page.drawText(primeraLinea, { x: textX, y: yRS1, size: sizeBold, font: fontBold, color: colorText })
+
+    let yValidar = yRS1 - sizeNormal - 5 * scale
+    if (segundaLinea) {
+      const yRS2 = yRS1 - sizeBold
+      page.drawText(segundaLinea, { x: textX, y: yRS2, size: sizeBold, font: fontBold, color: colorText })
+      yValidar = yRS2 - sizeNormal - 4 * scale
+    }
+
+    page.drawText('Validar únicamente con FirmaEC', {
+      x: textX, y: yValidar, size: sizeNormal, font: fontNormal, color: colorText
+    })
+  }
+
+  const previsualizarFirma = async () => {
+    if (!filledPdfBytes) { setErrorFirma('Primero genera el PDF base'); return }
+    setCargandoNube(true)
+    setErrorFirma('')
+    try {
+      const { PDFDocument } = await import('pdf-lib')
+      const pdfDoc = await PDFDocument.load(filledPdfBytes)
+      await dibujarFirmaVisual(pdfDoc, sigPos, datos)
+      const outBytes = await pdfDoc.save()
+      const blob = new Blob([outBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      setPdfPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url })
+      alert('Vista previa del PDF actualizada visualizando la posición de la firma.')
+    } catch (err) {
+      setErrorFirma('Error al previsualizar firma: ' + err.message)
+    } finally {
+      setCargandoNube(false)
+    }
+  }
+
+  const firmarPDF = async () => {
+    if (!filledPdfBytes) { setErrorFirma('Primero genera el PDF'); return }
+    if (!p12File) { setErrorFirma('Selecciona tu archivo .p12'); return }
+    if (!p12Password) { setErrorFirma('Ingresa la contraseña de tu firma'); return }
+
+    // Bloqueo si el certificado no es válido/está revocado
+    if (datosCertificado && !datosCertificado.vigente) {
+      setErrorFirma(`No se puede firmar: El certificado se encuentra ${datosCertificado.estado || 'CADUCADO o REVOCADO'}.`)
+      return
+    }
+
+    setFirmandoPDF(true)
+    setErrorFirma('')
+    try {
+      if (typeof window !== 'undefined' && !window.Buffer) {
+        const { Buffer: Buf } = await import('buffer')
+        window.Buffer = Buf
+      }
+
+      const { PDFDocument } = await import('pdf-lib')
+      const { pdflibAddPlaceholder } = await import('@signpdf/placeholder-pdf-lib')
+      const signpdfMod = await import('@signpdf/signpdf')
+      const { P12Signer } = await import('@signpdf/signer-p12')
+      const signpdf = signpdfMod.default || signpdfMod.signpdf || signpdfMod
+
+      const pdfDoc = await PDFDocument.load(filledPdfBytes)
+      const pages = pdfDoc.getPages()
+      const { height: pH } = pages[0].getSize()
+
+      const rectX1 = sigPos.x
+      const rectY1 = pH - sigPos.y - sigPos.h
+      const rectX2 = sigPos.x + sigPos.w
+      const rectY2 = pH - sigPos.y
+
+      if (!pdfDoc.context.registeredSignatures) {
+        pdfDoc.context.registeredSignatures = []
+      }
+
+      await dibujarFirmaVisual(pdfDoc, sigPos, datos)
+
+      await pdflibAddPlaceholder({
+        pdfDoc,
+        reason: '',
+        contactInfo: datos?.razon_social || '',
+        name: datos?.razon_social || '',
+        location: '',
+        signatureLength: 16384,
+        subFilter: 'adbe.pkcs7.detached',
+        widgetRect: [rectX1, rectY1, rectX2, rectY2],
+      })
+
+      const pdfConPlaceholder = await pdfDoc.save({ useObjectStreams: false })
+
+      const p12Buffer = await p12File.arrayBuffer()
+      const signer = new P12Signer(new Uint8Array(p12Buffer), { passphrase: p12Password })
+
+      const { SignPdf } = await import('@signpdf/signpdf')
+      const signPdfInstance = new SignPdf()
+      const signedBytes = await signPdfInstance.sign(new Uint8Array(pdfConPlaceholder), signer)
+
+      // Auto-guardar la firma en Cloud
+      if (!idFirmaSeleccionada) {
+        try {
+          const { uploadFirmaP12 } = await import('../lib/supabase')
+          const nombreFirma = p12File.name.replace(/\.[^/.]+$/, "")
+          const res = await uploadFirmaP12(p12File, nombreFirma, p12Password)
+          if (res.success) {
+            await cargarFirmas()
+            setIdFirmaSeleccionada(res.data.id)
+            console.log('✅ Firma autoguardada exitosamente con nombre:', nombreFirma)
+          }
+        } catch (e) { console.error("Error el autoguardado de la firma:", e) }
+      }
+
+      const blob = new Blob([signedBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Formulario_Firmado_${datos?.numero_ruc || 'doc'}.pdf`
+      a.click()
+    } catch (err) {
+      console.error('Error firma:', err)
+      setErrorFirma('Error al firmar: ' + err.message)
+    } finally {
+      setFirmandoPDF(false)
+    }
+  }
+
+  const actualizarPos = (campo, eje, val) => {
+    setPosiciones(prev => ({
+      ...prev,
+      [campo]: { ...prev[campo], [eje]: Number(val) || 0 }
+    }))
+  }
+
+  const CAMPOS_CONFIG = [
+    { key: 'ruc', label: 'Número RUC' },
+    { key: 'razonSocial', label: 'Razón Social' },
+    { key: 'ceseAnio', label: 'Año de Cese' },
+    { key: 'ceseMes', label: 'Mes de Cese' },
+    { key: 'ceseDia', label: 'Día de Cese' },
+    { key: 'fechaTexto', label: 'Fecha completa (texto)' },
+    { key: 'marcaX', label: 'Marca X (checkbox)' },
+  ]
+
+  return (
+    <div style={{ padding: 16, fontFamily: 'system-ui, sans-serif' }}>
+      <style>{`
+        .dr-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 12px; }
+        .dr-input { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; }
+        .dr-input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+        .dr-btn { border: 1px solid #a5b4fc; background: #eef2ff; color: #3730a3; border-radius: 6px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .dr-btn:hover { background: #e0e7ff; }
+        .dr-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .dr-btn-green { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
+        .dr-btn-red { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+        .dr-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
+        .dr-info { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; }
+        .dr-info-row { display: flex; gap: 8px; margin-bottom: 4px; }
+        .dr-info-label { font-weight: 700; color: #0369a1; min-width: 130px; }
+        .dr-info-val { color: #1e293b; }
+        .dr-config-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+        .dr-field-group { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
+        .dr-field-label { font-size: 11px; font-weight: 700; color: #6366f1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dr-field-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        .dr-coord-input { padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; width: 100%; text-align: center; }
+        .dr-coord-label { font-size: 10px; color: #6b7280; text-align: center; margin-bottom: 2px; }
+        .dr-preview-container { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; margin-bottom: 12px; }
+        .dr-action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .dr-ciudad-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; }
+        .dr-ciudad-btn { padding: 5px 14px; border-radius: 6px; border: 1px solid #d1d5db; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+        .dr-ciudad-btn.active { background: #065f46; color: #fff; border-color: #065f46; }
+      `}</style>
+
+      <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px' }}>🔓 Depuración – Activar RUC Suspendido</h3>
+      <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 12px' }}>
+        Consulta el RUC y genera el formulario SRI para activar RUC suspendido por depuración.
+      </p>
+
+      {/* Selector de ciudad */}
+      <div className="dr-ciudad-bar">
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#064e3b' }}>🏙️ Ciudad:</span>
+        {['Guayaquil', 'Quito'].map(c => (
+          <button
+            key={c}
+            className={`dr-ciudad-btn${ciudad === c ? ' active' : ''}`}
+            onClick={() => { setCiudad(c); if (datos) generarPDF(datos, true, c) }}
+          >{c}</button>
+        ))}
+        <span style={{ fontSize: 12, color: '#065f46', marginLeft: 4, flex: 1 }}>
+          → <em>{textoFechaHoy(ciudad)}</em>
+        </span>
+      </div>
+
+      <form className="dr-form" onSubmit={consultarRUC}>
+        <input
+          className="dr-input"
+          value={ruc}
+          onChange={e => setRuc(e.target.value.replace(/\D/g, '').slice(0, 13))}
+          placeholder="Ingresa RUC (13 dígitos)"
+          maxLength={13}
+        />
+        <button className="dr-btn" type="submit" disabled={cargando || ruc.length !== 13}>
+          {cargando ? '⏳ Consultando…' : '🔍 Consultar RUC'}
+        </button>
+      </form>
+
+      {error && <div className="dr-error">⚠️ {error}</div>}
+
+      {datos && (() => {
+        const { anio, mes, dia } = parseFechaCese(datos.fecha_cese)
+        return (
+          <div className="dr-info">
+            <div className="dr-info-row"><span className="dr-info-label">📄 RUC:</span><span className="dr-info-val">{datos.numero_ruc}</span></div>
+            <div className="dr-info-row"><span className="dr-info-label">👤 Razón Social:</span><span className="dr-info-val">{datos.razon_social}</span></div>
+            <div className="dr-info-row"><span className="dr-info-label">✅ Estado:</span><span className="dr-info-val" style={{ color: datos.estado === 'ACTIVO' ? '#16a34a' : '#dc2626', fontWeight: 700 }}>{datos.estado}</span></div>
+            <div className="dr-info-row"><span className="dr-info-label">📅 Fecha Cese:</span><span className="dr-info-val">{datos.fecha_cese || 'N/A'} → Año: <b>{anio}</b> Mes: <b>{mes}</b> Día: <b>{dia}</b></span></div>
+            <div className="dr-info-row"><span className="dr-info-label">⚠️ Motivo:</span><span className="dr-info-val">{datos.motivo_cancelacion || 'N/A'}</span></div>
+            <div className="dr-info-row"><span className="dr-info-label">📅 Fecha documento:</span><span className="dr-info-val">{textoFechaHoy(ciudad)}</span></div>
+          </div>
+        )
+      })()}
+
+      {datos && (
+        <div className="dr-action-bar">
+          <button className="dr-btn" onClick={() => setMostrarConfig(v => !v)}>
+            ⚙️ {mostrarConfig ? 'Ocultar' : 'Configurar'} posiciones
+          </button>
+          <button className="dr-btn" disabled={generandoPDF} onClick={() => generarPDF(datos, true)}>
+            {generandoPDF ? '⏳ Generando…' : '🔄 Actualizar vista previa'}
+          </button>
+          <button className="dr-btn dr-btn-green" disabled={generandoPDF} onClick={() => generarPDF(datos, false)}>
+            📥 Descargar PDF
+          </button>
+          <button className="dr-btn dr-btn-red" onClick={exportarCoordenadas}>
+            📋 Exportar coordenadas
+          </button>
+        </div>
+      )}
+
+      {mostrarConfig && (
+        <div className="dr-config-body">
+          {CAMPOS_CONFIG.map(({ key, label }) => (
+            <div className="dr-field-group" key={key}>
+              <div className="dr-field-label">{label}</div>
+              <div className="dr-field-inputs">
+                <div>
+                  <div className="dr-coord-label">X</div>
+                  <input className="dr-coord-input" type="number" value={posiciones[key].x}
+                    onChange={e => actualizarPos(key, 'x', e.target.value)} />
+                </div>
+                <div>
+                  <div className="dr-coord-label">Y (desde arriba)</div>
+                  <input className="dr-coord-input" type="number" value={posiciones[key].y}
+                    onChange={e => actualizarPos(key, 'y', e.target.value)} />
+                </div>
+                <div>
+                  <div className="dr-coord-label">Tamaño</div>
+                  <input className="dr-coord-input" type="number" value={posiciones[key].size}
+                    onChange={e => actualizarPos(key, 'size', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          ))}
+          <div style={{ gridColumn: '1/-1' }}>
+            <button className="dr-btn" style={{ width: '100%' }} disabled={generandoPDF} onClick={() => generarPDF(datos, true)}>
+              {generandoPDF ? '⏳ Aplicando…' : '✅ Aplicar cambios y actualizar vista previa'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pdfPreviewUrl && (
+        <div className="dr-preview-container">
+          <iframe
+            src={pdfPreviewUrl}
+            title="Vista previa del formulario"
+            style={{ width: '100%', height: 700, border: 'none', display: 'block' }}
+          />
+        </div>
+      )}
+
+      {filledPdfBytes && (
+        <div style={{ marginTop: 8, border: '2px solid #818cf8', borderRadius: 10, overflow: 'hidden' }}>
+          <style>{`
+            .sig-section { padding: 14px 16px; background: #eef2ff; }
+            .sig-title { font-size: 14px; font-weight: 800; color: #3730a3; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+            .sig-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+            .sig-label { font-size: 11px; font-weight: 700; color: #4338ca; margin-bottom: 4px; }
+            .sig-input { width: 100%; padding: 6px 8px; border: 1px solid #a5b4fc; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box; }
+            .sig-input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+            .sig-pos-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+            .sig-coord-lbl { font-size: 10px; color: #6b7280; margin-bottom: 3px; text-align: center; font-weight: 600; }
+            .sig-coord-inp { width: 100%; padding: 4px 6px; border: 1px solid #c7d2fe; border-radius: 4px; font-size: 12px; text-align: center; box-sizing: border-box; }
+            .sig-btn-main { background: #4338ca; color: #fff; border: none; border-radius: 7px; padding: 10px 18px; font-weight: 800; font-size: 13px; cursor: pointer; width: 100%; }
+            .sig-btn-main:hover { background: #3730a3; }
+            .sig-btn-main:disabled { opacity: 0.6; cursor: not-allowed; }
+            .sig-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 6px; padding: 8px; font-size: 12px; margin-top: 8px; }
+            .sig-page-mock { position: relative; background: white; border: 1px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin: 0 auto; }
+            .sig-rect-preview { position: absolute; border: 2px solid #4338ca; background: rgba(99,102,241,0.18); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #3730a3; font-weight: 800; pointer-events: none; }
+          `}</style>
+          <div className='sig-section'>
+            <div className='sig-title'>✍️ Firma Digital Electrónica (.p12)
+              <span style={{ fontSize: 11, fontWeight: 400, color: '#6366f1', marginLeft: 'auto' }}>
+                <select className='sig-input' style={{ width: 'auto', display: 'inline-block', padding: '2px 8px' }}
+                  value={idFirmaSeleccionada} onChange={handleSelectFirma}>
+                  <option value="">-- Subir firma manualmente --</option>
+                  {firmasGuardadas.map(f => (
+                    <option key={f.id} value={f.id}>☁️ {f.nombre}</option>
+                  ))}
+                </select>
+              </span>
+            </div>
+
+            {cargandoFirmas || cargandoNube ? (
+              <div style={{ fontSize: 13, padding: 20, color: '#4338ca', textAlign: 'center', fontWeight: 'bold' }}>⏳ Sincronizando firmas con internet...</div>
+            ) : (
+              <>
+                <div className='sig-grid2'>
+                  <div>
+                    <div className='sig-label'>📂 Certificado .p12 / .pfx</div>
+                    {idFirmaSeleccionada ? (
+                      <div style={{ padding: '8px', border: '1px solid #c7d2fe', borderRadius: 6, fontSize: 12, background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: '#4f46e5', fontWeight: 700 }}>☁️ Certificado Nublado</span>
+                          <button onClick={() => {
+                            const firma = firmasGuardadas.find(f => f.id === idFirmaSeleccionada)
+                            if (firma) handleEliminarFirma(firma.id, firma.storage_path)
+                          }} style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 4, padding: '2px 6px', color: '#ef4444', cursor: 'pointer', fontSize: 10, fontWeight: 700 }} title="Borrar de la nube">Eliminar</button>
+                        </div>
+                        {datosCertificado ? (
+                          <div style={{ marginTop: 4, fontSize: 11, color: '#334155' }}>
+                            <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 2 }}>{datosCertificado.commonName}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              Estado:
+                              {datosCertificado.estado.includes('VIGENTE') ? (
+                                <span style={{ color: '#16a34a', fontWeight: 600 }}>{datosCertificado.estado}</span>
+                              ) : datosCertificado.estado.includes('CADUCADO') || datosCertificado.estado.includes('REVOCADO') ? (
+                                <span style={{ color: '#dc2626', fontWeight: 600 }}>{datosCertificado.estado}</span>
+                              ) : (
+                                <span style={{ color: '#d97706', fontWeight: 600 }}>{datosCertificado.estado}</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <span>Emisión: {new Date(datosCertificado.validoDesde).toLocaleString('es-EC')}</span>
+                              <span>Vencimiento: {new Date(datosCertificado.validoHasta).toLocaleString('es-EC')}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: '#64748b' }}>⏳ Leyendo datos...</div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <input type='file' accept='.p12,.pfx' className='sig-input' style={{ padding: '4px 8px', cursor: 'pointer' }}
+                          onChange={e => { setP12File(e.target.files[0]); setErrorFirma('') }}
+                        />
+                        {p12File && <div style={{ fontSize: 11, color: '#059669', marginTop: 3 }}>✅ {p12File.name}</div>}
+                      </>
+                    )}
+                  </div>
+                  <div>
+                    <div className='sig-label'>🔑 Contraseña del certificado</div>
+                    <input type='password' className='sig-input' value={p12Password}
+                      onChange={e => setP12Password(e.target.value)}
+                      placeholder='Contraseña del .p12'
+                      readOnly={!!idFirmaSeleccionada}
+                      style={{ background: idFirmaSeleccionada ? '#e2e8f0' : '#fff' }}
+                    />
+                  </div>
+                </div>
+
+              </>
+            )}
+
+            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button className='dr-btn' style={{ fontSize: 12, padding: '5px 10px' }}
+                onClick={() => setMostrarConfigFirma(v => !v)}>
+                📐 {mostrarConfigFirma ? 'Ocultar' : 'Ajustar'} posición de firma
+              </button>
+              <button className='dr-btn' style={{ fontSize: 12, padding: '5px 10px' }}
+                onClick={previsualizarFirma} disabled={cargandoNube || !filledPdfBytes}>
+                👁️ Previsualizar firma en formulario
+              </button>
+              <span style={{ fontSize: 11, color: '#6b7280' }}>
+                X:{sigPos.x} Y:{sigPos.y} — {sigPos.w}×{sigPos.h} pts
+              </span>
+            </div>
+
+            {mostrarConfigFirma && (
+              <>
+                <div className='sig-pos-grid'>
+                  {[{ k: 'x', l: 'X (izquierda)' }, { k: 'y', l: 'Y (desde arriba)' }, { k: 'w', l: 'Ancho' }, { k: 'h', l: 'Alto' }].map(({ k, l }) => (
+                    <div key={k}>
+                      <div className='sig-coord-lbl'>{l}</div>
+                      <input type='number' className='sig-coord-inp' value={sigPos[k]}
+                        onChange={e => setSigPos(prev => ({ ...prev, [k]: Number(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {/* Mini-preview posición */}
+                {(() => {
+                  const PDF_W = 595, PDF_H = 842, MOCK_W = 200
+                  const sc = MOCK_W / PDF_W
+                  return (
+                    <div style={{ background: '#f1f5f9', borderRadius: 6, padding: 10, marginBottom: 10 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase' }}>📄 Posición de firma (escala)</div>
+                      <div className='sig-page-mock' style={{ width: MOCK_W, height: PDF_H * sc }}>
+                        <div style={{ position: 'absolute', top: '10%', left: '8%', right: '8%', height: 1, background: '#e2e8f0' }} />
+                        <div style={{ position: 'absolute', top: '18%', left: '8%', right: '8%', height: 1, background: '#e2e8f0' }} />
+                        <div style={{ position: 'absolute', top: '28%', left: '8%', right: '55%', height: 1, background: '#e2e8f0' }} />
+                        <div className='sig-rect-preview' style={{ left: sigPos.x * sc, top: sigPos.y * sc, width: sigPos.w * sc, height: sigPos.h * sc }}>✍️</div>
+                      </div>
+                      <p style={{ fontSize: 10, color: '#94a3b8', margin: '4px 0 0' }}>A4 = 595×842 pts. El rectángulo azul indica la posición.</p>
+                    </div>
+                  )
+                })()}
+              </>
+            )}
+
+            <button className='sig-btn-main' disabled={firmandoPDF || !p12File || !p12Password} onClick={firmarPDF}>
+              {firmandoPDF ? '⏳ Firmando… por favor espera' : '✍️ Firmar PDF y descargar'}
+            </button>
+            {errorFirma && <div className='sig-error'>⚠️ {errorFirma}</div>}
+          </div>
         </div>
       )}
     </div>

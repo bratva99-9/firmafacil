@@ -1,15 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { supabase, EDGE_URL } from '../lib/supabase';
+import { supabase, EDGE_URL, consultarCedula } from '../lib/supabase';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import './GeneracionImagenes.css';
 
-// Función para reparar base64
+// Función robusta para reparar base64 (extraída de ConsultaCedula.js)
 const repararBase64 = (str) => {
     if (!str || typeof str !== 'string') return null;
+
+    // Paso 1: Normalizar - eliminar todos los espacios en blanco
     let normalizado = str.replace(/[\s\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, '');
+
+    // Paso 2: Eliminar caracteres no válidos en base64
     normalizado = normalizado.replace(/[^A-Za-z0-9+/=]/g, '');
+
+    // Paso 3: Eliminar padding incorrecto en medio del string
     const sinPadding = normalizado.replace(/=/g, '');
     normalizado = sinPadding;
+
+    // Paso 4: Corregir padding al final
     const resto = normalizado.length % 4;
     if (resto !== 0) {
         normalizado = normalizado.replace(/=+$/, '');
@@ -18,7 +26,11 @@ const repararBase64 = (str) => {
             normalizado += '='.repeat(4 - nuevoResto);
         }
     }
+
+    // Paso 5: Validar longitud mínima
     if (normalizado.length < 50) return null;
+
+    // Paso 6: Validar que sea decodificable
     try {
         const muestra = normalizado.substring(0, Math.min(500, normalizado.length));
         atob(muestra);
@@ -98,7 +110,8 @@ function GeneracionImagenes() {
     const [cedula, setCedula] = useState('');
     const [buscandoCedula, setBuscandoCedula] = useState(false);
     const [datosPersona, setDatosPersona] = useState(null);
-    const [cantidad, setCantidad] = useState(5);
+    const [cantidad, setCantidad] = useState(6);
+    const [hashBase64, setHashBase64] = useState('');
 
     const handleSourceChange = (e) => {
         const file = e.target.files[0];
@@ -163,6 +176,9 @@ function GeneracionImagenes() {
                             const file = new File([blob], `cedula_${cedula}.jpg`, { type: 'image/jpeg' });
                             setImagenSource(file);
                             setPreviewSource(base64Data);
+                            // Extraer solo la parte base64 pura para el campo de hash
+                            const purelyBase64 = base64Data.split('base64,')[1] || base64Data;
+                            setHashBase64(purelyBase64);
                             base64Foto = base64Data; // Guardar para uso directo
                         }
                     }
@@ -175,78 +191,31 @@ function GeneracionImagenes() {
                 console.warn("Fallo API Firmas, intentando continuar...", e);
             }
 
-            // --- LLAMADA A ZAMPLISOFT (Datos Completos) ---
+            // --- LLAMADA COMPARTIDA (Datos Completos desde Supabase/API) ---
             try {
-                const zamplisoftUrl = `https://apiconsult.zampisoft.com/api/consultar?identificacion=${cedula}&token=cvZ1-zcMv-OKKh-AR29`;
-                const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(zamplisoftUrl);
+                const result = await consultarCedula(cedula);
+                if (result.success) {
+                    const dataZamplisoft = result.data;
 
-                const respDatos = await fetch(proxyUrl);
+                    // El dactilar puede venir de firmasecuador o de zamplisoft
+                    const dactilarZamplisoft = dataZamplisoft.codigoDactilar ||
+                        dataZamplisoft.dactilar ||
+                        dataZamplisoft.serie ||
+                        dataZamplisoft.individualDactilar ||
+                        dataZamplisoft.huella || "";
 
-                if (respDatos.ok) {
-                    const dataZamplisoft = await respDatos.json();
+                    const dactilarFinal = dactilarEncontrado || dactilarZamplisoft || "";
 
-                    if (dataZamplisoft.nombre) {
-                        let nombres = "";
-                        let apellidos = "";
-
-                        if (dataZamplisoft.nombre) {
-                            const partes = dataZamplisoft.nombre.trim().split(' ');
-                            if (partes.length >= 4) {
-                                apellidos = partes.slice(0, 2).join(' ');
-                                nombres = partes.slice(2).join(' ');
-                            } else if (partes.length === 3) {
-                                apellidos = partes.slice(0, 2).join(' ');
-                                nombres = partes.slice(2).join(' ');
-                            } else {
-                                apellidos = dataZamplisoft.nombre;
-                            }
-                        }
-
-                        let edadCalc = dataZamplisoft.edad;
-                        if (!edadCalc && dataZamplisoft.fechaNacimiento) {
-                            try {
-                                const [d, m, y] = dataZamplisoft.fechaNacimiento.split('/');
-                                const fec = new Date(y, m - 1, d);
-                                const hoy = new Date();
-                                edadCalc = hoy.getFullYear() - fec.getFullYear();
-                            } catch (e) { }
-                        }
-
-                        // Mapeo exhaustivo de campos, incluyendo huella dactilar
-                        // Priorizar el dactilar que ya encontramos si existe, sino buscar en Zamplisoft
-                        const dactilarZamplisoft = dataZamplisoft.codigoDactilar ||
-                            dataZamplisoft.dactilar ||
-                            dataZamplisoft.serie ||
-                            dataZamplisoft.individualDactilar ||
-                            dataZamplisoft.huella || "";
-
-                        // Usar el que no esté vacío
-                        const dactilarFinal = dactilarEncontrado || dactilarZamplisoft || "";
-
-                        datosFinales = {
-                            ...datosFinales,
-                            ...dataZamplisoft,
-                            nombres: nombres,
-                            apellidos: apellidos,
-                            nombreCompleto: dataZamplisoft.nombre,
-                            fechaNacimiento: dataZamplisoft.fechaNacimiento,
-                            lugarNacimiento: dataZamplisoft.lugarNacimiento,
-                            nacionalidad: dataZamplisoft.nacionalidad || 'ECUATORIANA',
-                            estadoCivil: dataZamplisoft.estadoCivil,
-                            conyuge: dataZamplisoft.conyuge,
-                            genero: dataZamplisoft.genero,
-                            profesion: dataZamplisoft.profesion,
-                            instruccion: dataZamplisoft.instruccion,
-                            nombrePadre: dataZamplisoft.nombrePadre,
-                            nombreMadre: dataZamplisoft.nombreMadre,
-                            fechaCedulacion: dataZamplisoft.fechaCedulacion,
-                            codigoDactilar: dactilarFinal, // Usar el final combinado
-                            edad: edadCalc
-                        };
-                    }
+                    datosFinales = {
+                        ...datosFinales,
+                        ...dataZamplisoft,
+                        nombre: dataZamplisoft.nombre || `${dataZamplisoft.nombres} ${dataZamplisoft.apellidos}`.trim(),
+                        nombreCompleto: dataZamplisoft.nombreCompleto || dataZamplisoft.nombre || `${dataZamplisoft.nombres} ${dataZamplisoft.apellidos}`.trim(),
+                        codigoDactilar: dactilarFinal
+                    };
                 }
             } catch (e) {
-                console.error("Error consultando Zamplisoft logic:", e);
+                console.error("Error consultando datos de cédula:", e);
             }
 
             if (!datosFinales.identificacion && !datosFinales.cedula && !datosFinales.nombre) {
@@ -703,6 +672,96 @@ function GeneracionImagenes() {
                     )}
                 </div>
 
+                {/* Campo para Hash Base64 Manual */}
+                <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>
+                            Hash Base64 de la Foto:
+                        </label>
+                        {hashBase64 && (
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(hashBase64);
+                                    alert('Hash copiado al portapapeles');
+                                }}
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#2563eb',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline'
+                                }}
+                            >
+                                Copiar Hash
+                            </button>
+                        )}
+                    </div>
+                    <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>
+                            🛠️ Depuración de Fotografía (Hash Base64)
+                        </label>
+                        <textarea
+                            value={hashBase64}
+                            onChange={(e) => setHashBase64(e.target.value)}
+                            placeholder="Pega aquí el hash Base64 de la foto si deseas cambiarla o corregirla..."
+                            style={{
+                                width: '100%',
+                                height: '80px',
+                                padding: '10px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '12px',
+                                fontFamily: 'monospace',
+                                resize: 'vertical',
+                                marginBottom: '10px',
+                                background: '#fff'
+                            }}
+                        />
+                        <button
+                            onClick={async () => {
+                                const reparado = repararBase64(hashBase64);
+                                if (reparado) {
+                                    const base64Data = `data:image/jpeg;base64,${reparado}`;
+                                    setPreviewSource(base64Data);
+
+                                    try {
+                                        const response = await fetch(base64Data);
+                                        const blob = await response.blob();
+                                        const file = new File([blob], `manual_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                                        setImagenSource(file);
+
+                                        // Regenerar preview del PDF
+                                        if (datosPersona) {
+                                            setTimeout(() => generarPdfCedula(true), 100);
+                                        }
+
+                                        alert('✅ Hash aplicado y previsualización actualizada');
+                                    } catch (err) {
+                                        console.error("Error al aplicar hash manual:", err);
+                                        alert('Error al procesar la imagen del hash');
+                                    }
+                                }
+                            }}
+                            disabled={!hashBase64}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                background: hashBase64 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#e2e8f0',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: hashBase64 ? 'pointer' : 'not-allowed',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Actualizar Fotografía
+                        </button>
+                    </div>
+                </div>
+
                 {/* Área Principal: Foto + Datos + Preview PDF */}
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
@@ -720,7 +779,7 @@ function GeneracionImagenes() {
                     {pdfPreviewUrl && (
                         <div style={{
                             flex: 1,
-                            minWidth: '600px', // Aumentado para acomodar el formato horizontal
+                            minWidth: '600px',
                             height: '400px',
                             border: '1px solid #e2e8f0',
                             borderRadius: '8px',
@@ -734,20 +793,21 @@ function GeneracionImagenes() {
                                 left: 0,
                                 right: 0,
                                 padding: '8px',
-                                background: 'transparent', // Transparente para no estorbar
-                                borderBottom: 'none', // Sin borde
+                                background: 'transparent',
+                                borderBottom: 'none',
                                 fontSize: '12px',
                                 fontWeight: 'bold',
                                 color: '#475569',
                                 display: 'flex',
-                                justifyContent: 'flex-end', // Botón cerrar a la derecha
-                                alignItems: 'center'
+                                justifyContent: 'flex-end',
+                                alignItems: 'center',
+                                zIndex: 10
                             }}>
                                 <button
                                     onClick={() => setPdfPreviewUrl(null)}
                                     style={{
                                         border: 'none',
-                                        background: '#fff', // Fondo blanco para que se vea
+                                        background: '#fff',
                                         color: '#ef4444',
                                         cursor: 'pointer',
                                         fontSize: '14px',
