@@ -1,0 +1,2 @@
+ANTES: https://edge-hk-07-ac.armcloud.net/api/agent/pad/screenshot?cbsIp=10.10.209.57&padCode=ATP25102002JRNCM&format=jpg&width=1080&height=2340&quality=60&expireAt=1772839249&sign=QmkqZGwA_TpD5XM4kcrycO9DytOONPXC3TRJglrz0G4=
+DESPUES: https://edge-hk-07-ac.armcloud.net/api/agent/pad/screenshot?cbsIp=10.10.209.57&padCode=ATP25102002JRNCM&format=jpg&width=1080&height=2340&quality=60&expireAt=1772839249&sign=QmkqZGwA_TpD5XM4kcrycO9DytOONPXC3TRJglrz0G4=

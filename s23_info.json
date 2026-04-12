@@ -1,0 +1,28 @@
+{
+  "msg": "success",
+  "code": 200,
+  "data": {
+    "explain": "Português",
+    "simCountry": "BR",
+    "country": "BR",
+    "padCode": "ATP25102002JRNCM",
+    "padType": "Samsung Galaxy S23 Ultra",
+    "bluetoothAddress": "3A:1F:4B:9C:2D:8E",
+    "initializationData": "{\"explain\":\"Português\",\"country\":\"BR\",\"simJson\":{\"simCountry\":\"BR\",\"operatorShortname\":\"Vivo\",\"imei\":\"231205791319126\",\"imsi\":\"724064250779497\",\"phonenum\":\"551880590479\",\"operatorNumeric\":\"72406\"},\"latitude\":\"1.4627\",\"timeZone\":\"America/Sao_Paulo\",\"language\":\"pt\",\"longitude\":\"103.5946\"}",
+    "groupId": "0",
+    "latitude": "1.4627",
+    "ipAddress": "BR-SaoPaulo",
+    "timeZone": "America/Sao_Paulo",
+    "language": "es",
+    "publicIp": "45.43.32.133",
+    "phoneNumber": "+551880590479",
+    "androidVersion": "Android 14",
+    "wlanMac": "00:02:00:00:00:00",
+    "padName": "Samsung Galaxy S23 Ultra",
+    "simIso": "Vivo",
+    "longitude": "103.5946",
+    "operatorNumeric": 72406,
+    "padImei": "724064250779497"
+  },
+  "ts": 1772836272652
+}

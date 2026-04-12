@@ -1,0 +1,28 @@
+{
+  "msg": "success",
+  "code": 200,
+  "data": {
+    "explain": "英语",
+    "simCountry": "HK",
+    "country": "HK",
+    "padCode": "APP61U5MNRVZYOMN",
+    "padType": "V08",
+    "bluetoothAddress": "02:00:00:00:00:00",
+    "initializationData": "{\"explain\":\"英语\",\"country\":\"HK\",\"simJson\":{\"simCountry\":\"HK\",\"operatorShortname\":\"CSL\",\"imei\":\"548786132996529\",\"imsi\":\"454005327252700\",\"phonenum\":\"85276827321\",\"persist.sys.locale\":\"en-HK\",\"operatorNumeric\":\"45400\"},\"latitude\":\"1.2739\",\"timeZone\":\"Asia/Hong_Kong\",\"language\":\"en\",\"persist.sys.locale\":\"en-HK\",\"longitude\":\"103.7083\"}",
+    "groupId": "0",
+    "latitude": "1.2739",
+    "ipAddress": "HK-HongKong",
+    "timeZone": "Asia/Hong_Kong",
+    "language": "en",
+    "publicIp": "45.43.32.133",
+    "phoneNumber": "+85276827321",
+    "androidVersion": "Android 13",
+    "wlanMac": "00:02:00:00:00:00",
+    "padName": "System Gift",
+    "simIso": "CSL",
+    "longitude": "103.7083",
+    "operatorNumeric": 45400,
+    "padImei": "454005327252700"
+  },
+  "ts": 1772831166595
+}

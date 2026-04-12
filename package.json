@@ -22,6 +22,7 @@
     "react-router-dom": "^6.8.1",
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4",
+    "webdriverio": "^9.24.0",
     "xlsx": "^0.18.5"
   },
   "scripts": {

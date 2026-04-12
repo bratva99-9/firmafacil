@@ -477,7 +477,7 @@ const Home = ({ onNavigate }) => {
   return (
     <div className="home-container">
       <style>{localStyles}</style>
-      
+
       {/* Hero Minimalista */}
       <div className="hero-wrapper">
         <div className="hero-main">
@@ -487,17 +487,17 @@ const Home = ({ onNavigate }) => {
             para tu Negocio
           </h1>
           <p className="hero-description">
-            Simplificamos tus trámites tributarios con tecnología avanzada. 
+            Simplificamos tus trámites tributarios con tecnología avanzada.
             Rápido, seguro y completamente digital.
           </p>
           <div className="hero-actions">
-            <button 
+            <button
               className="btn-primary"
               onClick={() => onNavigate('enviar-tramites')}
             >
               Ver Servicios
             </button>
-            <button 
+            <button
               className="btn-secondary"
               onClick={() => onNavigate('consultar-estado')}
             >
@@ -513,7 +513,7 @@ const Home = ({ onNavigate }) => {
         <h2 className="section-heading">Lo que ofrecemos</h2>
         <div className="services-grid">
           {servicios.map(servicio => (
-            <div 
+            <div
               key={servicio.id}
               className="service-item"
               onClick={() => {
@@ -529,15 +529,15 @@ const Home = ({ onNavigate }) => {
               <div className="service-header">
                 <div className="service-icon-wrapper">
                   <div className="service-icon">{servicio.icono}</div>
-          </div>
+                </div>
                 <h3 className="service-name">{servicio.titulo}</h3>
                 <p className="service-text">{servicio.descripcion}</p>
-          </div>
+              </div>
               <div className="service-footer">
                 <div className="service-price-wrapper">
                   <div className="service-price-label">Desde</div>
                   <div className="service-price">{servicio.precio}</div>
-          </div>
+                </div>
                 <div className="service-meta-right">
                   <span className="service-time">⏱️ {servicio.tiempo}</span>
                   <span className="service-badge">Disponible</span>
@@ -554,11 +554,11 @@ const Home = ({ onNavigate }) => {
           <div className="stat-item">
             <div className="stat-value">10K+</div>
             <div className="stat-label">Trámites</div>
-              </div>
+          </div>
           <div className="stat-item">
             <div className="stat-value">98%</div>
             <div className="stat-label">Satisfacción</div>
-            </div>
+          </div>
           <div className="stat-item">
             <div className="stat-value">24/7</div>
             <div className="stat-label">Soporte</div>
@@ -579,22 +579,22 @@ const Home = ({ onNavigate }) => {
             <span className="benefit-emoji">🔒</span>
             <h3 className="benefit-title">Seguridad</h3>
             <p className="benefit-text">Encriptación de nivel empresarial</p>
-                </div>
+          </div>
           <div className="benefit-card">
             <span className="benefit-emoji">⚡</span>
             <h3 className="benefit-title">Rapidez</h3>
             <p className="benefit-text">Trámites en minutos</p>
-              </div>
+          </div>
           <div className="benefit-card">
             <span className="benefit-emoji">📱</span>
             <h3 className="benefit-title">Digital</h3>
             <p className="benefit-text">100% online</p>
-              </div>
+          </div>
           <div className="benefit-card">
             <span className="benefit-emoji">🎯</span>
             <h3 className="benefit-title">Legal</h3>
             <p className="benefit-text">Validez completa</p>
-            </div>
+          </div>
         </div>
       </div>
 
@@ -605,18 +605,18 @@ const Home = ({ onNavigate }) => {
           Únete a miles de empresas que confían en nosotros para sus trámites tributarios
         </p>
         <div className="cta-buttons">
-            <button 
+          <button
             className="btn-primary"
-              onClick={() => onNavigate('firma-electronica')}
-            >
+            onClick={() => onNavigate('firma-electronica')}
+          >
             Comenzar Ahora
-            </button>
-            <button 
+          </button>
+          <button
             className="btn-secondary"
-              onClick={() => onNavigate('consultar-estado')}
-            >
+            onClick={() => onNavigate('consultar-estado')}
+          >
             Consultar Estado
-            </button>
+          </button>
         </div>
       </div>
     </div>

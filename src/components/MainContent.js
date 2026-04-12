@@ -13,6 +13,7 @@ import InformeSuperCompanias from './InformeSuperCompanias';
 import GeneracionImagenes from './GeneracionImagenes';
 import EstadoCuentaBancaria from './EstadoCuentaBancaria';
 import GenerarClaveSRI from './GenerarClaveSRI';
+import GenerarClaveVMOS from './GenerarClaveVMOS';
 import { supabase, getFirmasGuardadas, uploadFirmaP12, downloadFirmaP12, deleteFirma } from '../lib/supabase';
 // import CreateUser from './CreateUser';
 
@@ -900,7 +901,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
 
       case 'herramientas':
         return (
-          <HerramientasSection />
+          <HerramientasSection user={user} />
         );
 
       default:
@@ -922,7 +923,7 @@ const MainContent = ({ activeService, onServiceSelect, user }) => {
 
 export default MainContent;
 
-function HerramientasSection() {
+function HerramientasSection({ user }) {
   const [abierta, setAbierta] = useState(null);
   const [pin, setPin] = useState('');
   const [autenticado, setAutenticado] = useState(false);
@@ -1143,6 +1144,21 @@ function HerramientasSection() {
             <div className="tool-title">Generar Clave SRI</div>
             <p className="tool-desc">Automatiza la solicitud de claves y firma 100% en la nube sin apps.</p>
           </div>
+          <div className="tool-card" onClick={() => setAbierta('vmos-cloud')}>
+            <div className="tool-icon">📱</div>
+            <div className="tool-title">VMOS Cloud - Teléfono Virtual</div>
+            <p className="tool-desc">Controla el teléfono Android virtual en la nube: screenshots, apps, gestos y más.</p>
+          </div>
+          <div className="tool-card" onClick={() => setAbierta('generar-clave-vmos')}>
+            <div className="tool-icon">🔑</div>
+            <div className="tool-title">Generar Clave en Línea (VMOS)</div>
+            <p className="tool-desc">Generación automatizada de clave SRI mediante validación en la nube.</p>
+          </div>
+          <div className="tool-card" onClick={() => setAbierta('buscador-cedula')}>
+            <div className="tool-icon">🔎</div>
+            <div className="tool-title">Buscador de Cédula</div>
+            <p className="tool-desc">Busca personas en el SRI por apellidos y nombres. Devuelve cédulas y RUCs coincidentes.</p>
+          </div>
         </div>
       )}
 
@@ -1192,6 +1208,21 @@ function HerramientasSection() {
       {autenticado && abierta === 'generar-clave-sri' && (
         <div className="tool-panel" style={{ padding: 0 }}>
           <GenerarClaveSRI />
+        </div>
+      )}
+      {autenticado && abierta === 'vmos-cloud' && (
+        <div className="tool-panel" style={{ padding: 0 }}>
+          <VmosTool />
+        </div>
+      )}
+      {autenticado && abierta === 'generar-clave-vmos' && (
+        <div className="tool-panel" style={{ padding: 0 }}>
+          <GenerarClaveVMOS user={user} onBack={() => setAbierta(null)} />
+        </div>
+      )}
+      {autenticado && abierta === 'buscador-cedula' && (
+        <div className="tool-panel" style={{ padding: 12 }}>
+          <BuscadorCedulaSRI />
         </div>
       )}
     </div>
@@ -2049,7 +2080,22 @@ function EstadoTributarioTool() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [resultado, setResultado] = useState(null)
+  const [preciosManuales, setPreciosManuales] = useState({})
+  const [nombreManual, setNombreManual] = useState('')
   const pdfRef = useRef(null)
+
+  // Sincronizar nombre manual al recibir resultados del SRI
+  React.useEffect(() => {
+    if (resultado?.estadoTributario) {
+      const et = resultado.estadoTributario
+      const pendientes = et.dtObligacionesPendientes || []
+      const primeraDeuda = pendientes[0] || {}
+      const nameSRI = primeraDeuda.razonSocial || et.razonSocial || ''
+      if (!nombreManual || nombreManual === '') {
+        setNombreManual(nameSRI)
+      }
+    }
+  }, [resultado])
 
   const consultar = async (e) => {
     e.preventDefault()
@@ -2097,7 +2143,7 @@ function EstadoTributarioTool() {
       const nodo = pdfRef.current
 
       const canvas = await html2canvas(nodo, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -2106,17 +2152,18 @@ function EstadoTributarioTool() {
       const imgWidth = 210 // A4 mm
       const pageHeight = 297
       const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const imgData = canvas.toDataURL('image/jpeg', 0.7)
       let heightLeft = imgHeight
       const pdf = new jsPDF('p', 'mm', 'a4')
       let position = 0
 
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
       heightLeft -= pageHeight
 
       while (heightLeft > 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
       }
 
@@ -2152,6 +2199,11 @@ function EstadoTributarioTool() {
         .et-table th, .et-table td { border: 1px solid #e5e7eb; padding: 4px 6px; text-align: left; }
         .et-table th { background: #f9fafb; color: #374151; font-weight: 700; }
         .et-table tbody tr:nth-child(even) { background: #f9fafb; }
+        .et-price-input { border: 1px solid #e0e7ff; border-radius: 4px; padding: 2px 4px; text-align: right; font-size: 11px; font-weight: 600; background: #f5f7ff; color: #1a1a1a; transition: all 0.2s; }
+        .et-price-input:focus { border-color: #7c3aed; background: #ffffff; outline: none; box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1); }
+        /* Estilo para que no parezca input al generar el canvas del PDF */
+        .et-result input { -moz-appearance: textfield; }
+        .et-result input::-webkit-outer-spin-button, .et-result input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
       `}</style>
 
       <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 6px' }}>Estado tributario (SRI)</h3>
@@ -2160,14 +2212,37 @@ function EstadoTributarioTool() {
           Ejecuta el flujo automático (consulta código de persona + captcha + token SRI + estado tributario) usando solo el RUC.
         </p>
         {resultado?.estadoTributario && (
-          <button
-            type="button"
-            onClick={descargarPDF}
-            className="et-btn"
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            Descargar PDF
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const nuevoPrecio = prompt('Ingresa el precio base para todas las obligaciones:', '10.00')
+                if (nuevoPrecio !== null) {
+                  const valor = parseFloat(nuevoPrecio) || 0
+                  const nuevosPrecios = {}
+                  const todas = [...(Array.isArray(resultado.estadoTributario.dtObligacionesPendientes) ? resultado.estadoTributario.dtObligacionesPendientes : []), ...(Array.isArray(resultado.estadoTributario.dtObligacionesPendientesPresentacion) ? resultado.estadoTributario.dtObligacionesPendientesPresentacion : []), ...(Array.isArray(resultado.estadoTributario.dtObligacionesPendientesPago) ? resultado.estadoTributario.dtObligacionesPendientesPago : [])]
+                  todas.forEach(it => {
+                    if (!it) return
+                    const clave = `${it.motivo}|||${it.periodo}|||${it.codigoObligacion}`
+                    nuevosPrecios[clave] = valor
+                  })
+                  setPreciosManuales(nuevosPrecios)
+                }
+              }}
+              className="et-btn"
+              style={{ background: '#f5f3ff', borderColor: '#c4b5fd', color: '#6d28d9' }}
+            >
+              💰 Precio Rápido
+            </button>
+            <button
+              type="button"
+              onClick={descargarPDF}
+              className="et-btn"
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              Descargar PDF
+            </button>
+          </div>
         )}
       </div>
 
@@ -2223,7 +2298,25 @@ function EstadoTributarioTool() {
         const razonSocial = primeraDeuda.razonSocial || et.razonSocial || ''
         const numeroRucCliente = primeraDeuda.numeroRuc || ruc || ''
         const totalObligaciones = pendientesTotales.length + pendientesPago.length
-        const totalHonorariosServicio = totalObligaciones * 5
+        
+        // Obtener motivos únicos para el panel de categorías
+        const motivosUnicos = Array.from(new Set([...pendientesTotales, ...pendientesPago].map(it => it.motivo))).filter(Boolean)
+
+        // Función para obtener el precio de una categoría (motivo)
+        const obtenerPrecioReg = (item) => {
+          const motivo = item.motivo || 'General'
+          return preciosManuales[motivo] ?? 10.00 // $10 por defecto
+        }
+
+        const actualizarPrecioMotivo = (motivo, valor) => {
+          setPreciosManuales(prev => ({ ...prev, [motivo]: parseFloat(valor) || 0 }))
+        }
+
+        const totalHonorariosServicio = [...pendientesTotales, ...pendientesPago].reduce((acc, item) => acc + obtenerPrecioReg(item), 0)
+        const subtotalBase = totalHonorariosServicio / 1.15
+        const valorIva = totalHonorariosServicio - subtotalBase
+
+
 
         // Agrupar obligaciones por periodo para organizarlas visualmente por mes
         const agruparPorPeriodo = (lista) => {
@@ -2251,7 +2344,52 @@ function EstadoTributarioTool() {
         const gruposPendientesPago = agruparPorPeriodo(pendientesPago)
 
         return (
-          <div className="et-result" ref={pdfRef} style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#ffffff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <div style={{ marginTop: 12 }}>
+
+            {/* Panel de Ajuste Global por Categoría */}
+            <div className="no-print" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: 12, marginBottom: 15 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                🛠️ AJUSTES DEL COTIZADOR (Nombre y Precios)
+              </div>
+
+              <div style={{ marginBottom: 15, padding: '12px', background: '#ffffff', border: '2px solid #7c3aed', borderRadius: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', marginBottom: 6, textTransform: 'uppercase' }}>👤 Nombre del Cliente (Señores:)</div>
+                <input 
+                  type="text"
+                  value={nombreManual}
+                  onChange={(e) => setNombreManual(e.target.value)}
+                  placeholder="Editar nombre del destinatario..."
+                  style={{ width: '100%', padding: '8px 12px', fontSize: 14, fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: 4, color: '#1a1a1a' }}
+                />
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', marginBottom: 10 }}>💰 MODIFICAR PRECIOS (IVA 15% INCLUIDO):</div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+                {motivosUnicos.map(motivo => (
+                  <div key={motivo} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }} title={motivo}>
+                      {motivo}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#94a3b8' }}>$</span>
+                      <input 
+                        type="number"
+                        value={preciosManuales[motivo] ?? 10.00}
+                        onChange={(e) => actualizarPrecioMotivo(motivo, e.target.value)}
+                        style={{ width: '45px', padding: '2px 4px', fontSize: 11, fontWeight: 700, border: '1px solid #7c3aed', borderRadius: 4, textAlign: 'right', color: '#1e293b' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b', marginTop: 8 }}>
+                * Al cambiar el precio de una categoría, se aplicará a todos los periodos correspondientes automáticamente.
+              </div>
+            </div>
+
+            <div className="et-result" ref={pdfRef} style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#ffffff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+              <style>{`@media print { .no-print { display: none !important; } }`}</style>
             {/* Contenedor principal */}
             <div style={{ position: 'relative', zIndex: 1, maxWidth: 800, margin: '0 auto', padding: '40px 50px', backgroundColor: '#ffffff' }}>
 
@@ -2263,9 +2401,9 @@ function EstadoTributarioTool() {
                       ECUCONTABLE S.A.S.
                     </div>
                     <div style={{ fontSize: '11px', color: '#666666', lineHeight: '1.6' }}>
-                      RUC: 1799999999001<br />
+                      RUC: 0993391170001<br />
                       Servicios Contables y Tributarios Integrales<br />
-                      Email: soporte@ecucontable.com · Tel: 099 999 9999
+                      Email: soporte@ecucontable.com · Cel: 0978823081
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -2285,7 +2423,7 @@ function EstadoTributarioTool() {
               {/* Referencias y destinatario */}
               <div style={{ marginBottom: '25px' }}>
                 <div style={{ fontSize: '11px', color: '#666666', marginBottom: '8px' }}>
-                  <strong>Señores:</strong> {razonSocial || 'Cliente'}
+                  <strong>Señores:</strong> {nombreManual || razonSocial || 'Cliente'}
                 </div>
                 <div style={{ fontSize: '11px', color: '#666666', marginBottom: '4px' }}>
                   <strong>RUC:</strong> {numeroRucCliente || 'N/D'}
@@ -2337,7 +2475,9 @@ function EstadoTributarioTool() {
                               <td style={{ padding: '8px 0', color: '#1a1a1a', fontWeight: 500 }}>{item.motivo}</td>
                               <td style={{ padding: '8px 0', color: '#666666' }}>{grupo.periodo}</td>
                               <td style={{ textAlign: 'center', padding: '8px 0', color: '#666666' }}>{item.codigoObligacion}</td>
-                              <td style={{ textAlign: 'right', padding: '8px 0', color: '#1a1a1a', fontWeight: 600 }}>USD 5,00</td>
+                              <td style={{ textAlign: 'right', padding: '8px 0', color: '#1a1a1a', fontWeight: 600 }}>
+                                USD {obtenerPrecioReg(item).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
                             </tr>
                           ))
                         ))}
@@ -2348,7 +2488,7 @@ function EstadoTributarioTool() {
                         Subtotal Obligaciones Pendientes:
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a1a' }}>
-                        USD {(pendientesTotales.length * 5).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        USD {gruposPendientes.reduce((acc, g) => acc + g.items.reduce((acc2, it) => acc2 + obtenerPrecioReg(it), 0), 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -2376,7 +2516,9 @@ function EstadoTributarioTool() {
                               <td style={{ padding: '8px 0', color: '#1a1a1a', fontWeight: 500 }}>{item.motivo}</td>
                               <td style={{ padding: '8px 0', color: '#666666' }}>{grupo.periodo}</td>
                               <td style={{ textAlign: 'center', padding: '8px 0', color: '#666666' }}>{item.codigoObligacion}</td>
-                              <td style={{ textAlign: 'right', padding: '8px 0', color: '#1a1a1a', fontWeight: 600 }}>USD 5,00</td>
+                              <td style={{ textAlign: 'right', padding: '8px 0', color: '#1a1a1a', fontWeight: 600 }}>
+                                USD {obtenerPrecioReg(item).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
                             </tr>
                           ))
                         ))}
@@ -2387,7 +2529,7 @@ function EstadoTributarioTool() {
                         Subtotal Obligaciones con Pago Pendiente:
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a1a' }}>
-                        USD {(pendientesPago.length * 5).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        USD {gruposPendientesPago.reduce((acc, g) => acc + g.items.reduce((acc2, it) => acc2 + obtenerPrecioReg(it), 0), 0).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -2416,7 +2558,7 @@ function EstadoTributarioTool() {
               <div style={{ marginTop: '30px', marginBottom: '30px', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '6px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff', letterSpacing: '0.5px' }}>
-                    TOTAL DE HONORARIOS
+                    TOTAL COTIZACIÓN
                   </div>
                   <div style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.5px' }}>
                     USD {totalHonorariosServicio.toLocaleString('es-EC', {
@@ -2425,8 +2567,9 @@ function EstadoTributarioTool() {
                     })}
                   </div>
                 </div>
-                <div style={{ fontSize: '11px', color: '#cccccc', marginTop: '6px', textAlign: 'right' }}>
-                  + IVA (12%)
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#cccccc', marginTop: '6px' }}>
+                  <span>Base Imponible (Sin IVA): USD {subtotalBase.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span>IVA (15%) Incluido: USD {valorIva.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div style={{ fontSize: '10px', color: '#999999', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #333333' }}>
                   Tiempo estimado de ejecución: 3-5 días hábiles
@@ -2473,9 +2616,10 @@ function EstadoTributarioTool() {
               {/* Pie de página */}
               <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #e5e5e5', textAlign: 'center' }}>
                 <div style={{ fontSize: '10px', color: '#999999', lineHeight: '1.6' }}>
-                  ECUCONTABLE S.A.S. · RUC: 1799999999001<br />
-                  Email: soporte@ecucontable.com · Tel: 099 999 9999
+                  ECUCONTABLE S.A.S. · RUC: 0993391170001<br />
+                  Email: soporte@ecucontable.com · Tel: 0978823081
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -2484,4 +2628,1038 @@ function EstadoTributarioTool() {
     </div>
   )
 }
+
+
+function VmosTool() {
+  const EDGE_URL = 'https://eapcqcuzfkpqngbvjtmv.supabase.co/functions/v1/browserstack-run-test';
+  const EDGE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcGNxY3V6ZmtwcW5nYnZqdG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTEzNzIsImV4cCI6MjA3NDQyNzM3Mn0.-mufqMzFQetktwAL444d1PjdWfdCC5-2ftVs0LnTIL4';
+  const PAD_CODE = 'APP5AU4BBH7BM68X';  // Dispositivo US region
+
+  const [loading, setLoading] = React.useState(false);
+  const [log, setLog] = React.useState([]);
+  const [screenshot, setScreenshot] = React.useState(null);  // base64 o URL
+  const [screenshot2, setScreenshot2] = React.useState(null);
+  const [streamUrl, setStreamUrl] = React.useState(null);
+  const [phoneInfo, setPhoneInfo] = React.useState(null);
+  const [pkgName, setPkgName] = React.useState('');
+  const [touchX, setTouchX] = React.useState('540');
+  const [touchY, setTouchY] = React.useState('960');
+  const [adbCommand, setAdbCommand] = React.useState('');
+  const [testCedula, setTestCedula] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState('control'); // 'control' | 'stream' | 'info'
+  // Mail.tm - Correo temporal
+  const [tempEmails, setTempEmails] = React.useState([]); // [{address, token}]
+  const [selectedEmail, setSelectedEmail] = React.useState(null);
+  const [inbox, setInbox] = React.useState([]);
+  const [selectedMsg, setSelectedMsg] = React.useState(null);
+  const [emailExpanded, setEmailExpanded] = React.useState(false);
+  const [emailLoading, setEmailLoading] = React.useState(false);
+  const [isPolling, setIsPolling] = React.useState(true);
+  const [codigo1, setCodigo1] = React.useState(null);
+
+  // Polling automático de bandeja de entrada (Mail.tm) cada 4 segundos
+  React.useEffect(() => {
+    let interval;
+    if (selectedEmail?.token && isPolling) {
+      interval = setInterval(async () => {
+        try {
+          const resp = await fetch(EDGE_URL, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${EDGE_ANON}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'checkInbox', padCode: PAD_CODE, token: selectedEmail.token })
+          });
+          const data = await resp.json();
+          if (data?.success && Array.isArray(data.messages) && data.messages.length > 0) {
+            setInbox(data.messages);
+            // Buscar mensaje más reciente del SAU
+            const sauMsg = data.messages
+              .filter(m => m.subject && (m.subject.includes('SAU') || m.subject.toLowerCase().includes('autenticaci') || m.from?.address?.toLowerCase().includes('autenticacion')))
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || data.messages[0];
+
+            if (sauMsg) {
+              const msgResp = await fetch(EDGE_URL, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${EDGE_ANON}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'readMessage', padCode: PAD_CODE, token: selectedEmail.token, messageId: sauMsg.id })
+              });
+              const msgData = await msgResp.json();
+              const body = msgData?.message?.text || msgData?.message?.html?.[0] || '';
+              const match = body.match(/[Cc]ódigo[:\s]+([0-9]{4,8})/) || body.match(/(?:es:|:)\s*([0-9]{6})/) || body.match(/([0-9]{6})/);
+              if (match && match[1] && match[1] !== codigo1) {
+                setCodigo1(match[1]);
+              }
+            }
+          }
+        } catch (e) {
+          // error silencioso
+        }
+      }, 4000);
+    }
+    return () => clearInterval(interval);
+  }, [selectedEmail, isPolling, codigo1]);
+
+  const addLog = (msg) => setLog(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 30));
+
+  const call = async (action, extra = {}) => {
+    setLoading(true);
+    addLog(`⏳ Ejecutando: ${action}...`);
+    try {
+      const resp = await fetch(EDGE_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${EDGE_ANON}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action, padCode: PAD_CODE, ...extra }),
+      });
+      const data = await resp.json();
+      if (data.success === false) throw new Error(data.error || 'Error desconocido');
+      addLog(`✅ ${action} completado`);
+      return data;
+    } catch (err) {
+      addLog(`❌ ${action}: ${err.message}`);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInfo = async () => {
+    const res = await call('info');
+    if (res) setPhoneInfo(res.data);
+  };
+
+  const handleScreenshot = async () => {
+    const res = await call('screenshot');
+    if (res?.data) {
+      // VMOS Cloud retorna data como un Array donde el item 0 contiene 'accessUrl'
+      const respData = res.data?.data;
+      const val = Array.isArray(respData)
+        ? (respData[0]?.accessUrl || respData[0]?.url)
+        : (respData?.screenshotUrl || res.data?.screenshotUrl || res.data?.url || res.data);
+      setScreenshot(typeof val === 'string' ? val : null);
+      if (val) addLog('📸 Captura exitosa');
+    }
+  };
+
+  const handleStream = async () => {
+    const res = await call('stream');
+    if (res?.data) {
+      const respData = res.data?.data;
+      const url = Array.isArray(respData) ? respData[0]?.url : (respData?.url || res.data?.url || res.data);
+      setStreamUrl(typeof url === 'string' ? url : null);
+      if (typeof url === 'string') { setActiveTab('stream'); addLog(`📺 URL de stream obtenida`); }
+    }
+  };
+
+  const handleStart = () => pkgName ? call('startApp', { packageName: pkgName }) : addLog('⚠️ Escribe el paquete primero');
+  const handleStop = () => pkgName ? call('stopApp', { packageName: pkgName }) : addLog('⚠️ Escribe el paquete primero');
+  const handleTouch = () => call('touch', { x: touchX, y: touchY });
+  const handleRestart = () => call('restart');
+  const handleAdb = async () => {
+    const res = await call('adb', { command: adbCommand || 'shell dumpsys window windows' });
+    if (res?.data) {
+      const respData = res.data?.data;
+      const out = Array.isArray(respData) ? respData[0]?.data : (respData?.data || res.data);
+      addLog(`📡 ADB: ${typeof out === 'string' ? out.substring(0, 150) : JSON.stringify(out).substring(0, 150)}`);
+    }
+  };
+
+  const handleRunTest = async () => {
+    if (!testCedula || testCedula.length < 10) {
+      addLog('⚠️ Ingresa un número de cédula válido (10 dígitos)');
+      return;
+    }
+    if (!selectedEmail) {
+      addLog('⚠️ Primero debes Crear o Seleccionar un Correo Temporal para recibir el código.');
+      setEmailExpanded(true); // Desplegar panel si no estaba
+      return;
+    }
+
+    addLog(`🤖 Iniciando flujo de firma electrónica para cédula ${testCedula}...`);
+    addLog(`📧 Usando correo destino: ${selectedEmail.address}`);
+
+    const res = await call('runTest', {
+      cedula: testCedula,
+      tempEmail: {
+        address: selectedEmail.address,
+        token: selectedEmail.token
+      }
+    });
+
+    if (res?.logs) {
+      res.logs.forEach(l => addLog(l));
+    }
+    if (res?.screenshot) {
+      setScreenshot(res.screenshot);
+    }
+  };
+
+  const handleRunPart2 = async () => {
+    addLog(`🤖 Iniciando Parte 2: Eliminación de archivo...`);
+    const payload = { cedula: testCedula };
+    if (selectedEmail) {
+      payload.tempEmail = { address: selectedEmail.address, token: selectedEmail.token };
+    }
+    const res = await call('runPart2', payload);
+
+    if (res?.logs) {
+      res.logs.forEach(l => addLog(l));
+    }
+    if (res?.screenshot) {
+      setScreenshot(res.screenshot);
+    }
+    if (res?.screenshot2) {
+      setScreenshot2(res.screenshot2);
+    }
+  };
+
+  // ── Handlers de 1secmail ──
+  const handleCreateEmail = async () => {
+    setEmailLoading(true);
+    addLog('📧 Creando correo temporal (Mail.tm)...');
+    try {
+      const res = await call('createEmail');
+      if (res?.address && res?.token) {
+        const newEmail = {
+          address: res.address,
+          token: res.token,
+          createdAt: new Date().toLocaleTimeString()
+        };
+        setTempEmails(prev => [newEmail, ...prev]);
+        setSelectedEmail(newEmail);
+        addLog(`✅ Correo creado: ${res.address}`);
+      } else {
+        addLog(`❌ Error: ${res?.error || 'Sin respuesta'}`);
+      }
+    } catch (e) { addLog(`❌ ${e.message}`); }
+    setEmailLoading(false);
+  };
+
+  const handleCheckInbox = async (emailObj) => {
+    setEmailLoading(true);
+    setSelectedEmail(emailObj);
+    setSelectedMsg(null);
+    addLog(`📬 Revisando bandeja de ${emailObj.address}...`);
+    try {
+      const res = await call('checkInbox', { token: emailObj.token });
+      if (res?.success && Array.isArray(res.messages)) {
+        setInbox(res.messages);
+        addLog(`📬 ${res.messages.length} mensaje(s) encontrado(s)`);
+      } else {
+        setInbox([]);
+        addLog(res?.error || '📭 Bandeja vacía o error en API');
+      }
+    } catch (e) { addLog(`❌ ${e.message}`); }
+    setEmailLoading(false);
+  };
+
+  const handleReadMessage = async (msg) => {
+    setEmailLoading(true);
+    const msgId = msg.id;
+    addLog(`📖 Leyendo mensaje: ${msg.subject || 'Sin asunto'}...`);
+    try {
+      const res = await call('readMessage', {
+        token: selectedEmail.token,
+        messageId: msgId
+      });
+      if (res?.message) {
+        setSelectedMsg(res.message);
+        addLog(`📖 Mensaje leído correctamente`);
+      }
+    } catch (e) { addLog(`❌ ${e.message}`); }
+    setEmailLoading(false);
+  };
+
+  const handleSubmitManualCode = async (codeValue, emailAddr) => {
+    if (!codeValue) return;
+    addLog(`📤 Enviando código manual [${codeValue}] para ${emailAddr}...`);
+    try {
+      const res = await call('submitCode', { email: emailAddr, code: codeValue });
+      if (res?.success) {
+        addLog('✅ Código enviado. La automatización debería continuar pronto.');
+      } else {
+        addLog(`❌ Fallo: ${res?.error}`);
+      }
+    } catch (e) { addLog(`❌ ${e.message}`); }
+  };
+
+  const s = {
+    wrap: { fontFamily: '"Inter", sans-serif', color: '#0f172a', display: 'flex', flexDirection: 'column', height: '100%' },
+    header: { background: 'linear-gradient(135deg, #1e3a8a, #7c3aed)', color: '#fff', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 },
+    tabs: { display: 'flex', borderBottom: '2px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 },
+    tab: (a) => ({ padding: '10px 20px', fontWeight: 700, fontSize: 12, cursor: 'pointer', border: 'none', background: 'none', color: a ? '#4f46e5' : '#64748b', borderBottom: a ? '2px solid #4f46e5' : '2px solid transparent', marginBottom: -2, transition: 'all 0.15s' }),
+    body: { flex: 1, overflow: 'auto', padding: 16 },
+    card: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 14, marginBottom: 12 },
+    label: { fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'block' },
+    input: { width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, color: '#0f172a', boxSizing: 'border-box' },
+    btn: (c) => ({ padding: '9px 16px', borderRadius: 8, border: 'none', background: c || '#4f46e5', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', transition: 'opacity 0.15s', opacity: loading ? 0.6 : 1 }),
+    btnSm: (c) => ({ padding: '6px 12px', borderRadius: 6, border: 'none', background: c || '#e2e8f0', color: c ? '#fff' : '#374151', fontWeight: 700, fontSize: 11, cursor: 'pointer' }),
+    row: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 },
+    info: { fontSize: 12, color: '#475569', lineHeight: 1.6 },
+    log: { background: '#0f172a', borderRadius: 10, padding: 12, fontSize: 11, color: '#94a3b8', fontFamily: 'monospace', maxHeight: 140, overflow: 'auto' },
+    badge: { display: 'inline-block', background: '#dcfce7', color: '#166534', borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 700 },
+  };
+
+  const PhoneInfoCard = () => !phoneInfo ? null : (
+    <div style={{ ...s.card, background: '#f0fdf4', border: '1px solid #86efac', marginTop: 10 }}>
+      <div style={{ fontWeight: 800, fontSize: 13, color: '#166534', marginBottom: 8 }}>📱 Información del teléfono</div>
+      <div style={s.info}>
+        {Object.entries(phoneInfo?.data || phoneInfo || {}).map(([k, v]) => (
+          <div key={k}><strong>{k}:</strong> {String(v)}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={s.wrap}>
+
+      {/* Cabecera */}
+      <div style={s.header}>
+        <span style={{ fontSize: 28 }}>📱</span>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>VMOS Cloud — Teléfono Virtual</div>
+          <div style={{ fontSize: 11, opacity: 0.8 }}>System Gift · Android 13 · V08 · Hong Kong</div>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <span style={s.badge}>🟢 Online</span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={s.tabs}>
+        {[['control', '🎮 Control'], ['stream', '📺 Pantalla'], ['info', 'ℹ️ Info']].map(([id, label]) => (
+          <button key={id} style={s.tab(activeTab === id)} onClick={() => setActiveTab(id)}>{label}</button>
+        ))}
+      </div>
+
+      {/* Body */}
+      <div style={s.body}>
+
+        {/* ── TAB: CONTROL ── */}
+        {activeTab === 'control' && (
+          <>
+            {/* Prueba Automatizada */}
+            <div style={{ ...s.card, background: '#f5f3ff', border: '1px solid #c4b5fd' }}>
+              <span style={{ ...s.label, color: '#6d28d9' }}>🤖 Firma Electrónica Automatizada</span>
+              <div style={{ fontSize: 11, color: '#4c1d95', marginBottom: 10 }}>
+                Ingresa la cédula del cliente. El sistema buscará su certificado .p12 y completará el registro en Gob.ec automáticamente.
+              </div>
+              <input
+                style={{ ...s.input, marginBottom: 8 }}
+                placeholder="Número de cédula (10 dígitos)"
+                value={testCedula}
+                onChange={e => setTestCedula(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                maxLength={10}
+              />
+              <button
+                style={{ ...s.btn('linear-gradient(135deg, #7c3aed, #4f46e5)'), width: '100%', padding: '12px', fontSize: 14, marginBottom: 12 }}
+                onClick={handleRunTest}
+                disabled={loading || testCedula.length < 10}
+              >
+                {loading ? '⏳ Ejecutando flujo...' : '▶️ EJECUTAR FIRMA ELECTRÓNICA'}
+              </button>
+
+              <button
+                style={{ ...s.btn('transparent'), border: '2px solid #7c3aed', color: '#7c3aed', width: '100%', padding: '10px', fontSize: 12 }}
+                onClick={handleRunPart2}
+                disabled={loading}
+              >
+                {loading ? '⏳ Ejecutando...' : '▶️ CONTINUAR SEGUNDA PARTE (Aceptar y Borrar)'}
+              </button>
+            </div>
+
+            {/* ── 📧 Sección Correo Temporal (Mail.tm) ── */}
+            <div style={{ ...s.card, background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setEmailExpanded(!emailExpanded)}
+              >
+                <span style={{ ...s.label, color: '#334155', marginBottom: 0 }}>
+                  📧 Correos Temporales {tempEmails.length > 0 && `(${tempEmails.length})`}
+                </span>
+                <span style={{ fontSize: 16 }}>{emailExpanded ? '🔽' : '▶️'}</span>
+              </div>
+
+              {emailExpanded && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={s.label}>📧 Correo para recibir código (Casisello)</span>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        style={s.input}
+                        placeholder="usuario@1secmail.com"
+                        value={selectedEmail?.address || ''}
+                        onChange={(e) => {
+                          const addr = e.target.value;
+                          setSelectedEmail(prev => ({ ...prev, address: addr }));
+                        }}
+                      />
+                      {selectedEmail?.address && (
+                        <button style={s.btnSm('#10b981')} onClick={() => handleCheckInbox(selectedEmail)}>
+                          🔍 Validar
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>
+                      * Puedes ingresar uno manual o crear uno nuevo abajo.
+                    </div>
+                  </div>
+
+                  {/* Código SAU detectado automáticamente */}
+                  {codigo1 && (
+                    <div style={{ background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '2px solid #10b981', borderRadius: 10, padding: '12px 16px', marginBottom: 12, textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: 1 }}>🔑 Código SAU Detectado</div>
+                      <div style={{ fontSize: 36, fontWeight: 900, color: '#047857', letterSpacing: 8, fontFamily: 'monospace', marginTop: 4 }}>{codigo1}</div>
+                      <button
+                        style={{ ...s.btnSm('#ef4444'), marginTop: 8 }}
+                        onClick={() => setCodigo1(null)}
+                      >✕ Limpiar</button>
+                    </div>
+                  )}
+
+                  <button
+                    style={{ ...s.btn('#7c3aed'), width: '100%', marginBottom: 12 }}
+                    onClick={handleCreateEmail}
+                    disabled={emailLoading}
+                  >
+                    {emailLoading ? '⏳ Creando...' : '➕ Crear Nuevo Correo (1secmail)'}
+                  </button>
+
+                  {tempEmails.length > 0 && (
+                    <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0', padding: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase' }}>Correos de la sesión</div>
+
+                      {tempEmails.map((emailObj, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '8px',
+                          background: selectedEmail?.address === emailObj.address ? '#eff6ff' : 'transparent',
+                          borderBottom: idx < tempEmails.length - 1 ? '1px solid #f1f5f9' : 'none',
+                          borderRadius: 4
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{emailObj.address}</div>
+                            <div style={{ fontSize: 10, color: '#64748b' }}>Creado: {emailObj.createdAt}</div>
+                          </div>
+                          <button
+                            style={s.btnSm('#475569')}
+                            onClick={() => handleCheckInbox(emailObj)}
+                            disabled={emailLoading}
+                          >
+                            📬 Inbox
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Bandeja de entrada */}
+                  {selectedEmail && inbox && (
+                    <div style={{ marginTop: 16, background: '#f1f5f9', borderRadius: 8, padding: 10, border: '1px solid #cbd5e1' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Bandeja: {selectedEmail.address}</span>
+                        <button style={s.btnSm('#e2e8f0')} onClick={() => handleCheckInbox(selectedEmail)} disabled={emailLoading}>
+                          ↻ Refrescar
+                        </button>
+                      </div>
+
+                      {(!Array.isArray(inbox) || inbox.length === 0) ? (
+                        <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', padding: '10px 0' }}>Bandeja vacía</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {inbox.map((msg, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                background: '#fff', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', cursor: 'pointer',
+                                borderLeft: '3px solid #3b82f6'
+                              }}
+                              onClick={() => handleCheckInbox(selectedEmail)}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>{msg.from?.address || 'Remitente'}</span>
+                                <span style={{ fontSize: 10, color: '#64748b' }}>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: '#334155' }}>{msg.subject || 'Sin Asunto'}</div>
+                              <button
+                                style={{ ...s.btnSm('#3b82f6'), marginTop: 4, width: '100%' }}
+                                onClick={(e) => { e.stopPropagation(); handleReadMessage(msg); }}
+                              >
+                                Ver Contenido
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Visor de Mensaje */}
+                  {selectedMsg && (
+                    <div style={{ marginTop: 12, background: '#fff', borderRadius: 8, padding: 12, border: '1px solid #93c5fd', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8, marginBottom: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{selectedMsg.subject}</div>
+                        <button style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }} onClick={() => setSelectedMsg(null)}>✕</button>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
+                        De: {selectedMsg.from?.address} <br />
+                        Fecha: {new Date(selectedMsg.createdAt).toLocaleString()}
+                      </div>
+
+                      {/* Contenido del correo */}
+                      <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, fontSize: 12, color: '#1e293b', overflow: 'auto', maxHeight: '300px' }}>
+                        {selectedMsg.html?.[0] ? (
+                          <div dangerouslySetInnerHTML={{ __html: selectedMsg.html[0] }} />
+                        ) : selectedMsg.text ? (
+                          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>{selectedMsg.text}</pre>
+                        ) : (
+                          <div style={{ fontSize: 11, color: '#94a3b8' }}>Sin contenido disponible.</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Screenshot */}
+            <div style={s.card}>
+              <span style={s.label}>📸 Screenshot</span>
+              <div style={s.row}>
+                <button style={s.btn()} onClick={handleScreenshot} disabled={loading}>📸 Capturar pantalla</button>
+              </div>
+              {(screenshot || screenshot2) && (
+                <div style={{ marginTop: 10, position: 'relative', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {screenshot && typeof screenshot === 'string' && (
+                    <img
+                      src={screenshot.startsWith('http') ? screenshot : `data:image/png;base64,${screenshot}`}
+                      alt="screenshot"
+                      style={{ flex: '1 1 auto', maxWidth: '45%', borderRadius: 8, border: '1px solid #e2e8f0', maxHeight: 500, cursor: 'crosshair', objectFit: 'contain' }}
+                      onClick={(e) => {
+                        const rect = e.target.getBoundingClientRect();
+                        const natW = e.target.naturalWidth || 1080;
+                        const natH = e.target.naturalHeight || 1920;
+                        const xRatio = natW / rect.width;
+                        const yRatio = natH / rect.height;
+                        const clickX = Math.round((e.clientX - rect.left) * xRatio);
+                        const clickY = Math.round((e.clientY - rect.top) * yRatio);
+                        addLog(`📱 Resolución Real V08: ${natW}x${natH}`);
+                        addLog(`🎯 Coordenadas (Nativas): X=${clickX}, Y=${clickY}`);
+                        setTouchX(clickX.toString());
+                        setTouchY(clickY.toString());
+                      }}
+                    />
+                  )}
+                  {screenshot2 && typeof screenshot2 === 'string' && (
+                    <img
+                      src={screenshot2.startsWith('http') ? screenshot2 : `data:image/png;base64,${screenshot2}`}
+                      alt="screenshot 2"
+                      style={{ flex: '1 1 auto', maxWidth: '45%', borderRadius: 8, border: '1px solid #e2e8f0', maxHeight: 500, objectFit: 'contain' }}
+                    />
+                  )}
+                  {(!screenshot || !screenshot2) && (
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, width: '100%' }}>
+                      💡 Haz clic en cualquier parte de la primera imagen para calcular sus coordenadas ADB.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Stream */}
+            <div style={s.card}>
+              <span style={s.label}>📺 Pantalla en tiempo real</span>
+              <button style={s.btn('#7c3aed')} onClick={handleStream} disabled={loading}>🔗 Obtener URL de stream</button>
+              {streamUrl && (
+                <div style={{ marginTop: 8, fontSize: 12, wordBreak: 'break-all' }}>
+                  <a href={streamUrl} target="_blank" rel="noreferrer" style={{ color: '#4f46e5', fontWeight: 700 }}>🌐 Abrir pantalla en vivo</a>
+                </div>
+              )}
+            </div>
+
+            {/* Control apps */}
+            <div style={s.card}>
+              <span style={s.label}>🚀 Control de Apps</span>
+              <input style={s.input} placeholder="Ej: com.example.mipplicacion" value={pkgName} onChange={e => setPkgName(e.target.value)} />
+              <div style={s.row}>
+                <button style={s.btn('#16a34a')} onClick={handleStart} disabled={loading}>▶️ Iniciar</button>
+                <button style={s.btn('#dc2626')} onClick={handleStop} disabled={loading}>⏹ Detener</button>
+              </div>
+            </div>
+
+            {/* Touch / Gestos */}
+            <div style={s.card}>
+              <span style={s.label}>👆 Simular toque (coordenadas)</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>X</div>
+                  <input style={s.input} value={touchX} onChange={e => setTouchX(e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Y</div>
+                  <input style={s.input} value={touchY} onChange={e => setTouchY(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ ...s.row, marginTop: 8 }}>
+                <button style={s.btn('#0891b2')} onClick={handleTouch} disabled={loading}>👆 Tocar</button>
+              </div>
+            </div>
+
+            {/* Acciones extra */}
+            <div style={s.card}>
+              <span style={s.label}>📡 Comando ADB Avanzado</span>
+              <input style={s.input} placeholder="Ej: shell dumpsys window windows" value={adbCommand} onChange={e => setAdbCommand(e.target.value)} />
+              <div style={{ ...s.row, marginTop: 8 }}>
+                <button style={s.btnSm('#475569')} onClick={handleAdb} disabled={loading}>📡 Enviar comando</button>
+              </div>
+            </div>
+
+            <div style={s.card}>
+              <span style={s.label}>⚙️ Acciones del sistema</span>
+              <div style={s.row}>
+                <button style={s.btnSm('#f59e0b')} onClick={handleRestart} disabled={loading}>🔄 Reiniciar teléfono</button>
+                <button style={s.btnSm('#4f46e5')} onClick={handleInfo} disabled={loading}>📋 Info teléfono</button>
+              </div>
+              <PhoneInfoCard />
+            </div>
+          </>
+        )}
+
+        {/* ── TAB: STREAM ── */}
+        {activeTab === 'stream' && (
+          <div style={{ textAlign: 'center', padding: 20 }}>
+            {streamUrl ? (
+              <>
+                <iframe
+                  src={streamUrl}
+                  title="VMOS Cloud Stream"
+                  style={{ width: '100%', height: 500, borderRadius: 12, border: '2px solid #e2e8f0' }}
+                  allow="camera; microphone"
+                />
+                <div style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
+                  <a href={streamUrl} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>🔗 Abrir en ventana nueva</a>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: 40, color: '#64748b' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>📺</div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>No hay URL de stream</div>
+                <button style={s.btn()} onClick={handleStream} disabled={loading}>Obtener URL de pantalla</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB: INFO ── */}
+        {activeTab === 'info' && (
+          <div>
+            <div style={s.card}>
+              <span style={s.label}>📱 Datos del teléfono virtual</span>
+              <div style={s.info}>
+                <div><strong>Nombre:</strong> System Gift</div>
+                <div><strong>ID (padCode):</strong> <code style={{ color: '#7c3aed' }}>ATP25102002JRNCM</code></div>
+                <div><strong>Modelo:</strong> Samsung Galaxy S23 Ultra</div>
+                <div><strong>Android:</strong> 14</div>
+                <div><strong>Resolución:</strong> 1080 x 2340</div>
+                <div><strong>IMEI:</strong> 454005327252700</div>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <button style={s.btn()} onClick={handleInfo} disabled={loading}>🔄 Actualizar info desde API</button>
+              </div>
+              <PhoneInfoCard />
+            </div>
+            <div style={{ ...s.card, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+              <span style={{ ...s.label, color: '#1e3a8a' }}>🔗 Acceso rápido</span>
+              <div style={s.row}>
+                <a href="https://cloud.vmoscloud.com" target="_blank" rel="noreferrer" style={{ ...s.btn('#4f46e5'), textDecoration: 'none', display: 'inline-block' }}>🌐 Dashboard VMOS</a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── LOG ── */}
+        <div style={{ marginTop: 8 }}>
+          <span style={s.label}>📋 Log de actividad</span>
+          <div style={s.log}>
+            {log.length === 0
+              ? <span style={{ color: '#475569' }}>Sin actividad aún...</span>
+              : log.map((l, i) => <div key={i}>{l}</div>)
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUSCADOR DE CÉDULA POR DENOMINACIÓN (SRI)
+// ─────────────────────────────────────────────────────────────────────────────
+function BuscadorCedulaSRI() {
+  const [denominacion, setDenominacion] = React.useState('');
+  const [cargando, setCargando] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [resultados, setResultados] = React.useState(null);
+  const [pagina, setPagina] = React.useState(0);
+
+  const EDGE_URL = 'https://eapcqcuzfkpqngbvjtmv.functions.supabase.co';
+  const POR_PAGINA = 60;
+
+  const tipoIdInfo = (tipo) => {
+    switch (tipo) {
+      case 'C': return { label: 'Cédula',    color: '#1d4ed8', bg: '#dbeafe' };
+      case 'R': return { label: 'RUC',       color: '#065f46', bg: '#d1fae5' };
+      case 'P': return { label: 'Pasaporte', color: '#92400e', bg: '#fef3c7' };
+      default:  return { label: tipo || '?', color: '#374151', bg: '#f3f4f6' };
+    }
+  };
+
+  const [minEdad, setMinEdad] = React.useState(0);
+  const [maxEdad, setMaxEdad] = React.useState(100);
+  const [tipoDocFiltro, setTipoDocFiltro] = React.useState('TODOS'); // TODOS, C, R, P
+  const [registroEdades, setRegistroEdades] = React.useState({}); // {identificacion: edad}
+
+
+
+  const buscar = async (e) => {
+    e.preventDefault();
+    const q = denominacion.trim();
+    if (!q) { setError('Ingresa apellidos y/o nombres para buscar.'); return; }
+    setError('');
+    setResultados(null);
+    setRegistroEdades({}); // Limpiar edades al buscar de nuevo
+    setCargando(true);
+
+    try {
+      const params = new URLSearchParams({ denominacion: q, tipoPersona: 'N', resultados: '99' });
+      const resp = await fetch(`${EDGE_URL}/sri-denominacion-proxy?${params.toString()}`);
+
+      const data = await resp.json();
+      // El proxy devuelve {success:false, error:...} cuando el SRI falla
+      if (data && data.success === false) {
+        throw new Error(data.error || 'Error desconocido al consultar el SRI.');
+      }
+      if (!Array.isArray(data)) throw new Error('Respuesta inesperada del servidor.');
+      setResultados(data);
+    } catch (err) {
+      setError(err.message || 'Error desconocido al consultar.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleInfoLoaded = (id, edad) => {
+    setRegistroEdades(prev => ({ ...prev, [id]: edad }));
+  };
+
+  const tipoFiltroMap = { 'CÉDULA': 'C', 'RUC': 'R', 'PASAPORTE': 'P' };
+
+  const resultadosFiltrados = React.useMemo(() => {
+    if (!resultados) return [];
+    return resultados.filter(item => {
+      // Filtro de Tipo de Documento
+      if (tipoDocFiltro !== 'TODOS' && item.tipoIdentificacion !== tipoFiltroMap[tipoDocFiltro]) {
+         return false;
+      }
+      // Filtro de Edad
+      const e = Number(registroEdades[item.identificacion]);
+      // Si el filtro está en valores por defecto (0-100), mostramos todo lo que haya.
+      if (minEdad === 0 && maxEdad === 100) return true;
+      // IMPORTANTE: Permitimos mostrar si la edad es desconocida (isNaN) para que la tarjeta 
+      // pueda terminar su proceso de carga en segundo plano y luego filtrarse correctamente.
+      if (isNaN(e)) return true; 
+      return e >= minEdad && e <= maxEdad;
+
+      return e >= minEdad && e <= maxEdad;
+    });
+  }, [resultados, registroEdades, minEdad, maxEdad, tipoDocFiltro]);
+
+
+
+
+
+
+  return (
+
+    <div style={{ fontFamily: '"Inter", system-ui, sans-serif', color: '#0f172a' }}>
+      <style>{`
+        .bcs-input:focus { border-color:#818cf8 !important; box-shadow:0 0 0 3px rgba(129,140,248,.2); }
+        .bcs-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; display:flex; flex-direction:column; align-items:center; gap:10px; transition:transform .15s,box-shadow .15s,border-color .15s; }
+        .bcs-card:hover { transform:translateY(-3px); box-shadow:0 12px 24px rgba(0,0,0,0.10); border-color:#c7d2fe; }
+        .bcs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+        .bcs-photo-wrap { width:96px; height:120px; border-radius:6px; border:1px solid #e5e7eb; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .bcs-copy-btn { background:none; border:none; cursor:pointer; font-size:13px; padding:0; line-height:1; transition:opacity .15s; }
+        .bcs-copy-btn:hover { opacity:1 !important; }
+        .bcs-page-btn { padding:5px 12px; border:1px solid #c7d2fe; border-radius:6px; background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px; cursor:pointer; transition:background .15s; }
+        .bcs-page-btn:disabled { opacity:.4; cursor:not-allowed; }
+        .bcs-page-btn:not(:disabled):hover { background:#c7d2fe; }
+      `}</style>
+
+      <div style={{ fontSize:15, fontWeight:800, color:'#1e3a8a', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
+        <span>🔎</span> Buscador de Cédula — SRI Ecuador
+      </div>
+
+      <form onSubmit={buscar} style={{ display:'flex', gap:8, marginBottom:16 }}>
+        <input
+          className="bcs-input"
+          style={{ flex:1, padding:'10px 14px', border:'1.5px solid #c7d2fe', borderRadius:8, fontSize:14, color:'#111827', outline:'none', background:'#f8fafc', fontFamily:'inherit' }}
+          type="text"
+          value={denominacion}
+          onChange={(e) => setDenominacion(e.target.value)}
+          placeholder="Ej: BARRERA ALEX  o  RODRIGUEZ CARLOS ANDRES"
+          autoComplete="off"
+        />
+        <button
+          type="submit"
+          disabled={cargando}
+          style={{ padding:'10px 20px', background:'linear-gradient(135deg,#2563eb,#7c3aed)', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:cargando?'not-allowed':'pointer', opacity:cargando?.6:1, whiteSpace:'nowrap' }}
+        >
+          {cargando ? 'Buscando…' : 'Buscar'}
+        </button>
+      </form>
+
+      <div style={{ padding:'12px', background:'#f1f5f9', borderRadius:10, marginBottom:16, border:'1px dashed #cbd5e1' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+          <span style={{ fontSize:11, fontWeight:700, color:'#475569', width:70 }}>Filtro Edad:</span>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <input 
+              type="number" value={minEdad} onChange={e=>setMinEdad(parseInt(e.target.value)||0)}
+              style={{ width:45, padding:3, border:'1px solid #cbd5e1', borderRadius:6, fontSize:11, textAlign:'center' }}
+            />
+            <span style={{ fontSize:11, color:'#94a3b8' }}>a</span>
+            <input 
+              type="number" value={maxEdad} onChange={e=>setMaxEdad(parseInt(e.target.value)||100)}
+              style={{ width:45, padding:3, border:'1px solid #cbd5e1', borderRadius:6, fontSize:11, textAlign:'center' }}
+            />
+            <span style={{ fontSize:11, color:'#475569' }}>años</span>
+          </div>
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <span style={{ fontSize:11, fontWeight:700, color:'#475569', width:70 }}>Tipo Doc:</span>
+          <div style={{ display:'flex', gap:6 }}>
+            {['TODOS', 'CÉDULA', 'RUC', 'PASAPORTE'].map(t => (
+              <button 
+                key={t}
+                onClick={() => setTipoDocFiltro(t)}
+                style={{ 
+                  padding:'4px 10px', fontSize:10, fontWeight:700, borderRadius:999, cursor:'pointer', border:'none',
+                  background: tipoDocFiltro === t ? '#4f46e5' : '#e2e8f0',
+                  color: tipoDocFiltro === t ? '#fff' : '#475569',
+                  transition: 'background .2s'
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {resultados && (
+            <div style={{ marginLeft:'auto', fontSize:10, color:'#64748b' }}>
+              Viendo: <b>{resultadosFiltrados.length}</b> de <b>{resultados.length}</b>
+            </div>
+          )}
+        </div>
+      </div>
+
+
+
+      {error && (
+        <div style={{ background:'#fef2f2', border:'1px solid #fecaca', color:'#991b1b', borderRadius:8, padding:'10px 14px', fontSize:13, marginBottom:12 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {resultados && resultados.length === 0 && (
+        <div style={{ background:'#fefce8', border:'1px solid #fde68a', color:'#92400e', borderRadius:8, padding:'10px 14px', fontSize:13 }}>
+          Sin coincidencias para <strong>"{denominacion}"</strong>. Intenta con más apellidos o nombre completo.
+        </div>
+      )}
+
+      {resultados && resultados.length > 0 && (
+        <div style={{ marginTop:20 }}>
+          <div style={{ fontSize:12, color:'#64748b', fontWeight:600, marginBottom:16 }}>
+            Mostrando <strong>{resultadosFiltrados.length}</strong> resultados filtrados de <strong>{resultados.length}</strong>
+          </div>
+
+          <div className="bcs-grid">
+            {resultadosFiltrados.map((r, i) => (
+              <BCSCard 
+                key={`${r.identificacion}-${i}`} 
+                item={r} 
+                tipoIdInfo={tipoIdInfo} 
+                onInfoLoaded={handleInfoLoaded} 
+                index={i}
+              />
+            ))}
+          </div>
+
+          <div style={{ marginTop:24, fontSize:11, color:'#94a3b8', textAlign:'center', borderTop:'1px solid #e2e8f0', paddingTop:16 }}>
+            💡 Desliza hacia abajo para ver todos los resultados · Las fotos se cargan automáticamente para cédulas.
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+// ── Tarjeta individual con carga de foto ──────────────────────────────────────
+function BCSCard({ item, tipoIdInfo, onInfoLoaded, index }) {
+  const [dataApi, setDataApi] = React.useState(null); // Guardar toda la respuesta
+  const [foto, setFoto] = React.useState(null);
+  const [edad, setEdad] = React.useState(null);
+  const [loadingFoto, setLoadingFoto] = React.useState(false);
+  const [checkedFoto, setCheckedFoto] = React.useState(false);
+  const [copiado, setCopiado] = React.useState(false);
+
+
+  const info = tipoIdInfo(item.tipoIdentificacion);
+
+  React.useEffect(() => {
+    // AHORA PERMITIMOS CEDULA (C) Y RUC (R)
+    if (item.tipoIdentificacion !== 'C' && item.tipoIdentificacion !== 'R') return;
+    
+    // Si es RUC, quitamos los últimos 3 dígitos; si es Cédula, tomamos los 10 primeros.
+    const cedula = item.identificacion.substring(0, 10);
+    if (!/^\d{10}$/.test(cedula)) return;
+
+    let activo = true;
+    
+    // CARGA ESCALONADA: Retraso proporcional a la posición (index)
+    // Esto evita que hagamos 99 llamadas al mismo tiempo y saturemos la DB.
+    const delay = index * 350; 
+    const timer = setTimeout(() => {
+
+      if (!activo) return;
+      consultarFoto(cedula, activo);
+    }, delay);
+
+    return () => { activo = false; clearTimeout(timer); };
+  }, [item.identificacion, item.tipoIdentificacion, index]);
+
+  const consultarFoto = async (cedula, activo) => {
+    setLoadingFoto(true);
+    try {
+      // USAMOS EL NUEVO PROXY DE SUPABASE (Definido al inicio del archivo o en el componente superior)
+      const proxyUrl = "https://eapcqcuzfkpqngbvjtmv.functions.supabase.co/photo-proxy";
+      const resp = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cedula }),
+      });
+      
+      setCheckedFoto(true); // Ya se hizo el intento
+
+
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        if (!activo) return;
+        setDataApi(data); // <--- Guardamos todo el objeto para la UI
+        
+        // Calcular Edad (Aproximada como pidió el usuario)
+        if (data.success && data.fecha_nacimiento) {
+          const birthDate = new Date(data.fecha_nacimiento);
+          let age = new Date().getFullYear() - birthDate.getFullYear();
+          const m = new Date().getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && new Date().getDate() < birthDate.getDate())) {
+            age--; // Ajuste de cumpleaños no pasado
+          }
+          setEdad(age);
+          if (onInfoLoaded) onInfoLoaded(item.identificacion, age);
+        }
+
+
+        if (data.success && data.foto) {
+          const b64 = data.foto;
+          setFoto(b64.startsWith('data:image') ? b64 : `data:image/jpeg;base64,${b64}`);
+        }
+      }
+
+    } catch (e) {
+      console.error("[BCSCard] Error:", e);
+    } finally {
+      if (activo) setLoadingFoto(false);
+    }
+  };
+
+
+  const copiar = () => {
+    navigator.clipboard.writeText(item.identificacion).then(() => {
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    });
+  };
+
+  return (
+    <div className="bcs-card">
+      <div className="bcs-photo-wrap">
+        {(item.tipoIdentificacion === 'C' || item.tipoIdentificacion === 'R') ? (
+          loadingFoto
+            ? <span style={{ fontSize:10, color:'#4f46e5', fontWeight:700 }}>Buscando…</span>
+            : foto
+              ? <img src={foto} alt="Foto" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              : checkedFoto 
+                ? <span style={{ fontSize:9, color:'#ef4444', fontWeight:800, textAlign:'center' }}>SIN FOTO</span>
+                : <span style={{ fontSize:32, color:'#cbd5e1' }}>👤</span>
+        ) : (
+          <span style={{ fontSize:28, color:'#cbd5e1' }}>
+            🌐
+          </span>
+        )}
+      </div>
+
+
+      <div style={{ padding:'0 5px 10px', display:'flex', flexDirection:'column', gap:8, alignItems:'center', width:'100%' }}>
+        
+        {/* Nombre y Edad */}
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:11, fontWeight:800, color:'#0f172a', lineHeight:1.2, textTransform:'uppercase' }}>
+              {dataApi?.nombres || item.nombreComercial || '—'}
+            </div>
+            {edad !== null && (
+              <div style={{ fontSize:10, fontWeight:700, color:'#4f46e5', marginTop:2 }}>{edad} AÑOS ({dataApi?.fecha_nacimiento})</div>
+            )}
+          </div>
+
+          {/* Datos Extra de la API */}
+          {dataApi?.success && (
+            <div style={{ alignSelf:'stretch', background:'#f8fafc', padding:6, borderRadius:8, border:'1px solid #f1f5f9' }}>
+              <div style={{ fontSize:9, color:'#64748b', marginBottom:4, display:'flex', alignItems:'center', gap:4 }}>
+                📍 <strong>Lugar:</strong> <span style={{ color:'#334155' }}>{dataApi.lugar_nacimiento || 'N/A'}</span>
+              </div>
+              <div style={{ fontSize:9, color:'#64748b', display:'flex', alignItems:'center', gap:4 }}>
+                👆 <strong>Dactilar:</strong> <span style={{ color:'#334155', fontFamily:'monospace' }}>{dataApi.codigo_dactilar || 'N/A'}</span>
+              </div>
+            </div>
+          )}
+
+
+        {/* ID y Copiar */}
+        <div style={{ display:'flex', alignItems:'center', gap:4, background:'#eef2ff', borderRadius:6, padding:'4px 10px', border:'1px solid #dbeafe' }}>
+          <span style={{ fontFamily:'monospace', fontSize:11, fontWeight:700, color:'#1e40af' }}>
+            {item.identificacion}
+          </span>
+          <button
+            className="bcs-copy-btn"
+            title="Copiar"
+            onClick={copiar}
+            style={{ color: copiado ? '#10b981' : '#64748b', fontSize:12, cursor:'pointer', background:'none', border:'none' }}
+          >
+            {copiado ? '✅' : '📋'}
+          </button>
+        </div>
+
+        {/* Tag Tipo */}
+        <span style={{ display:'inline-block', padding:'2px 10px', borderRadius:999, fontSize:9, fontWeight:800, background:info.bg, color:info.color, textTransform:'uppercase', letterSpacing:.5 }}>
+          {info.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 
