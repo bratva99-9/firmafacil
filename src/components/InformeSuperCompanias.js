@@ -847,7 +847,7 @@ export default function InformeSuperCompanias() {
       margin-top: 50px;
       display: flex;
       justify-content: space-around;
-      align-items: flex-end;
+      align-items: flex-start;
       page-break-inside: avoid;
     }
     .footer {
@@ -1090,6 +1090,7 @@ export default function InformeSuperCompanias() {
       display: inline-block;
       margin: 0 40px;
       min-width: 200px;
+      vertical-align: top;
     }
     .firma-line {
       border-top: 1px solid #000;
@@ -1419,6 +1420,7 @@ export default function InformeSuperCompanias() {
       display: inline-block;
       margin: 0 40px;
       min-width: 200px;
+      vertical-align: top;
     }
     .firma-line {
       border-top: 1px solid #000;
@@ -1926,7 +1928,7 @@ export default function InformeSuperCompanias() {
       margin-top: 50px;
       display: flex;
       justify-content: space-around;
-      align-items: flex-end;
+      align-items: flex-start;
       page-break-inside: avoid;
     }
     .footer {
